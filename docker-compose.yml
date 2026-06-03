@@ -224,6 +224,14 @@ services:
       CONSUL_URL: http://consul:8500
 
   # ──────────── HOJ 在线判题 (可选, --profile hoj) ────────────
+  go-judge:
+    image: go-judge-with-compilers:latest
+    container_name: go-judge
+    profiles: [hoj]
+    restart: unless-stopped
+    ports: ["5050:5050"]
+    networks: [open436-net]
+
   hoj-mysql:
     image: mysql:8.0
     container_name: open436-hoj-mysql
@@ -261,12 +269,13 @@ services:
     profiles: [hoj]
     restart: unless-stopped
     ports: ["8088:8088"]
-    depends_on: [hoj-mysql]
+    depends_on: [hoj-mysql, go-judge]
     networks: [open436-net]
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://hoj-mysql:3306/hoj?useSSL=false&serverTimezone=Asia/Shanghai
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${HOJ_MYSQL_PASS:-hoj123456}
+      SANDBOX_URL: http://go-judge:5050
 
   hoj-vue:
     build: { context: ./Open436-hoj/hoj-vue, dockerfile: Dockerfile }

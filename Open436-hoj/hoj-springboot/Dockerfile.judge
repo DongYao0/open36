@@ -1,5 +1,5 @@
 # ── HOJ JudgeServer ── 多阶段构建 (Java 8)
-FROM maven:3.8-openjdk-8 AS builder
+FROM maven:3.8-eclipse-temurin-8 AS builder
 WORKDIR /build
 COPY pom.xml .
 COPY api/pom.xml api/pom.xml
@@ -9,7 +9,7 @@ RUN mvn dependency:go-offline -B -pl JudgeServer -am
 COPY . .
 RUN mvn package -DskipTests -B -pl JudgeServer -am
 
-FROM openjdk:8-jre-slim
+FROM eclipse-temurin:8-jre
 WORKDIR /app
 COPY --from=builder /build/JudgeServer/target/*.jar app.jar
 EXPOSE 8088

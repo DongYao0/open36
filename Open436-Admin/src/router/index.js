@@ -38,6 +38,10 @@ const routes = [
         meta: { title: '论坛管理', icon: 'ChatDotRound' }
       },
       {
+        path: 'enrollment',
+        redirect: '/enrollment/application'
+      },
+      {
         path: 'enrollment/application',
         name: 'EnrollmentApplication',
         component: () => import('@/views/enrollment/EnrollmentView.vue'),

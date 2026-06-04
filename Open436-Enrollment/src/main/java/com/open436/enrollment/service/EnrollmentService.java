@@ -103,7 +103,7 @@ public class EnrollmentService {
         log.info("审核完成: id={}, status={}, reviewer={}", id, request.getStatus(), adminName);
 
         // 查询 Auth 服务补充用户信息
-        Map<String, Object> userInfo = fetchSingleUserInfo(app.getAuthUserId());
+        Map<String, Object> userInfo = fetchSingleUserInfo(app.getAuthUserId(), token);
         return toResponse(app, userInfo);
     }
 
@@ -133,7 +133,7 @@ public class EnrollmentService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ApplicationListResponse> list(String status, String keyword, int page, int size) {
+    public Page<ApplicationListResponse> list(String status, String keyword, int page, int size, String token) {
         // 1. 先按状态筛选（关键词过滤依赖 Auth 用户信息，需全量拉取后过滤）
         List<EnrollmentApplication> apps;
         if (status != null && !status.isEmpty()) {
@@ -143,7 +143,7 @@ public class EnrollmentService {
         }
 
         // 2. 批量查询 Auth 服务获取用户详细信息
-        Map<Long, Map<String, Object>> userMap = batchFetchUserInfo(apps);
+        Map<Long, Map<String, Object>> userMap = batchFetchUserInfo(apps, token);
 
         // 3. 组装响应并处理关键词过滤
         List<ApplicationListResponse> responses = apps.stream()
@@ -178,7 +178,7 @@ public class EnrollmentService {
      * 批量从 Auth 服务查询用户信息
      */
     @SuppressWarnings("unchecked")
-    private Map<Long, Map<String, Object>> batchFetchUserInfo(List<EnrollmentApplication> apps) {
+    private Map<Long, Map<String, Object>> batchFetchUserInfo(List<EnrollmentApplication> apps, String token) {
         Map<Long, Map<String, Object>> result = new java.util.HashMap<>();
         if (apps.isEmpty()) {
             return result;
@@ -187,6 +187,9 @@ public class EnrollmentService {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            if (token != null && !token.isEmpty()) {
+                headers.set("token", token);
+            }
             HttpEntity<List<Long>> entity = new HttpEntity<>(userIds, headers);
             ResponseEntity<Map> response = restTemplate.exchange(
                     authServiceUrl + "/api/auth/users/batch-info",
@@ -237,10 +240,13 @@ public class EnrollmentService {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> fetchSingleUserInfo(Long authUserId) {
+    private Map<String, Object> fetchSingleUserInfo(Long authUserId, String token) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            if (token != null && !token.isEmpty()) {
+                headers.set("token", token);
+            }
             HttpEntity<Void> entity = new HttpEntity<>(headers);
             ResponseEntity<Map> response = restTemplate.exchange(
                     authServiceUrl + "/api/auth/users/" + authUserId,

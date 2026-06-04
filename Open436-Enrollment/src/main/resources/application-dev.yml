@@ -6,17 +6,14 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
-    baseline-on-migrate: true
-    baseline-version: 0
-    enabled: true
-    table: enrollment_flyway_schema_history
+    enabled: false
 
   redis:
     host: ${REDIS_HOST:localhost}

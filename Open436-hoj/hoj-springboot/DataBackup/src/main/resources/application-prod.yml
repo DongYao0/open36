@@ -26,6 +26,9 @@ jwt-token-fresh-expire: ${JWT_TOKEN_FRESH_EXPIRE:43200}
 open-remote-judge: ${OPEN_REMOTE_JUDGE:true}
 # 调用评测服务的token, default表示随机生成
 judge-token: ${JUDGE_TOKEN:default}
+hoj:
+  judge:
+    token: ${JUDGE_TOKEN:default}
 
 # 邮箱服务地址
 email-host: ${EMAIL_SERVER_HOST:smtp.qq.com}

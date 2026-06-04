@@ -1,6 +1,5 @@
 package com.open436.enrollment.controller;
 
-import cn.dev33.satoken.stp.StpUtil;
 import com.open436.enrollment.dto.*;
 import com.open436.enrollment.service.EnrollmentService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,7 +30,7 @@ public class EnrollmentController {
     @Value("${auth.service.url:http://localhost:8081}")
     private String authServiceUrl;
 
-    private void checkAdmin(HttpServletRequest request) {
+    private String checkAdmin(HttpServletRequest request) {
         String token = request.getHeader("token");
         log.info("[DEBUG] checkAdmin received token: {}", token);
         if (token == null || token.isEmpty()) {
@@ -56,6 +55,9 @@ public class EnrollmentController {
             if (!"admin".equals(role)) {
                 throw new RuntimeException("无管理员权限");
             }
+            return (String) data.get("username");
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("鉴权失败: " + e.getMessage());
         }
@@ -76,7 +78,8 @@ public class EnrollmentController {
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest request) {
         checkAdmin(request);
-        Page<ApplicationListResponse> result = enrollmentService.list(status, keyword, page, size);
+        String token = request.getHeader("token");
+        Page<ApplicationListResponse> result = enrollmentService.list(status, keyword, page, size, token);
         return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "list", result.getContent(),
                 "total", result.getTotalElements()
@@ -88,8 +91,7 @@ public class EnrollmentController {
             @PathVariable Long id,
             @Valid @RequestBody ReviewRequest request,
             HttpServletRequest httpRequest) {
-        checkAdmin(httpRequest);
-        String adminName = StpUtil.getSession().get("username", StpUtil.getLoginIdAsString());
+        String adminName = checkAdmin(httpRequest);
         String token = httpRequest.getHeader("token");
         ApplicationListResponse response = enrollmentService.review(id, request, adminName, token);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -99,8 +101,7 @@ public class EnrollmentController {
     public ResponseEntity<ApiResponse<Void>> batchReview(
             @Valid @RequestBody BatchReviewRequest request,
             HttpServletRequest httpRequest) {
-        checkAdmin(httpRequest);
-        String adminName = StpUtil.getSession().get("username", StpUtil.getLoginIdAsString());
+        String adminName = checkAdmin(httpRequest);
         String token = httpRequest.getHeader("token");
         enrollmentService.batchReview(request, adminName, token);
         return ResponseEntity.ok(ApiResponse.success());

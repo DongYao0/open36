@@ -63,7 +63,7 @@ class InternalSectionViewSet(viewsets.ViewSet):
     def validate(self, request, pk=None):
         """
         验证板块是否存在且已启用
-        
+
         GET /internal/sections/{id}/validate/
         """
         try:
@@ -83,4 +83,22 @@ class InternalSectionViewSet(viewsets.ViewSet):
                 error='SectionNotFound',
                 status_code=status.HTTP_404_NOT_FOUND
             )
+
+    def list(self, request):
+        """
+        获取所有启用的板块列表
+
+        GET /internal/sections/
+        """
+        sections = Section.get_enabled_sections()
+        results = []
+        for s in sections:
+            results.append({
+                'id': s.id,
+                'slug': s.slug,
+                'name': s.name,
+                'description': s.description,
+                'is_enabled': s.is_enabled,
+            })
+        return success_response(data={'sections': results})
 

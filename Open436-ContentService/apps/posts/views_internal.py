@@ -150,8 +150,7 @@ class InternalPostViewSet(viewsets.GenericViewSet):
             'results': serializer.data,
         }))
 
-    @action(detail=False, methods=['post'], url_path='')
-    def create_post(self, request):
+    def create(self, request):
         """
         创建帖子（供AI服务调用）
 

@@ -65,6 +65,16 @@ class Post(models.Model):
         help_text='浏览量'
     )
 
+    replies_count = models.IntegerField(
+        default=0,
+        help_text='回复数（由M4评论服务同步更新）'
+    )
+
+    likes_count = models.IntegerField(
+        default=0,
+        help_text='点赞数（由M4评论服务同步更新）'
+    )
+
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,

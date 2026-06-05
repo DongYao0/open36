@@ -11,8 +11,6 @@ class PostListSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     section = serializers.SerializerMethodField()
     content_preview = serializers.SerializerMethodField()
-    replies_count = serializers.IntegerField(default=0, read_only=True)
-    likes_count = serializers.IntegerField(default=0, read_only=True)
 
     class Meta:
         model = Post
@@ -46,8 +44,6 @@ class PostDetailSerializer(serializers.ModelSerializer):
 
     author = serializers.SerializerMethodField()
     section = serializers.SerializerMethodField()
-    replies_count = serializers.IntegerField(default=0, read_only=True)
-    likes_count = serializers.IntegerField(default=0, read_only=True)
     is_edited = serializers.SerializerMethodField()
     can_edit = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()

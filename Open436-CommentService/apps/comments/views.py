@@ -78,6 +78,22 @@ def _update_user_stats(user_id, field, value):
         logger.warning(f'Update user stats failed: {e}')
 
 
+def _update_post_count(post_id, field, value):
+    """更新帖子计数（调用 M3 content-service）"""
+    try:
+        url = _get_service_url('content-service', 'CONTENT_SERVICE_URL')
+        if not url:
+            return
+        requests.post(
+            f'{url}/internal/posts/{post_id}/{field}/',
+            json={'value': value},
+            timeout=2,
+            headers={'X-Internal-API-Key': settings.INTERNAL_API_KEY}
+        )
+    except Exception as e:
+        logger.warning(f'Update post {field} failed: {e}')
+
+
 class ReplyViewSet(viewsets.GenericViewSet):
     """回复视图集"""
 
@@ -217,6 +233,7 @@ class ReplyViewSet(viewsets.GenericViewSet):
         )
 
         _update_user_stats(author_id, 'replies_count', 1)
+        _update_post_count(post_id, 'increment-replies', 1)
         return Response(success_response(
             data=ReplyListSerializer(reply, context={'request': request}).data,
             message='回复成功'
@@ -262,6 +279,7 @@ class ReplyViewSet(viewsets.GenericViewSet):
 
         reply.soft_delete()
         _update_user_stats(reply.author_id, 'replies_count', -1)
+        _update_post_count(reply.post_id, 'increment-replies', -1)
         return Response(success_response(message='回复已删除'))
 
     @action(detail=True, methods=['post'], url_path='like')
@@ -345,11 +363,13 @@ class InteractionViewSet(viewsets.GenericViewSet):
             # 已点赞，取消点赞
             like.delete()
             _update_user_stats(user_id, 'likes_received', -1)
+            _update_post_count(post_id, 'increment-likes', -1)
             likes_count = PostLike.objects.filter(post_id=post_id).count()
             return Response(success_response(data={'is_liked': False, 'likes_count': likes_count}, message='已取消点赞'))
 
         # 新增点赞
         _update_user_stats(user_id, 'likes_received', 1)
+        _update_post_count(post_id, 'increment-likes', 1)
         likes_count = PostLike.objects.filter(post_id=post_id).count()
         return Response(success_response(data={'is_liked': True, 'likes_count': likes_count}, message='点赞成功'))
 

@@ -89,7 +89,10 @@ class Reply(models.Model):
             return True
         if self.author_id != user_id:
             return False
-        minutes_since = (timezone.now() - self.created_at).total_seconds() / 60
+        created = self.created_at
+        if timezone.is_naive(created):
+            created = timezone.make_aware(created)
+        minutes_since = (timezone.now() - created).total_seconds() / 60
         return minutes_since <= 5
 
     def record_edit(self):

@@ -29,6 +29,10 @@
         <el-icon><EditPen /></el-icon>
         <template #title>算法管理</template>
       </el-menu-item>
+      <el-menu-item index="/ai-chat">
+        <el-icon><MagicStick /></el-icon>
+        <template #title>AI 助手</template>
+      </el-menu-item>
       <el-sub-menu index="enrollment">
         <template #title>
           <el-icon><UserFilled /></el-icon>

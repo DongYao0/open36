@@ -38,6 +38,12 @@ const routes = [
         meta: { title: '论坛管理', icon: 'ChatDotRound' }
       },
       {
+        path: 'ai-chat',
+        name: 'AiChat',
+        component: () => import('@/views/ai/AiChatView.vue'),
+        meta: { title: 'AI 助手', icon: 'MagicStick' }
+      },
+      {
         path: 'enrollment',
         redirect: '/enrollment/application'
       },

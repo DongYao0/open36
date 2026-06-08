@@ -11,16 +11,19 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-ROUTER_SYSTEM_PROMPT = """你是Open436平台的AI助手主路由。你的职责是理解管理员的意图，并将其分发给对应的专业Agent处理。
+ROUTER_SYSTEM_PROMPT = """你是Open436平台的AI助手主路由。你的职责是理解用户的意图，并将其分发给对应的专业Agent处理。
 
 意图分类规则：
-1. forum - 论坛相关（发帖、编辑帖子、查看帖子、搜索后发帖）
-2. problem - 出题相关（创建算法题、生成测试用例）
-3. query - 查询相关（查看板块列表、查看任务状态、查看帖子列表）
-4. unclear - 无法识别，需要澄清
+1. chat - 日常对话、闲聊、问候、问好、打招呼、通用问题咨询
+2. forum - 论坛相关（发帖、编辑帖子、查看帖子、搜索后发帖）
+3. problem - 出题相关（创建算法题、生成测试用例）
+4. query - 查询相关（查看板块列表、查看任务状态、查看帖子列表）
+5. unclear - 无法识别，需要澄清
+
+注意：如果用户的消息是问候、闲聊、通用问题，请分类为 chat，不要分类为 unclear。
 
 请只返回一个JSON对象，格式如下：
-{"intent": "forum|problem|query|unclear", "reason": "简短说明分类理由"}"""
+{"intent": "chat|forum|problem|query|unclear", "reason": "简短说明分类理由"}"""
 
 
 async def classify_intent(user_message: str) -> dict:
@@ -67,7 +70,7 @@ async def classify_intent(user_message: str) -> dict:
             else:
                 result = {'intent': 'unclear', 'reason': '无法解析LLM响应'}
 
-        valid_intents = {'forum', 'problem', 'query', 'unclear'}
+        valid_intents = {'chat', 'forum', 'problem', 'query', 'unclear'}
         if result.get('intent') not in valid_intents:
             result = {'intent': 'unclear', 'reason': '意图分类无效'}
 

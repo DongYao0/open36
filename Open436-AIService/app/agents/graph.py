@@ -4,6 +4,9 @@ LangGraph状态图 - 多Agent路由与执行
 import logging
 from typing import TypedDict, Any
 
+import httpx
+
+from app.config import settings
 from app.agents.router import classify_intent
 from app.agents.forum import execute_forum_task
 from app.agents.problem import execute_problem_task
@@ -60,14 +63,65 @@ async def query_node(state: AgentState) -> AgentState:
     return state
 
 
+CHAT_SYSTEM_PROMPT = """你是Open436平台的AI助手，名叫小46。你性格友好、专业、简洁。
+- 可以回答日常问题、闲聊、提供帮助
+- 涉及平台操作时，可以引导用户使用具体功能（发帖、出题等）
+- 回复简洁自然，不要过度使用markdown格式"""
+
+
+async def chat_node(state: AgentState) -> AgentState:
+    """通用聊天节点：使用LLM直接对话"""
+    try:
+        base_url = settings.LLM_BASE_URL or 'https://api.deepseek.com'
+        url = f'{base_url}/v1/chat/completions'
+
+        payload = {
+            'model': settings.LLM_MODEL,
+            'messages': [
+                {'role': 'system', 'content': CHAT_SYSTEM_PROMPT},
+                {'role': 'user', 'content': state['user_message']},
+            ],
+            'temperature': 0.7,
+            'max_tokens': 1024,
+        }
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                url,
+                json=payload,
+                headers={'Authorization': f'Bearer {settings.ANTHROPIC_API_KEY}'},
+                timeout=30.0,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        reply = data['choices'][0]['message']['content'].strip()
+        usage = data.get('usage', {})
+
+        state['agent_name'] = 'chat'
+        state['reply'] = reply
+        state['tool_calls'] = []
+        state['token_usage'] = {
+            'input': usage.get('prompt_tokens', 0),
+            'output': usage.get('completion_tokens', 0),
+        }
+    except Exception as e:
+        logger.error(f'聊天Agent异常: {e}')
+        state['agent_name'] = 'chat'
+        state['reply'] = f'抱歉，处理消息时出现问题：{str(e)}'
+        state['tool_calls'] = []
+        state['token_usage'] = {'input': 0, 'output': 0}
+
+    return state
+
+
 async def unclear_node(state: AgentState) -> AgentState:
     """澄清节点"""
     state['agent_name'] = 'router'
     state['reply'] = (
-        '抱歉，我没有完全理解您的指令。您是想要：\n'
-        '1. 在论坛发布一篇帖子\n'
-        '2. 生成一道算法题目\n'
-        '请告诉我您的具体需求。'
+        '抱歉，我没有完全理解您的指令。您可以：\n'
+        '- 直接描述需求，例如"帮我发一篇帖子"或"生成一道算法题"\n'
+        '- 或者直接和我聊天也可以哦'
     )
     state['tool_calls'] = []
     state['token_usage'] = {'input': 0, 'output': 0}
@@ -106,6 +160,8 @@ async def run_agent(user_message: str, user_id: int) -> dict:
         state = await problem_node(state)
     elif intent == 'query':
         state = await query_node(state)
+    elif intent == 'chat':
+        state = await chat_node(state)
     else:
         state = await unclear_node(state)
 

@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.core.database import init_db, close_db
+from app.models import *  # noqa: F401,F403 — 确保所有模型注册到 Base.metadata
 from app.core.redis import init_redis, close_redis
 from app.core.responses import success_response, error_response
 from app.api.chat import router as chat_router

@@ -78,7 +78,7 @@
           <el-radio-button value="assigned">已分配</el-radio-button>
           <el-radio-button value="unassigned">未分配</el-radio-button>
         </el-radio-group>
-        <el-button type="primary" @click="showAssignDialog = true">
+        <el-button type="primary" @click="openAssignDialog">
           <el-icon><Plus /></el-icon>添加人员
         </el-button>
         <el-button type="success" :disabled="!selectedMembers.length || !selectedMembers.some(m => !m.assigned)" @click="batchAssignSelected">
@@ -92,7 +92,7 @@
       <el-table :data="members" stripe v-loading="memberLoading" @selection-change="handleMemberSelect">
         <el-table-column type="selection" width="50" />
         <el-table-column prop="studentName" label="姓名" width="100" />
-        <el-table-column prop="studentId" label="学号" width="130" />
+        <el-table-column prop="studentNo" label="学号" width="130" />
         <el-table-column prop="major" label="专业" width="120" />
         <el-table-column prop="direction" label="方向" width="100">
           <template #default="{ row }">
@@ -142,7 +142,7 @@
         <el-table :data="filteredStudents" stripe height="300" @selection-change="handleAssignSelect">
           <el-table-column type="selection" width="50" />
           <el-table-column prop="studentName" label="姓名" width="80" />
-          <el-table-column prop="studentId" label="学号" width="110" />
+          <el-table-column prop="studentNo" label="学号" width="110" />
           <el-table-column prop="major" label="专业" width="120" />
           <el-table-column prop="direction" label="方向" width="80">
             <template #default="{ row }">
@@ -163,6 +163,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import StatCard from '@/components/StatCard.vue'
+import {
+  getAssignmentList, getAssignmentStats, createAssignment, deleteAssignment as apiDeleteAssignment,
+  getAssignmentMembers, allocateStudents, removeAllocation as apiRemoveAllocation,
+  batchRemoveAllocations, getStudentPool
+} from '@/api/assignment'
 
 const loading = ref(false)
 const assignments = ref([])
@@ -188,20 +193,15 @@ const formData = ref({
   deadline: null
 })
 
-// 模拟学生数据
-const allStudents = ref([
-  { studentName: '张三', studentId: '2024001', major: '计算机科学', direction: '前端' },
-  { studentName: '李四', studentId: '2024002', major: '软件工程', direction: '后端' },
-  { studentName: '王五', studentId: '2024003', major: '人工智能', direction: '算法' },
-  { studentName: '赵六', studentId: '2024004', major: '数据科学', direction: '前端' },
-  { studentName: '钱七', studentId: '2024005', major: '信息安全', direction: '后端' }
-])
+// 学生池数据（从后端获取）
+const allStudents = ref([])
+const studentPoolLoading = ref(false)
 
 const filteredStudents = computed(() => {
   if (!searchStudent.value) return allStudents.value
   const kw = searchStudent.value.toLowerCase()
   return allStudents.value.filter(s =>
-    s.studentName.toLowerCase().includes(kw) || s.studentId.includes(kw)
+    (s.studentName || '').toLowerCase().includes(kw) || (s.studentNo || '').includes(kw)
   )
 })
 
@@ -209,18 +209,22 @@ const statusLabels = { active: '进行中', ended: '已截止', pending: '待分
 const statusTagType = { active: 'warning', ended: 'success', pending: 'info' }
 
 async function loadStats() {
-  stats.value = { total: 12, active: 5, ended: 4, pending: 3 }
+  try {
+    const res = await getAssignmentStats()
+    stats.value = res.data
+  } catch (e) {
+    console.error('加载统计失败', e)
+  }
 }
 
 async function loadList() {
   loading.value = true
   try {
-    assignments.value = [
-      { id: 1, title: 'Vue3基础作业', deadline: '2026-06-15 23:59', status: 'active', assignedCount: 3, description: '完成Vue3基础组件开发' },
-      { id: 2, title: 'Spring Boot实战', deadline: '2026-06-20 23:59', status: 'active', assignedCount: 2, description: '完成RESTful API开发' },
-      { id: 3, title: '算法训练题', deadline: '2026-06-10 23:59', status: 'ended', assignedCount: 5, description: '完成10道LeetCode题目' }
-    ]
-    total.value = 3
+    const res = await getAssignmentList({ page: page.value, size: 10 })
+    assignments.value = res.data.list
+    total.value = res.data.total
+  } catch (e) {
+    console.error('加载作业列表失败', e)
   } finally {
     loading.value = false
   }
@@ -232,32 +236,16 @@ function enterAssignment(row) {
 }
 
 async function loadMembers() {
+  if (!selectedAssignment.value) return
   memberLoading.value = true
   try {
-    // 模拟数据：根据作业ID获取人员列表
-    const mockMembers = [
-      { studentName: '张三', studentId: '2024001', major: '计算机科学', direction: '前端', assigned: true, assignedAt: '2026-06-01 10:00' },
-      { studentName: '李四', studentId: '2024002', major: '软件工程', direction: '后端', assigned: true, assignedAt: '2026-06-01 10:00' },
-      { studentName: '王五', studentId: '2024003', major: '人工智能', direction: '算法', assigned: false, assignedAt: null },
-      { studentName: '赵六', studentId: '2024004', major: '数据科学', direction: '前端', assigned: false, assignedAt: null },
-      { studentName: '钱七', studentId: '2024005', major: '信息安全', direction: '后端', assigned: true, assignedAt: '2026-06-02 14:30' }
-    ]
-
-    let filtered = mockMembers
-    if (memberFilter.value === 'assigned') {
-      filtered = mockMembers.filter(m => m.assigned)
-    } else if (memberFilter.value === 'unassigned') {
-      filtered = mockMembers.filter(m => !m.assigned)
-    }
-
-    if (memberKeyword.value) {
-      const kw = memberKeyword.value.toLowerCase()
-      filtered = filtered.filter(m =>
-        m.studentName.toLowerCase().includes(kw) || m.studentId.includes(kw)
-      )
-    }
-
-    members.value = filtered
+    const res = await getAssignmentMembers(selectedAssignment.value.id, {
+      keyword: memberKeyword.value,
+      filter: memberFilter.value
+    })
+    members.value = res.data
+  } catch (e) {
+    console.error('加载人员列表失败', e)
   } finally {
     memberLoading.value = false
   }
@@ -267,29 +255,39 @@ function handleMemberSelect(rows) {
   selectedMembers.value = rows
 }
 
-function assignMember(row) {
-  // TODO: 调用后端API分配
-  row.assigned = true
-  row.assignedAt = new Date().toLocaleString()
-  ElMessage.success(`已分配给 ${row.studentName}`)
+async function assignMember(row) {
+  try {
+    await allocateStudents(selectedAssignment.value.id, { studentIds: [row.studentId] })
+    ElMessage.success(`已分配给 ${row.studentName}`)
+    loadMembers()
+  } catch (e) {
+    ElMessage.error('分配失败')
+  }
 }
 
-function removeMember(row) {
-  // TODO: 调用后端API移除
-  row.assigned = false
-  row.assignedAt = null
-  ElMessage.success(`已移除 ${row.studentName}`)
+async function removeMember(row) {
+  try {
+    await apiRemoveAllocation(selectedAssignment.value.id, row.studentId)
+    ElMessage.success(`已移除 ${row.studentName}`)
+    loadMembers()
+  } catch (e) {
+    ElMessage.error('移除失败')
+  }
 }
 
 function batchRemove() {
   const assignedMembers = selectedMembers.value.filter(m => m.assigned)
-  ElMessageBox.confirm(`确定移除选中的 ${assignedMembers.length} 人？`, '确认', { type: 'warning' }).then(() => {
-    assignedMembers.forEach(m => {
-      m.assigned = false
-      m.assignedAt = null
-    })
-    ElMessage.success('批量移除成功')
-    selectedMembers.value = []
+  ElMessageBox.confirm(`确定移除选中的 ${assignedMembers.length} 人？`, '确认', { type: 'warning' }).then(async () => {
+    try {
+      await batchRemoveAllocations(selectedAssignment.value.id, {
+        studentIds: assignedMembers.map(m => m.studentId)
+      })
+      ElMessage.success('批量移除成功')
+      selectedMembers.value = []
+      loadMembers()
+    } catch (e) {
+      ElMessage.error('批量移除失败')
+    }
   }).catch(() => {})
 }
 
@@ -299,14 +297,17 @@ function batchAssignSelected() {
     ElMessage.warning('请选择未分配的人员')
     return
   }
-  ElMessageBox.confirm(`确定分配选中的 ${unassignedMembers.length} 人？`, '确认', { type: 'success' }).then(() => {
-    // TODO: 调用后端API批量分配
-    unassignedMembers.forEach(m => {
-      m.assigned = true
-      m.assignedAt = new Date().toLocaleString()
-    })
-    ElMessage.success('批量分配成功')
-    selectedMembers.value = []
+  ElMessageBox.confirm(`确定分配选中的 ${unassignedMembers.length} 人？`, '确认', { type: 'success' }).then(async () => {
+    try {
+      await allocateStudents(selectedAssignment.value.id, {
+        studentIds: unassignedMembers.map(m => m.studentId)
+      })
+      ElMessage.success('批量分配成功')
+      selectedMembers.value = []
+      loadMembers()
+    } catch (e) {
+      ElMessage.error('批量分配失败')
+    }
   }).catch(() => {})
 }
 
@@ -314,45 +315,77 @@ function handleAssignSelect(rows) {
   assignSelection.value = rows
 }
 
-function batchAssign() {
+async function batchAssign() {
   if (!assignSelection.value.length) {
     ElMessage.warning('请选择要分配的人员')
     return
   }
-  // TODO: 调用后端API批量分配
-  assignSelection.value.forEach(s => {
-    const existing = members.value.find(m => m.studentId === s.studentId)
-    if (existing) {
-      existing.assigned = true
-      existing.assignedAt = new Date().toLocaleString()
-    }
-  })
-  ElMessage.success(`已分配 ${assignSelection.value.length} 人`)
-  showAssignDialog.value = false
-  assignSelection.value = []
+  try {
+    await allocateStudents(selectedAssignment.value.id, {
+      studentIds: assignSelection.value.map(s => s.studentId)
+    })
+    ElMessage.success(`已分配 ${assignSelection.value.length} 人`)
+    showAssignDialog.value = false
+    assignSelection.value = []
+    loadMembers()
+    loadList()
+  } catch (e) {
+    ElMessage.error('分配失败')
+  }
 }
 
-function submitForm() {
+async function submitForm() {
   if (!formData.value.title || !formData.value.deadline) {
     ElMessage.warning('请填写必填项')
     return
   }
-  // TODO: 调用后端API创建
-  ElMessage.success('作业已发布')
-  showCreateDialog.value = false
-  formData.value = { title: '', description: '', deadline: null }
-  loadList()
-  loadStats()
+  try {
+    await createAssignment({
+      title: formData.value.title,
+      description: formData.value.description,
+      deadline: formData.value.deadline
+    })
+    ElMessage.success('作业已发布')
+    showCreateDialog.value = false
+    formData.value = { title: '', description: '', deadline: null }
+    loadList()
+    loadStats()
+  } catch (e) {
+    ElMessage.error('发布失败')
+  }
 }
 
 async function deleteAssignment(row) {
   try {
     await ElMessageBox.confirm(`确定删除作业「${row.title}」？`, '确认', { type: 'warning' })
-    // TODO: 调用后端API删除
+    await apiDeleteAssignment(row.id)
     ElMessage.success('已删除')
     loadList()
     loadStats()
-  } catch {}
+  } catch (e) {
+    if (e !== 'cancel' && e?.message !== 'cancel') ElMessage.error('删除失败')
+  }
+}
+
+// 打开添加人员弹窗时加载学生池
+async function loadStudentPool() {
+  if (!selectedAssignment.value) return
+  studentPoolLoading.value = true
+  try {
+    const res = await getStudentPool(selectedAssignment.value.id, { keyword: searchStudent.value })
+    allStudents.value = res.data
+  } catch (e) {
+    console.error('加载学生池失败', e)
+  } finally {
+    studentPoolLoading.value = false
+  }
+}
+
+// 监听添加人员弹窗打开
+function openAssignDialog() {
+  searchStudent.value = ''
+  showAssignDialog.value = true
+  loadStudentPool()
 }
 
 onMounted(() => {

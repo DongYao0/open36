@@ -82,7 +82,7 @@
 
       <el-table :data="students" stripe v-loading="studentLoading" @row-click="enterStudent">
         <el-table-column prop="studentName" label="姓名" width="100" />
-        <el-table-column prop="studentId" label="学号" width="130" />
+        <el-table-column prop="studentNo" label="学号" width="130" />
         <el-table-column prop="major" label="专业" width="120" />
         <el-table-column prop="direction" label="方向" width="100">
           <template #default="{ row }">
@@ -130,7 +130,7 @@
             </template>
             <el-descriptions :column="1" border size="small">
               <el-descriptions-item label="姓名">{{ selectedStudent.studentName }}</el-descriptions-item>
-              <el-descriptions-item label="学号">{{ selectedStudent.studentId }}</el-descriptions-item>
+              <el-descriptions-item label="学号">{{ selectedStudent.studentNo }}</el-descriptions-item>
               <el-descriptions-item label="专业">{{ selectedStudent.major }}</el-descriptions-item>
               <el-descriptions-item label="方向">
                 <el-tag size="small" type="primary">{{ selectedStudent.direction }}</el-tag>
@@ -155,7 +155,7 @@
             <div v-if="selectedStudent.status === 'unsubmitted'" class="empty-content">
               <el-empty description="该学生尚未提交作业" />
               <div style="text-align:center;margin-top:16px">
-                <el-button type="warning" @click="sendReminder">发送催交通知</el-button>
+                <el-button type="warning" @click="handleReminder(selectedStudent)">发送催交通知</el-button>
               </div>
             </div>
 
@@ -179,7 +179,7 @@
 
               <div v-if="selectedStudent.codeContent" class="code-content">
                 <h4>代码提交</h4>
-                <el-input v-model="selectedStudent.codeContent" type="textarea" :rows="15" readonly />
+                <el-input :model-value="selectedStudent.codeContent" type="textarea" :rows="15" readonly />
               </div>
             </div>
           </el-card>
@@ -191,8 +191,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import StatCard from '@/components/StatCard.vue'
+import {
+  getAssignmentList, getAssignmentStats,
+  getSubmissions, getSubmissionDetail, sendReminder as apiSendReminder
+} from '@/api/assignment'
 
 const loading = ref(false)
 const assignments = ref([])
@@ -210,25 +214,29 @@ const studentFilter = ref('')
 // 第三层相关
 const selectedStudent = ref(null)
 
-const statusLabels = { active: '进行中', ended: '已截止', collecting: '收集中' }
-const statusTagType = { active: 'warning', ended: 'success', collecting: '' }
+const statusLabels = { active: '进行中', ended: '已截止', pending: '待分发' }
+const statusTagType = { active: 'warning', ended: 'success', pending: 'info' }
 
 const submitStatusLabel = { submitted: '已提交', unsubmitted: '未提交' }
 const submitStatusType = { submitted: 'warning', unsubmitted: 'info' }
 
 async function loadStats() {
-  stats.value = { total: 12, collecting: 5, collected: 4, submitRate: 75 }
+  try {
+    const res = await getAssignmentStats()
+    stats.value = res.data
+  } catch (e) {
+    console.error('加载统计失败', e)
+  }
 }
 
 async function loadList() {
   loading.value = true
   try {
-    assignments.value = [
-      { id: 1, title: 'Vue3基础作业', deadline: '2026-06-15 23:59', status: 'active', submittedCount: 3, totalCount: 5, description: '完成Vue3基础组件开发' },
-      { id: 2, title: 'Spring Boot实战', deadline: '2026-06-20 23:59', status: 'collecting', submittedCount: 1, totalCount: 4, description: '完成RESTful API开发' },
-      { id: 3, title: '算法训练题', deadline: '2026-06-10 23:59', status: 'ended', submittedCount: 5, totalCount: 5, description: '完成10道LeetCode题目' }
-    ]
-    total.value = 3
+    const res = await getAssignmentList({ page: page.value, size: 10 })
+    assignments.value = res.data.list
+    total.value = res.data.total
+  } catch (e) {
+    console.error('加载作业列表失败', e)
   } finally {
     loading.value = false
   }
@@ -241,42 +249,41 @@ function enterAssignment(row) {
 }
 
 async function loadStudents() {
+  if (!selectedAssignment.value) return
   studentLoading.value = true
   try {
-    const mockStudents = [
-      { studentName: '张三', studentId: '2024001', major: '计算机科学', direction: '前端', status: 'submitted', submittedAt: '2026-06-08 14:30', content: '完成了所有基础组件的开发...', files: [{ name: 'homework1.zip', size: '2.3MB' }] },
-      { studentName: '李四', studentId: '2024002', major: '软件工程', direction: '后端', status: 'submitted', submittedAt: '2026-06-09 10:15', content: '实现了响应式布局和组件复用...', files: [{ name: 'project.zip', size: '5.1MB' }] },
-      { studentName: '王五', studentId: '2024003', major: '人工智能', direction: '算法', status: 'unsubmitted', submittedAt: null, content: null, files: [] },
-      { studentName: '赵六', studentId: '2024004', major: '数据科学', direction: '前端', status: 'submitted', submittedAt: '2026-06-09 16:45', content: '完成了Vue3组合式API的学习...', files: [{ name: 'report.pdf', size: '1.2MB' }, { name: 'code.zip', size: '3.4MB' }] },
-      { studentName: '钱七', studentId: '2024005', major: '信息安全', direction: '后端', status: 'submitted', submittedAt: '2026-06-07 20:00', content: '完成了所有要求并添加了额外功能...', files: [{ name: 'submission.zip', size: '4.5MB' }] }
-    ]
-
-    let filtered = mockStudents
-    if (studentFilter.value) {
-      filtered = mockStudents.filter(s => s.status === studentFilter.value)
-    }
-    if (studentKeyword.value) {
-      const kw = studentKeyword.value.toLowerCase()
-      filtered = filtered.filter(s =>
-        s.studentName.toLowerCase().includes(kw) || s.studentId.includes(kw)
-      )
-    }
-    students.value = filtered
+    const res = await getSubmissions(selectedAssignment.value.id, {
+      keyword: studentKeyword.value,
+      filter: studentFilter.value
+    })
+    students.value = res.data
+  } catch (e) {
+    console.error('加载提交列表失败', e)
   } finally {
     studentLoading.value = false
   }
 }
 
-function enterStudent(row) {
+async function enterStudent(row) {
   if (row.status === 'unsubmitted') {
-    sendReminder()
+    handleReminder(row)
     return
   }
-  selectedStudent.value = row
+  try {
+    const res = await getSubmissionDetail(row.id)
+    selectedStudent.value = res.data
+  } catch (e) {
+    ElMessage.error('获取提交详情失败')
+  }
 }
 
-function sendReminder() {
-  ElMessage.success('已发送催交通知')
+async function handleReminder(row) {
+  try {
+    await apiSendReminder(row.id)
+    ElMessage.success('已发送催交通知')
+  } catch (e) {
+    ElMessage.error('催交失败')
+  }
 }
 
 onMounted(() => {

@@ -14,7 +14,23 @@ export default defineConfig({
     port: 3001,
     open: true,
     proxy: {
+      '/api/admin/role': {
+        target: 'http://localhost:6688',
+        changeOrigin: true
+      },
+      '/api/admin/user': {
+        target: 'http://localhost:6688',
+        changeOrigin: true
+      },
       '/api/enrollment': {
+        target: 'http://localhost:8084',
+        changeOrigin: true
+      },
+      '/api/assignment': {
+        target: 'http://localhost:8084',
+        changeOrigin: true
+      },
+      '/api/interview': {
         target: 'http://localhost:8084',
         changeOrigin: true
       },

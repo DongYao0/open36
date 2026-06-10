@@ -3,19 +3,39 @@ import { storage } from '@/utils/storage'
 
 const routes = [
   { path: '/', name: 'Home', component: () => import('@/views/Home.vue'), meta: { title: '首页' } },
-  { path: '/forum', name: 'Forum', component: () => import('@/views/Forum.vue'), meta: { title: '论坛' } },
+  {
+    path: '/forum',
+    component: () => import('@/views/forum/ForumLayout.vue'),
+    children: [
+      { path: '', name: 'Forum', component: () => import('@/views/forum/Forum.vue'), meta: { title: '论坛' } },
+      { path: 'post/new', name: 'PostNew', component: () => import('@/views/forum/PostNew.vue'), meta: { title: '发布新帖', auth: true, write: true } },
+      { path: 'post/:id', name: 'PostDetail', component: () => import('@/views/forum/PostDetail.vue'), meta: { title: '帖子详情' } },
+      { path: 'search', name: 'Search', component: () => import('@/views/forum/Search.vue'), meta: { title: '搜索' } },
+      { path: 'favorites', name: 'Favorites', component: () => import('@/views/forum/Favorites.vue'), meta: { title: '我的收藏', auth: true, write: true } },
+    ]
+  },
+  {
+    path: '/resources',
+    component: () => import('@/views/resources/ResourcesLayout.vue'),
+    children: [
+      { path: '', name: 'Resources', component: () => import('@/views/resources/Resources.vue'), meta: { title: '资源分享' } },
+      { path: 'new', name: 'ResourceNew', component: () => import('@/views/resources/ResourceNew.vue'), meta: { title: '分享资源', auth: true, write: true } },
+      { path: ':id', name: 'ResourceDetail', component: () => import('@/views/resources/ResourceDetail.vue'), meta: { title: '资源详情' } },
+    ]
+  },
+  {
+    path: '/announcements',
+    component: () => import('@/views/announcements/AnnouncementsLayout.vue'),
+    children: [
+      { path: '', name: 'Announcements', component: () => import('@/views/announcements/Announcements.vue'), meta: { title: '公告通知' } },
+      { path: ':id', name: 'AnnouncementDetail', component: () => import('@/views/announcements/AnnouncementDetail.vue'), meta: { title: '公告详情' } },
+    ]
+  },
   { path: '/login', name: 'Login', component: () => import('@/views/Login.vue'), meta: { title: '登录' } },
   { path: '/register', name: 'Register', component: () => import('@/views/Register.vue'), meta: { title: '注册' } },
-  { path: '/post/:id', name: 'PostDetail', component: () => import('@/views/PostDetail.vue'), meta: { title: '帖子详情' } },
-  { path: '/post/new', name: 'PostNew', component: () => import('@/views/PostNew.vue'), meta: { title: '发布新帖', auth: true, write: true } },
-  { path: '/profile/:id?', name: 'Profile', component: () => import('@/views/Profile.vue'), meta: { title: '个人主页' } },
-  { path: '/profile/edit', name: 'ProfileEdit', component: () => import('@/views/ProfileEdit.vue'), meta: { title: '编辑资料', auth: true, write: true } },
-  { path: '/favorites', name: 'Favorites', component: () => import('@/views/Favorites.vue'), meta: { title: '我的收藏', auth: true, write: true } },
-  { path: '/search', name: 'Search', component: () => import('@/views/Search.vue'), meta: { title: '搜索' } },
   { path: '/quiz', name: 'Quiz', component: () => import('@/views/Quiz.vue'), meta: { title: '算法' } },
   { path: '/enroll', name: 'Enroll', component: () => import('@/views/Enroll.vue'), meta: { title: '报名加入' } },
   { path: '/mine', name: 'Mine', component: () => import('@/views/Mine.vue'), meta: { title: '我的', auth: true } },
-  { path: '/password/change', name: 'PasswordChange', component: () => import('@/views/PasswordChange.vue'), meta: { title: '修改密码', auth: true } },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]
 

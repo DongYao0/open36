@@ -18,31 +18,7 @@
       <a href="javascript:void(0)" class="nav-tab" :class="{ active: route.path.startsWith('/algo') }" @click="goToAlgo">
         算法
       </a>
-      <div class="nav-tab-mine-wrap" :class="{ active: route.path === '/mine' || route.path === '/profile' || route.path === '/profile/edit' || route.path === '/password/change' || route.path === '/favorites' }">
-        <router-link to="/mine" class="nav-tab nav-tab-link">我的</router-link>
-        <button class="nav-tab-arrow" @click="mineDropdownOpen = !mineDropdownOpen">
-          <svg class="chevron-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="mine-dropdown" :class="{ active: mineDropdownOpen }">
-          <router-link to="/mine" class="dropdown-item" @click="mineDropdownOpen = false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            个人中心
-          </router-link>
-          <router-link to="/profile/edit" class="dropdown-item" @click="mineDropdownOpen = false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            编辑资料
-          </router-link>
-          <div class="dropdown-label">更多</div>
-          <router-link to="/favorites" class="dropdown-item" @click="mineDropdownOpen = false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-            我的收藏
-          </router-link>
-          <router-link to="/password/change" class="dropdown-item" @click="mineDropdownOpen = false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            修改密码
-          </router-link>
-        </div>
-      </div>
+      <router-link to="/mine" class="nav-tab" :class="{ active: route.path === '/mine' }">我的</router-link>
     </div>
 
     <div class="navbar-search">
@@ -66,17 +42,6 @@
         </svg>
       </div>
       <div class="navbar-dropdown" :class="{ active: dropdownOpen }">
-        <template v-if="!auth.isVisitor">
-          <router-link to="/mine" class="dropdown-item" @click="dropdownOpen = false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            个人中心
-          </router-link>
-          <router-link to="/profile/edit" class="dropdown-item" @click="dropdownOpen = false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            编辑资料
-          </router-link>
-        </template>
-        <div class="dropdown-divider"></div>
         <button class="dropdown-item danger" @click="handleLogout">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           {{ auth.isVisitor ? '退出游客模式' : '退出登录' }}
@@ -95,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
@@ -111,17 +76,14 @@ const showSidebar = ref(true)
 
 const tabs = [
   { key: 'home', label: '首页', path: '/' },
-  { key: 'forum', label: '论坛', path: '/forum' }
+  { key: 'forum', label: '论坛', path: '/forum' },
+  { key: 'resources', label: '资源', path: '/resources' },
+  { key: 'announcements', label: '公告', path: '/announcements' }
 ]
-
-const mineDropdownOpen = ref(false)
 
 function isTabActive(tab) {
   if (tab.path === '/') {
     return route.path === '/'
-  }
-  if (tab.path === '/forum') {
-    return route.path === '/forum' || route.path.startsWith('/post') || route.path.startsWith('/search') || route.path.startsWith('/favorites')
   }
   return route.path.startsWith(tab.path)
 }
@@ -139,7 +101,7 @@ async function goToAlgo() {
 
 function doSearch() {
   if (searchQuery.value.trim()) {
-    router.push({ path: '/search', query: { q: searchQuery.value.trim() } })
+    router.push({ path: '/forum/search', query: { q: searchQuery.value.trim() } })
     searchQuery.value = ''
   }
 }
@@ -150,11 +112,12 @@ function handleLogout() {
   router.push('/login')
 }
 
-// Close dropdown on outside click
-document.addEventListener('click', (e) => {
+function closeDropdowns(e) {
   if (!e.target.closest('.navbar-user')) dropdownOpen.value = false
-  if (!e.target.closest('.nav-tab-mine-wrap')) mineDropdownOpen.value = false
-})
+}
+
+onMounted(() => { document.addEventListener('click', closeDropdowns) })
+onUnmounted(() => { document.removeEventListener('click', closeDropdowns) })
 </script>
 
 <style scoped>
@@ -235,39 +198,6 @@ document.addEventListener('click', (e) => {
 .dropdown-divider { height: 1px; background: var(--divider); margin: var(--s-xs) 0; }
 .mobile-toggle { display: none; color: #fff; }
 .navbar-auth { margin-left: auto; }
-
-.nav-tab-mine-wrap {
-  position: relative; display: flex; align-items: center; gap: 0;
-  border-radius: 20px; transition: background var(--t-fast);
-}
-.nav-tab-mine-wrap.active { background: rgba(255,255,255,0.18); }
-.nav-tab-link {
-  padding: 6px 8px 6px 16px; border-radius: 20px 0 0 20px;
-  color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 500;
-  text-decoration: none; transition: color var(--t-fast);
-}
-.nav-tab-mine-wrap:hover .nav-tab-link,
-.nav-tab-mine-wrap.active .nav-tab-link { color: #fff; }
-.nav-tab-arrow {
-  padding: 6px 12px 6px 2px; border-radius: 0 20px 20px 0;
-  color: rgba(255,255,255,0.5); background: none; display: flex;
-  align-items: center; transition: all var(--t-fast);
-}
-.nav-tab-arrow:hover { color: #fff; }
-.chevron-sm { width: 12px; height: 12px; transition: transform var(--t-fast); }
-.mine-dropdown.active .chevron-sm { transform: rotate(180deg); }
-
-.mine-dropdown {
-  position: absolute; top: 100%; left: 50%; transform: translateX(-50%) translateY(-8px);
-  margin-top: var(--s-sm); background: var(--bg); border-radius: var(--r-md);
-  box-shadow: var(--sh-lg); min-width: 180px; padding: var(--s-sm);
-  opacity: 0; visibility: hidden; transition: all var(--t-fast); z-index: 101;
-}
-.mine-dropdown.active { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
-.dropdown-label {
-  padding: 8px 12px 4px; font-size: 11px; font-weight: 600;
-  color: var(--text-disabled); text-transform: uppercase; letter-spacing: 0.5px;
-}
 
 @media (max-width: 768px) {
   .navbar-search { display: none; }

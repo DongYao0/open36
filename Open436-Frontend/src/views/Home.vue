@@ -8,35 +8,13 @@
       </router-link>
       <div class="landing-nav-links">
         <router-link to="/forum">论坛</router-link>
+        <router-link to="/resources">资源</router-link>
+        <router-link to="/announcements">公告</router-link>
         <a href="javascript:void(0)" @click="goToAlgo">算法</a>
       </div>
       <div class="landing-nav-right">
         <router-link v-if="!auth.isLoggedIn" to="/login" class="nav-login">登录</router-link>
-        <div v-else class="nav-mine-wrap">
-          <router-link to="/mine" class="nav-login">我的</router-link>
-          <button class="nav-mine-arrow" @click="mineOpen = !mineOpen">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="nav-mine-dropdown" :class="{ active: mineOpen }">
-            <router-link to="/mine" class="nm-item" @click="mineOpen = false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-              个人中心
-            </router-link>
-            <router-link to="/profile/edit" class="nm-item" @click="mineOpen = false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              编辑资料
-            </router-link>
-            <div class="nm-label">更多</div>
-            <router-link to="/favorites" class="nm-item" @click="mineOpen = false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-              我的收藏
-            </router-link>
-            <router-link to="/password/change" class="nm-item" @click="mineOpen = false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              修改密码
-            </router-link>
-          </div>
-        </div>
+        <router-link v-else to="/mine" class="nav-login">我的</router-link>
       </div>
     </nav>
 
@@ -111,6 +89,8 @@
         </div>
         <div class="footer-links">
           <router-link to="/forum">论坛</router-link>
+          <router-link to="/resources">资源</router-link>
+          <router-link to="/announcements">公告</router-link>
           <a href="javascript:void(0)" @click="goToAlgo">算法</a>
           <router-link to="/login">登录</router-link>
         </div>
@@ -121,17 +101,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 
 const auth = useAuthStore()
 const ui = useUIStore()
-const mineOpen = ref(false)
-
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.nav-mine-wrap')) mineOpen.value = false
-})
 
 async function goToAlgo() {
   if (auth.isGuest) {
@@ -191,32 +165,6 @@ async function goToAlgo() {
   transition: all 0.2s;
 }
 .nav-login:hover { border-color: var(--landing-accent); color: var(--landing-accent); }
-
-.nav-mine-wrap { position: relative; display: flex; align-items: center; }
-.nav-mine-arrow {
-  margin-left: -1px; padding: 6px 8px 6px 2px; border-left: none;
-  border: 1px solid var(--landing-border); border-left: none;
-  border-radius: 0 6px 6px 0; color: var(--landing-muted);
-  background: none; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
-}
-.nav-mine-wrap:hover .nav-mine-arrow { border-color: var(--landing-accent); color: var(--landing-accent); }
-.nav-mine-dropdown {
-  position: absolute; top: 100%; right: 0; margin-top: 8px;
-  background: #1a1f2e; border: 1px solid var(--landing-border); border-radius: 8px;
-  min-width: 180px; padding: 6px; opacity: 0; visibility: hidden;
-  transform: translateY(-8px); transition: all 0.2s; z-index: 101;
-}
-.nav-mine-dropdown.active { opacity: 1; visibility: visible; transform: translateY(0); }
-.nm-item {
-  display: flex; align-items: center; gap: 8px; padding: 9px 12px;
-  color: var(--landing-muted); font-size: 13px; border-radius: 5px;
-  text-decoration: none; transition: all 0.15s;
-}
-.nm-item:hover { background: rgba(255,255,255,0.06); color: var(--landing-text); }
-.nm-label {
-  padding: 8px 12px 4px; font-size: 10px; font-weight: 600;
-  color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 0.5px;
-}
 
 @media (max-width: 768px) {
   .landing-nav { padding: 0 20px; }

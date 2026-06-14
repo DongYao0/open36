@@ -1,7 +1,10 @@
 # ══════════════════════════════════════════════════════════
-#  Open436 全栈一键启动 Docker Compose
+#  Open436 基础设施 Docker Compose（本地开发用）
+#  仅包含基础设施，应用服务在 IDE 中运行
 #  使用: docker compose up -d
 #  含HOJ: docker compose --profile hoj up -d
+#
+#  全容器化部署请使用: docker-compose.full.yml
 # ══════════════════════════════════════════════════════════
 
 services:
@@ -118,133 +121,12 @@ services:
     volumes:
       - ./deploy/dev/kong/plugins/satoken-auth:/usr/local/share/lua/5.1/kong/plugins/satoken-auth
 
-  # ──────────── Java 后端 ────────────
-  auth:
-    build: { context: ./Open436-Auth, dockerfile: Dockerfile }
-    container_name: open436-auth
-    restart: unless-stopped
-    ports: ["8081:8081"]
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_started }
-    networks: [open436-net]
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/${PG_DB:-open436}
-      DB_USERNAME: ${PG_USER:-open436}
-      DB_PASSWORD: ${PG_PASS:-open436}
-      REDIS_HOST: redis
-      REDIS_PORT: "6379"
-      REDIS_PASSWORD: ""
-      CONSUL_HOST: consul
-      CONSUL_PORT: "8500"
-      HOJ_SYNC_URL: http://hoj-backend:6688
-
-  enrollment:
-    build: { context: ./Open436-Enrollment, dockerfile: Dockerfile }
-    container_name: open436-enrollment
-    restart: unless-stopped
-    ports: ["8084:8084"]
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_started }
-      auth: { condition: service_started }
-    networks: [open436-net]
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/${PG_DB:-open436}
-      DB_USERNAME: ${PG_USER:-open436}
-      DB_PASSWORD: ${PG_PASS:-open436}
-      REDIS_HOST: redis
-      REDIS_PORT: "6379"
-      REDIS_PASSWORD: ""
-      CONSUL_HOST: consul
-      CONSUL_PORT: "8500"
-      AUTH_SERVICE_URL: http://auth:8081
-
-  # ──────────── Python 后端 ────────────
-  user-service:
-    build: ./Open436-UserService
-    container_name: open436-user
-    restart: unless-stopped
-    ports: ["8002:8002"]
-    depends_on:
-      postgres: { condition: service_healthy }
-    networks: [open436-net]
-    environment: &django-env
-      DATABASE_URL: postgresql://${PG_USER:-open436}:${PG_PASS:-open436}@postgres:5432/${PG_DB:-open436}
-      SECRET_KEY: dev-secret-key
-      DEBUG: "False"
-      ALLOWED_HOSTS: "*"
-      CONSUL_URL: http://consul:8500
-      AUTH_SERVICE_URL: http://auth:8081
-      FILE_SERVICE_URL: http://file-service:8007
-      INTERNAL_API_KEY: dev-internal-key
-      SERVICE_PORT: "8002"
-      CONSUL_SERVICE_NAME: user-service
-      USER_SERVICE_URL: http://user-service:8002
-    command: >
-      sh -c "python manage.py migrate &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8002 --workers 4"
-
-  content-service:
-    build: ./Open436-ContentService
-    container_name: open436-content
-    restart: unless-stopped
-    ports: ["8003:8003"]
-    depends_on:
-      postgres: { condition: service_healthy }
-    networks: [open436-net]
-    environment:
-      <<: *django-env
-      SERVICE_PORT: "8003"
-      CONSUL_SERVICE_NAME: content-service
-      USER_SERVICE_URL: http://user-service:8002
-      SECTION_SERVICE_URL: http://section-service:8005
-    command: >
-      sh -c "python manage.py migrate &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8003 --workers 4"
-
-  comment-service:
-    build: ./Open436-CommentService
-    container_name: open436-comment
-    restart: unless-stopped
-    ports: ["8004:8004"]
-    depends_on:
-      postgres: { condition: service_healthy }
-    networks: [open436-net]
-    environment:
-      <<: *django-env
-      SERVICE_PORT: "8004"
-      CONSUL_SERVICE_NAME: comment-service
-      USER_SERVICE_URL: http://user-service:8002
-      CONTENT_SERVICE_URL: http://content-service:8003
-    command: >
-      sh -c "python manage.py migrate &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8004 --workers 4"
-
-  section-service:
-    build: ./Open436-SectionService
-    container_name: open436-section
-    restart: unless-stopped
-    ports: ["8005:8005"]
-    depends_on:
-      postgres: { condition: service_healthy }
-    networks: [open436-net]
-    environment:
-      <<: *django-env
-      SERVICE_PORT: "8005"
-      CONSUL_SERVICE_NAME: section-service
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py register_consul &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8005 --workers 4"
-
+  # ──────────── 文件服务 ────────────
   file-service:
     build: ./Open436-FileService
     container_name: open436-file
     restart: unless-stopped
-    ports: ["8007:8007"]
+    ports: ["${FILE_PORT:-8007}:8007"]
     depends_on:
       postgres: { condition: service_healthy }
     networks: [open436-net]
@@ -347,67 +229,6 @@ services:
     restart: unless-stopped
     ports: ["8066:80"]
     depends_on: [hoj-backend]
-    networks: [open436-net]
-
-  # ──────────── AI服务 ────────────
-  ai-service:
-    build: ./Open436-AIService
-    container_name: open436-ai-service
-    restart: unless-stopped
-    ports: ["8008:8008"]
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_started }
-      milvus-standalone: { condition: service_healthy }
-    networks: [open436-net]
-    environment: &ai-env
-      DATABASE_URL: postgresql://${PG_USER:-open436}:${PG_PASS:-open436}@postgres:5432/${PG_DB:-open436}
-      REDIS_URL: redis://redis:6379/2
-      MILVUS_HOST: milvus-standalone
-      MILVUS_PORT: "19530"
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      TAVILY_API_KEY: ${TAVILY_API_KEY}
-      CONTENT_SERVICE_URL: http://content-service:8003
-      SECTION_SERVICE_URL: http://section-service:8005
-      USER_SERVICE_URL: http://user-service:8002
-      HOJ_API_URL: http://hoj-backend:6688
-      HOJ_ADMIN_USER: ${HOJ_ADMIN_USER:-admin}
-      HOJ_ADMIN_PASS: ${HOJ_ADMIN_PASS:-admin123}
-      INTERNAL_API_KEY: dev-internal-key
-      CONSUL_URL: http://consul:8500
-      CONSUL_SERVICE_NAME: ai-service
-      SERVICE_PORT: "8008"
-      APP_DEBUG: "false"
-      APP_LOG_LEVEL: info
-
-  ai-worker:
-    build: ./Open436-AIService
-    container_name: open436-ai-worker
-    restart: unless-stopped
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=2
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_started }
-      milvus-standalone: { condition: service_healthy }
-    networks: [open436-net]
-    environment:
-      <<: *ai-env
-
-  # ──────────── 前端 ────────────
-  frontend:
-    build: { context: ./Open436-Frontend, dockerfile: Dockerfile }
-    container_name: open436-frontend
-    restart: unless-stopped
-    ports: ["3000:80"]
-    depends_on: [kong]
-    networks: [open436-net]
-
-  admin:
-    build: { context: ./Open436-Admin, dockerfile: Dockerfile }
-    container_name: open436-admin
-    restart: unless-stopped
-    ports: ["3001:80"]
-    depends_on: [auth, enrollment]
     networks: [open436-net]
 
 volumes:

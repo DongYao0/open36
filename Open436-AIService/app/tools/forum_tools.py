@@ -11,7 +11,7 @@ from app.tools.base import call_internal
 async def list_sections() -> dict:
     """获取所有启用的板块列表。返回板块的id、name、description等信息。"""
     result = await call_internal(
-        settings.SECTION_SERVICE_URL, 'GET', '/internal/sections/'
+        settings.SECTION_SERVICE_URL, 'GET', '/api/sections/'
     )
     return result
 

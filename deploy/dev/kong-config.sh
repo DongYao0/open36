@@ -30,6 +30,11 @@ echo "Cleaning up existing configurations..."
 curl -s -X DELETE http://localhost:8001/services/auth-service 2>/dev/null || true
 curl -s -X DELETE http://localhost:8001/services/file-service 2>/dev/null || true
 curl -s -X DELETE http://localhost:8001/services/enrollment-service 2>/dev/null || true
+curl -s -X DELETE http://localhost:8001/services/forum-service 2>/dev/null || true
+curl -s -X DELETE http://localhost:8001/services/user-service 2>/dev/null || true
+curl -s -X DELETE http://localhost:8001/services/content-service 2>/dev/null || true
+curl -s -X DELETE http://localhost:8001/services/comment-service 2>/dev/null || true
+curl -s -X DELETE http://localhost:8001/services/section-service 2>/dev/null || true
 sleep 1
 
 # 1. 创建 M1 认证服务
@@ -42,6 +47,7 @@ echo ""
 echo "Creating route for auth-service..."
 curl -i -X POST $KONG_ADMIN/services/auth-service/routes \
   --data "paths[]=/api/auth" \
+  --data "paths[]=/api/users" \
   --data strip_path=false
 
 echo ""
@@ -85,14 +91,36 @@ curl -i -X POST $KONG_ADMIN/services/enrollment-service/routes \
 
 echo ""
 echo ""
+
+# 5. 创建论坛服务（合并 Content + Comment + Section）
+echo "Step 5: Creating forum-service..."
+curl -i -X POST $KONG_ADMIN/services \
+  --data name=forum-service \
+  --data url=http://${HOST_ADDR}:8003
+
+echo ""
+echo "Creating routes for forum-service..."
+curl -i -X POST $KONG_ADMIN/services/forum-service/routes \
+  --data "paths[]=/api/posts" \
+  --data "paths[]=/api/comments" \
+  --data "paths[]=/api/sections" \
+  --data "paths[]=/api/replies" \
+  --data "paths[]=/api/favorites" \
+  --data "paths[]=/api/topics" \
+  --data "paths[]=/api/follows" \
+  --data strip_path=false
+
+echo ""
+echo ""
 echo "========================================="
 echo "Kong Configuration Complete!"
 echo "========================================="
 echo ""
 echo "Services registered:"
-echo "  - auth-service:       http://${HOST_ADDR}:8081 → http://localhost:8000/api/auth/*"
-echo "  - file-service:       http://${HOST_ADDR}:8007 → http://localhost:8000/api/files/*"
-echo "  - enrollment-service: http://${HOST_ADDR}:8084 → http://localhost:8000/api/enrollment/*"
+echo "  - auth-service:       http://${HOST_ADDR}:8081 → /api/auth/*, /api/users/*"
+echo "  - file-service:       http://${HOST_ADDR}:8007 → /api/files/*"
+echo "  - enrollment-service: http://${HOST_ADDR}:8084 → /api/enrollment/*"
+echo "  - forum-service:      http://${HOST_ADDR}:8003 → /api/posts/*, /api/comments/*, /api/sections/*, /api/replies/*, /api/topics/*"
 echo ""
 echo "Verification:"
 echo "  - Kong Admin API: curl http://localhost:8001/services"

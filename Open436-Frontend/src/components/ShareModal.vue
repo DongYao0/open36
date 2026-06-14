@@ -36,7 +36,7 @@
 import { ref } from 'vue'
 import { copyToClipboard } from '@/utils/format'
 import { useUIStore } from '@/stores/ui'
-import { recordShare } from '@/api/comment'
+import { recordShare } from '@/api/interaction'
 
 const ui = useUIStore()
 const visible = ref(false)

@@ -44,7 +44,7 @@ public class InterviewService {
      * 关联面试记录，展示面试状态
      */
     @Transactional(readOnly = true)
-    public Page<InterviewListResponse> list(String status, String keyword, int page, int size) {
+    public Page<InterviewListResponse> list(String status, String keyword, int page, int size, String token) {
         // 1. 获取所有待审核的报名申请
         List<EnrollmentApplication> pendingApps = enrollmentRepository.findByStatus("pending");
 
@@ -66,7 +66,7 @@ public class InterviewService {
 
         // 3. 批量查询 Auth 用户信息
         Map<Long, Map<String, Object>> userMap = batchFetchUserInfo(
-                pendingApps.stream().map(EnrollmentApplication::getAuthUserId).toList()
+                pendingApps.stream().map(EnrollmentApplication::getAuthUserId).toList(), token
         );
 
         // 4. 组装响应
@@ -130,22 +130,27 @@ public class InterviewService {
      * 记录面试结果
      */
     @Transactional
-    public InterviewListResponse recordInterview(InterviewRecordRequest request, String adminName) {
+    public InterviewListResponse recordInterview(InterviewRecordRequest request, String adminName, String token) {
         EnrollmentApplication app = enrollmentRepository.findById(request.getEnrollmentId())
                 .orElseThrow(() -> new RuntimeException("报名申请不存在"));
 
-        // 确定 round
-        int round = request.getRound() != null ? request.getRound() : 1;
-        if (request.getRound() == null) {
-            List<Interview> existing = interviewRepository.findByEnrollmentIdOrderByRoundAsc(request.getEnrollmentId());
-            if (!existing.isEmpty()) {
-                round = existing.get(existing.size() - 1).getRound() + 1;
-            }
+        // 确定 round：默认使用第1轮，已有记录则更新最新一轮
+        List<Interview> existing = interviewRepository.findByEnrollmentIdOrderByRoundAsc(request.getEnrollmentId());
+        int round;
+        Optional<Interview> existingOpt;
+        if (request.getRound() != null) {
+            round = request.getRound();
+            existingOpt = interviewRepository.findByEnrollmentIdAndRound(request.getEnrollmentId(), round);
+        } else if (!existing.isEmpty()) {
+            // 已有记录，更新最新一轮
+            Interview latest = existing.get(existing.size() - 1);
+            round = latest.getRound();
+            existingOpt = Optional.of(latest);
+        } else {
+            // 无记录，创建第1轮
+            round = 1;
+            existingOpt = Optional.empty();
         }
-
-        // 检查同轮次是否已存在，存在则更新
-        Optional<Interview> existingOpt = interviewRepository.findByEnrollmentIdAndRound(
-                request.getEnrollmentId(), round);
 
         Interview interview;
         if (existingOpt.isPresent()) {
@@ -177,7 +182,7 @@ public class InterviewService {
                 request.getEnrollmentId(), round, interview.getInterviewer());
 
         // 查询用户信息并返回
-        Map<String, Object> userInfo = fetchSingleUserInfo(app.getAuthUserId());
+        Map<String, Object> userInfo = fetchSingleUserInfo(app.getAuthUserId(), token);
         List<Interview> allRounds = interviewRepository.findByEnrollmentIdOrderByRoundAsc(request.getEnrollmentId());
         return toListResponse(app, allRounds, userInfo, interview.getStatus());
     }
@@ -186,7 +191,7 @@ public class InterviewService {
      * 更新面试状态 (通过/不通过)
      */
     @Transactional
-    public InterviewListResponse updateInterviewStatus(Long interviewId, String status, String adminName) {
+    public InterviewListResponse updateInterviewStatus(Long interviewId, String status, String adminName, String token) {
         Interview interview = interviewRepository.findById(interviewId)
                 .orElseThrow(() -> new RuntimeException("面试记录不存在"));
 
@@ -200,7 +205,7 @@ public class InterviewService {
 
         EnrollmentApplication app = enrollmentRepository.findById(interview.getEnrollmentId())
                 .orElseThrow(() -> new RuntimeException("报名申请不存在"));
-        Map<String, Object> userInfo = fetchSingleUserInfo(app.getAuthUserId());
+        Map<String, Object> userInfo = fetchSingleUserInfo(app.getAuthUserId(), token);
         List<Interview> allRounds = interviewRepository.findByEnrollmentIdOrderByRoundAsc(interview.getEnrollmentId());
         String displayStatus = determineInterviewStatus(allRounds, null);
         return toListResponse(app, allRounds, userInfo, displayStatus);
@@ -210,12 +215,12 @@ public class InterviewService {
      * 获取面试详情（含所有轮次）
      */
     @Transactional(readOnly = true)
-    public InterviewListResponse getDetail(Long enrollmentId) {
+    public InterviewListResponse getDetail(Long enrollmentId, String token) {
         EnrollmentApplication app = enrollmentRepository.findById(enrollmentId)
                 .orElseThrow(() -> new RuntimeException("报名申请不存在"));
 
         List<Interview> allRounds = interviewRepository.findByEnrollmentIdOrderByRoundAsc(enrollmentId);
-        Map<String, Object> userInfo = fetchSingleUserInfo(app.getAuthUserId());
+        Map<String, Object> userInfo = fetchSingleUserInfo(app.getAuthUserId(), token);
         String displayStatus = determineInterviewStatus(allRounds, null);
         return toListResponse(app, allRounds, userInfo, displayStatus);
     }
@@ -262,13 +267,16 @@ public class InterviewService {
     // === 私有工具方法 ===
 
     @SuppressWarnings("unchecked")
-    private Map<Long, Map<String, Object>> batchFetchUserInfo(List<Long> authUserIds) {
+    private Map<Long, Map<String, Object>> batchFetchUserInfo(List<Long> authUserIds, String token) {
         Map<Long, Map<String, Object>> result = new HashMap<>();
         if (authUserIds == null || authUserIds.isEmpty()) return result;
 
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            if (token != null && !token.isEmpty()) {
+                headers.set("token", token);
+            }
             HttpEntity<List<Long>> entity = new HttpEntity<>(authUserIds, headers);
             ResponseEntity<Map> response = restTemplate.exchange(
                     authServiceUrl + "/api/auth/users/batch-info",
@@ -295,10 +303,13 @@ public class InterviewService {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> fetchSingleUserInfo(Long authUserId) {
+    private Map<String, Object> fetchSingleUserInfo(Long authUserId, String token) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            if (token != null && !token.isEmpty()) {
+                headers.set("token", token);
+            }
             HttpEntity<Void> entity = new HttpEntity<>(headers);
             ResponseEntity<Map> response = restTemplate.exchange(
                     authServiceUrl + "/api/auth/users/" + authUserId,

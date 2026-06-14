@@ -15,6 +15,13 @@
             <template v-if="tab.key === 'forum'">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </template>
+            <template v-else-if="tab.key === 'resources'">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </template>
+            <template v-else-if="tab.key === 'announcements'">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </template>
             <template v-else-if="tab.key === 'mine'">
               <circle cx="12" cy="8" r="4"/>
               <path d="M5 21a7 7 0 0 1 14 0"/>
@@ -50,15 +57,14 @@ const algoTabRef = ref(null)
 const linkTabs = [
   { key: 'home', label: '首页', path: '/' },
   { key: 'forum', label: '论坛', path: '/forum' },
+  { key: 'resources', label: '资源', path: '/resources' },
+  { key: 'announcements', label: '公告', path: '/announcements' },
   { key: 'mine', label: '我的', path: '/mine' }
 ]
 
 function isActive(tab) {
   if (tab.path === '/') {
     return route.path === '/'
-  }
-  if (tab.path === '/forum') {
-    return route.path === '/forum' || route.path.startsWith('/post') || route.path.startsWith('/search') || route.path.startsWith('/favorites')
   }
   return route.path.startsWith(tab.path)
 }

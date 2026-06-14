@@ -20,6 +20,14 @@ request.interceptors.response.use(
   response => {
     const res = response.data
     if (res.code && res.code !== 200) {
+      // Sa-Token 业务层未登录错误码（401xxxxx），跳转登录
+      const codeStr = String(res.code)
+      if (codeStr.startsWith('401')) {
+        storage.clear()
+        router.push('/login')
+        ElMessage.error(res.message || '登录已过期，请重新登录')
+        return Promise.reject(new Error(res.message || '未登录'))
+      }
       ElMessage.error(res.message || '请求失败')
       return Promise.reject(new Error(res.message))
     }

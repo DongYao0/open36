@@ -72,7 +72,8 @@ public class InterviewController {
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest request) {
         checkAdmin(request);
-        Page<InterviewListResponse> result = interviewService.list(status, keyword, page, size);
+        String token = request.getHeader("token");
+        Page<InterviewListResponse> result = interviewService.list(status, keyword, page, size, token);
         return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "list", result.getContent(),
                 "total", result.getTotalElements()
@@ -104,7 +105,7 @@ public class InterviewController {
             }
         } catch (Exception ignored) {}
 
-        InterviewListResponse result = interviewService.recordInterview(request, adminName);
+        InterviewListResponse result = interviewService.recordInterview(request, adminName, token);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -137,7 +138,7 @@ public class InterviewController {
             }
         } catch (Exception ignored) {}
 
-        InterviewListResponse result = interviewService.updateInterviewStatus(id, status, adminName);
+        InterviewListResponse result = interviewService.updateInterviewStatus(id, status, adminName, token);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -149,7 +150,8 @@ public class InterviewController {
             @PathVariable Long enrollmentId,
             HttpServletRequest request) {
         checkAdmin(request);
-        InterviewListResponse result = interviewService.getDetail(enrollmentId);
+        String token = request.getHeader("token");
+        InterviewListResponse result = interviewService.getDetail(enrollmentId, token);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 

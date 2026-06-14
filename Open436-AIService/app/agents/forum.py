@@ -5,9 +5,7 @@ Forum Agent - 论坛Agent（帖子创建与管理，含联网搜索）
 import json
 import logging
 
-import httpx
-
-from app.config import settings
+from app.core.llm import llm
 from app.tools.forum_tools import list_sections, create_post, list_posts, update_post
 from app.tools.search_tools import search_web, fetch_url
 
@@ -113,47 +111,24 @@ FORUM_TOOLS_MAP = {
     'update_post': update_post,
 }
 
-FORUM_SYSTEM_PROMPT = """你是Open436平台的论坛内容管理Agent。你的职责是根据管理员的指令创建、编辑论坛帖子。
+FORUM_SYSTEM_PROMPT = """你是Open436平台的论坛内容管理Agent。你的职责是根据资料生成高质量论坛帖子。
 
-工作规范：
-1. 帖子内容使用Markdown格式
-2. 技术内容必须准确，代码示例必须可运行
-3. 标题简洁有吸引力，5-100字符
-4. 内容充实有结构，500-5000字
-5. 使用合适的标题、列表、代码块等格式化元素
-6. 涉及时效性内容（如"最新"、"近期"）时，先使用search_web搜索最新信息再生成内容
+帖子质量标准：
+1. 标题：简洁有吸引力，5-100字符，能概括核心内容
+2. 内容：500-5000字，结构清晰，有深度
+3. 格式：Markdown，使用标题/列表/代码块等元素
+4. 代码：技术内容的代码示例必须可运行、有注释
+5. 原创：综合多个来源，不要直接复制，要有自己的分析和总结
 
-执行流程：
-1. 如需搜索最新信息，先调用search_web
-2. 调用list_sections获取板块列表，匹配目标板块
-3. 生成帖子标题和内容
-4. 调用create_post创建帖子
-5. 返回执行结果（含帖子ID）"""
+板块选择规则：
+- 技术交流：编程技术、开发经验、技术趋势
+- 设计分享：UI/UX、架构设计
+- 综合讨论：非技术话题"""
 
 
 async def _call_llm(messages: list, tools: list = None) -> dict:
-    """调用OpenAI兼容API"""
-    base_url = settings.LLM_BASE_URL or 'https://api.deepseek.com'
-    url = f'{base_url}/v1/chat/completions'
-
-    payload = {
-        'model': settings.LLM_MODEL,
-        'messages': messages,
-        'temperature': 0.7,
-        'max_tokens': 4096,
-    }
-    if tools:
-        payload['tools'] = tools
-
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            url,
-            json=payload,
-            headers={'Authorization': f'Bearer {settings.ANTHROPIC_API_KEY}'},
-            timeout=60.0,
-        )
-        resp.raise_for_status()
-        return resp.json()
+    """调用OpenAI兼容API - 委托给统一客户端"""
+    return await llm.chat(messages=messages, tools=tools, temperature=0.7, max_tokens=4096)
 
 
 async def execute_forum_task(user_message: str, user_id: int) -> dict:
@@ -298,22 +273,26 @@ async def execute_forum_task_with_data(user_message: str, user_id: int, crawled_
         # Step 3: LLM 一次性生成帖子内容（JSON 格式）
         gen_prompt = f"""用户请求: {user_message}
 
-爬取的资料（共{len(crawled_data)}篇）：
+参考资料（共{len(crawled_data)}篇）：
 {crawled_context}
 
-可用板块：
+可用板块（选择最匹配的一个）：
 {sections_info}
 
-请生成一篇高质量论坛帖子，返回以下 JSON 格式：
-{{"title": "帖子标题", "content": "帖子正文(Markdown)", "section_id": 板块ID}}
+任务：根据参考资料生成一篇高质量论坛帖子。
 
-要求：
-1. 综合多个来源，不要直接复制
-2. 内容有深度、有结构、有代码示例
-3. 只返回 JSON，不要其他内容"""
+帖子要求：
+1. 标题：简洁有吸引力，概括核心内容
+2. 结构：有清晰的段落划分，使用标题/列表/代码块
+3. 内容：综合多个来源，加入自己的分析和总结，不要直接复制
+4. 代码：如果涉及编程，代码示例必须可运行、有注释
+5. 字数：500-3000字
+
+返回 JSON 格式（只返回 JSON，不要其他内容）：
+{{"title": "帖子标题", "content": "帖子正文(Markdown格式)", "section_id": 板块ID}}"""
 
         data = await _call_llm([
-            {'role': 'system', 'content': '你是内容创作专家。根据资料生成高质量帖子，只返回 JSON。'},
+            {'role': 'system', 'content': '你是技术内容创作专家。根据参考资料生成高质量论坛帖子。只返回 JSON，不要其他内容。'},
             {'role': 'user', 'content': gen_prompt},
         ])
 

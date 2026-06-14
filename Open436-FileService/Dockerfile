@@ -2,6 +2,9 @@ FROM rust:latest as builder
 
 WORKDIR /app
 
+# 设置 DATABASE_URL 环境变量（sqlx 需要）
+ENV DATABASE_URL=postgresql://open436:open436@host.docker.internal:55400/open436
+
 # 复制依赖文件
 COPY Cargo.toml ./
 RUN cargo generate-lockfile || true

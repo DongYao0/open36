@@ -26,7 +26,7 @@ echo "  Kong 已就绪"
 
 # 清理旧配置
 echo "[2/3] 清理旧路由..."
-for svc in auth-service enrollment-service file-service user-service content-service comment-service section-service; do
+for svc in auth-service enrollment-service file-service user-service content-service comment-service section-service forum-service; do
     curl -sf -X DELETE "$KONG_ADMIN/services/$svc" 2>/dev/null || true
 done
 sleep 1
@@ -47,13 +47,10 @@ register_service() {
     done
 }
 
-register_service "auth-service"       "http://auth:8081"          "/api/auth"
+register_service "auth-service"       "http://auth:8081"          "/api/auth" "/api/users"
 register_service "enrollment-service" "http://enrollment:8084"    "/api/enrollment" "/api/interview"
 register_service "file-service"       "http://file-service:8007"  "/api/files"
-register_service "user-service"       "http://user-service:8002"  "/api/users"
-register_service "content-service"    "http://content-service:8003" "/api/posts" "/api/contents"
-register_service "comment-service"    "http://comment-service:8004" "/api/comments"
-register_service "section-service"    "http://section-service:8005" "/api/sections"
+register_service "forum-service"      "http://forum-service:8003" "/api/posts" "/api/comments" "/api/sections" "/api/replies" "/api/favorites" "/api/topics" "/api/follows"
 
 # 文件服务启用 satoken 鉴权
 curl -sf -X POST "$KONG_ADMIN/services/file-service/plugins" \
@@ -67,11 +64,15 @@ echo "========================================="
 echo ""
 echo "已注册路由:"
 echo "  /api/auth       → auth:8081"
+echo "  /api/users      → auth:8081"
 echo "  /api/enrollment → enrollment:8084"
 echo "  /api/interview  → enrollment:8084"
 echo "  /api/files      → file-service:8007 (鉴权)"
-echo "  /api/users      → user-service:8002"
-echo "  /api/posts      → content-service:8003"
-echo "  /api/comments   → comment-service:8004"
-echo "  /api/sections   → section-service:8005"
+echo "  /api/posts      → forum-service:8003"
+echo "  /api/comments   → forum-service:8003"
+echo "  /api/sections   → forum-service:8003"
+echo "  /api/replies    → forum-service:8003"
+echo "  /api/favorites  → forum-service:8003"
+echo "  /api/topics     → forum-service:8003"
+echo "  /api/follows    → forum-service:8003"
 echo ""

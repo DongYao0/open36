@@ -64,6 +64,21 @@ public class UserInfoResponse {
     private String clientPermission;
 
     /**
+     * 昵称（来自 users_profile）
+     */
+    private String nickname;
+
+    /**
+     * 头像URL（来自 users_profile）
+     */
+    private String avatarUrl;
+
+    /**
+     * 个人简介（来自 users_profile）
+     */
+    private String bio;
+
+    /**
      * 从 UserAuth 实体创建响应对象
      * @param user 用户实体
      * @param role 角色代码

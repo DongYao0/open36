@@ -19,7 +19,7 @@ public class InterviewRecordRequest {
 
     private String interviewer;
 
-    @Min(value = 1, message = "评分最低1分")
+    @Min(value = 0, message = "评分最低0分")
     @Max(value = 10, message = "评分最高10分")
     private Integer score;
 

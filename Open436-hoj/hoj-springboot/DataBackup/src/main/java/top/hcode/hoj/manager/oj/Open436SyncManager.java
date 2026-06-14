@@ -50,8 +50,8 @@ public class Open436SyncManager {
         queryWrapper.eq("username", username);
         UserInfo userInfo = userInfoEntityService.getOne(queryWrapper, false);
 
-        // 映射 Open436 角色到 HOJ 角色：admin->1001(普通管理员), 其他->1002(普通用户)
-        Long roleId = "admin".equals(dto.getRole()) ? 1001L : 1002L;
+        // 映射 Open436 角色到 HOJ 角色：admin->1000(超级管理员), 其他->1002(普通用户)
+        Long roleId = "admin".equals(dto.getRole()) ? 1000L : 1002L;
 
         String uid;
         if (userInfo == null) {

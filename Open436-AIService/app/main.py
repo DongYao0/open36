@@ -16,6 +16,7 @@ from app.core.responses import success_response, error_response
 from app.api.chat import router as chat_router
 from app.api.conversations import router as conversations_router
 from app.api.agents import router as agents_router
+from app.api.upload import router as upload_router
 
 logging.basicConfig(
     level=getattr(logging, settings.APP_LOG_LEVEL.upper(), logging.INFO),
@@ -57,6 +58,7 @@ app.add_middleware(
 app.include_router(chat_router, prefix='/api/ai', tags=['AI对话'])
 app.include_router(conversations_router, prefix='/api/ai', tags=['会话管理'])
 app.include_router(agents_router, prefix='/api/ai', tags=['Agent管理'])
+app.include_router(upload_router, prefix='/api/ai', tags=['文件上传'])
 
 
 @app.get('/health')

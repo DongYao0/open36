@@ -46,6 +46,11 @@ hoj:
     url: http://localhost:6688
     api-key: open436-secret-key
 
+# 文件服务配置
+file:
+  service:
+    url: ${FILE_SERVICE_URL:http://localhost:8007}
+
 # Kong 网关配置
 kong:
   gateway:

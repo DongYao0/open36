@@ -42,6 +42,15 @@
         </svg>
       </div>
       <div class="navbar-dropdown" :class="{ active: dropdownOpen }">
+        <router-link v-if="!auth.isVisitor" to="/mine" class="dropdown-item" @click="dropdownOpen = false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          个人中心
+        </router-link>
+        <router-link v-if="!auth.isVisitor" to="/mine/edit" class="dropdown-item" @click="dropdownOpen = false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          编辑资料
+        </router-link>
+        <div class="dropdown-divider" v-if="!auth.isVisitor"></div>
         <button class="dropdown-item danger" @click="handleLogout">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           {{ auth.isVisitor ? '退出游客模式' : '退出登录' }}

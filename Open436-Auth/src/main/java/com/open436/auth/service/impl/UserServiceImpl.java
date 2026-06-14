@@ -368,11 +368,15 @@ public class UserServiceImpl implements UserService {
         UserAuth user = userAuthRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        // 2. 更新角色（需要先删除旧角色，添加新角色）
-        // 清除现有角色
-        user.getRoles().clear();
+        // 2. 查找目标角色实体
+        Role targetRole = roleRepository.findByCode(role)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ROLE_NOT_FOUND));
 
-        // 根据角色代码设置对应的权限
+        // 3. 清除现有角色，添加新角色
+        user.getRoles().clear();
+        user.getRoles().add(targetRole);
+
+        // 4. 根据角色设置客户端权限
         String clientPermission;
         switch (role) {
             case "admin":
@@ -391,7 +395,7 @@ public class UserServiceImpl implements UserService {
 
         userAuthRepository.save(user);
 
-        // 3. 清除缓存
+        // 5. 清除缓存
         permissionService.clearUserPermissionsCache(userId);
 
         log.info("用户角色更新成功: userId={}, role={}", userId, role);

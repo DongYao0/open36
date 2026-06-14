@@ -8,6 +8,12 @@ class ChatRequest(BaseModel):
     """对话请求"""
     message: str = Field(..., min_length=1, max_length=5000, description='用户消息')
     conversation_id: str | None = Field(None, description='会话ID，不传则新建')
+    file_ids: list[str] | None = Field(None, description='关联的文件ID列表')
+
+
+class StopRequest(BaseModel):
+    """停止生成请求"""
+    conversation_id: str = Field(..., description='要停止的会话ID')
 
 
 class ChatResponse(BaseModel):

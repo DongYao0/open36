@@ -205,25 +205,26 @@ refactor(api): 重构 API 请求封装
 
 ### 服务路由映射
 
-前端通过 Kong 网关访问后端微服务：
+开发模式下通过 Vite proxy 转发请求（见 `vite.config.js`）：
 
-| 前端路由前缀 | 后端服务 | 说明 |
-|------------|---------|------|
-| `/api/auth` | M1 认证服务 | 用户认证、权限管理 |
-| `/api/users` | M2 用户服务 | 用户资料、统计 |
-| `/api/posts` | M3 内容服务 | 帖子管理 |
-| `/api/comments` | M4 评论服务 | 评论、互动 |
-| `/api/sections` | M5 板块服务 | 板块管理 |
-| `/api/search` | M6 搜索服务 | 全文搜索 |
-| `/api/files` | M7 文件服务 | 文件上传、存储 |
+| 前端路由前缀 | 后端服务 | 端口 | 说明 |
+|------------|---------|------|------|
+| `/api/auth` | Open436-Auth | 8081 | 认证授权（catch-all `/api` → 8081） |
+| `/api/posts` | Forum Service | 8003 | 帖子管理 |
+| `/api/sections` | Forum Service | 8003 | 板块管理 |
+| `/api/comments` | Forum Service | 8003 | 评论管理 |
+| `/api/enrollment` | Open436-Enrollment | 8084 | 招新报名 |
+| `/api/interview` | Open436-Enrollment | 8084 | 面试管理 |
+| `/api/ai` | AI Service | 8008 | AI 助手 |
+| `/api/files` | File Service | 8007 | 文件上传 |
 
 ### 认证方式
 
 使用 Sa-Token 进行身份认证：
 
-- Token 存储在 localStorage
-- 请求自动携带 `satoken` 请求头
-- Token 过期自动跳转登录页
+- Token 存储在 localStorage（key: `token`，带 `open436_` 前缀）
+- 请求自动携带 `token` 请求头（由 `src/api/request.js` 拦截器注入）
+- 业务层 401 错误码（`code` 以 `401` 开头）自动跳转登录页
 
 ## 扩展开发
 

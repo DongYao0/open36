@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # 数据库
-    DATABASE_URL: str = 'postgresql://open436:open436@localhost:55432/ai_db'
+    DATABASE_URL: str = 'postgresql://open436:open436@localhost:55400/ai_db'
 
     # Redis（DB 2，避免与Sa-Token默认DB 0冲突）
     REDIS_URL: str = 'redis://localhost:6379/2'
@@ -25,8 +25,8 @@ class Settings(BaseSettings):
 
     # 内部服务地址
     CONTENT_SERVICE_URL: str = 'http://localhost:8003'
-    SECTION_SERVICE_URL: str = 'http://localhost:8005'
-    USER_SERVICE_URL: str = 'http://localhost:8002'
+    SECTION_SERVICE_URL: str = 'http://localhost:8003'
+    USER_SERVICE_URL: str = 'http://localhost:8081'
     HOJ_API_URL: str = 'http://localhost:6688'
     CRAWLER_SERVICE_URL: str = 'http://localhost:8009'
 

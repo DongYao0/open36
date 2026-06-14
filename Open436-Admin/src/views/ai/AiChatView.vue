@@ -309,14 +309,31 @@ async function send() {
 
 // ============== 停止生成 ==============
 async function handleStop() {
+  console.log('[stop] clicked, currentConvId:', currentConvId.value, 'abortController:', abortController)
   // 先通知后端停止任务
   if (currentConvId.value) {
-    try { await stopChat(currentConvId.value) } catch {}
+    try {
+      const res = await stopChat(currentConvId.value)
+      console.log('[stop] backend response:', res)
+    } catch (e) {
+      console.error('[stop] backend error:', e)
+    }
+  } else {
+    console.warn('[stop] no conversation_id')
   }
   // 再中止前端 fetch 连接
   if (abortController) {
     abortController.abort()
     abortController = null
+    console.log('[stop] fetch aborted')
+  } else {
+    console.warn('[stop] no abortController')
+  }
+  // 强制停止 streaming 状态
+  streaming.value = false
+  if (streamContent.value) {
+    messages.value.push({ role: 'assistant', content: streamContent.value + '\n\n_[已停止生成]_' })
+    streamContent.value = ''
   }
 }
 

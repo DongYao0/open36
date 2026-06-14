@@ -309,12 +309,14 @@ async function send() {
 
 // ============== 停止生成 ==============
 async function handleStop() {
+  // 先通知后端停止任务
+  if (currentConvId.value) {
+    try { await stopChat(currentConvId.value) } catch {}
+  }
+  // 再中止前端 fetch 连接
   if (abortController) {
     abortController.abort()
     abortController = null
-  }
-  if (currentConvId.value) {
-    try { await stopChat(currentConvId.value) } catch {}
   }
 }
 

@@ -171,6 +171,8 @@ async def process_chat_stream(message: str, user_id: int, conversation_id: str =
                 yield chunk
             elif chunk['type'] == 'meta':
                 intent = chunk.get('intent', intent)
+                # 注入 conversation_id 到 meta 事件，前端需要它来调用 stop 接口
+                chunk['conversation_id'] = conversation_id
                 yield chunk
             elif chunk['type'] == 'done':
                 agent_name = chunk.get('agent_name', agent_name)

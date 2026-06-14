@@ -261,7 +261,10 @@ async function send() {
         streamContent.value += chunk.content
         scrollToBottom()
       } else if (chunk.type === 'meta') {
-        // 可选：显示意图/Agent信息
+        // 保存 conversation_id，停止生成时需要
+        if (chunk.conversation_id && !currentConvId.value) {
+          currentConvId.value = chunk.conversation_id
+        }
       } else if (chunk.type === 'done') {
         // 流结束，保存结果
         messages.value.push({ role: 'assistant', content: streamContent.value })

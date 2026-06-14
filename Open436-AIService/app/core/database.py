@@ -9,7 +9,15 @@ from app.config import settings
 # 将 postgresql:// 替换为 postgresql+asyncpg://
 db_url = settings.DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://')
 
-engine = create_async_engine(db_url, echo=settings.APP_DEBUG, pool_size=5, max_overflow=10)
+engine = create_async_engine(
+    db_url,
+    echo=settings.APP_DEBUG,
+    pool_size=5,
+    max_overflow=10,
+    pool_pre_ping=True,   # 用前检测连接是否存活
+    pool_recycle=1800,    # 连接最多复用30分钟
+    pool_timeout=30,      # 获取连接超时30秒
+)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 

@@ -1,22 +1,32 @@
 """
-多Agent编排 - Router 总指挥架构
+多Agent编排 - Orchestrator 架构（理解→规划→委派）
 
-Router Agent 负责：
-1. 意图识别
-2. 判断是否需要爬取数据
-3. 调用 Crawler Agent 收集数据
-4. 将数据分发给下游 Agent（Forum/Problem）处理
-5. 汇总结果返回
+Orchestrator 负责：
+1. 深度理解用户意图
+2. 规划执行步骤（可能多步）
+3. 委派给专业 Agent 执行
+4. 步骤间传递上下文（搜索结果→写帖子）
 """
 import json
 import logging
+import re
+from datetime import datetime, timezone, timedelta
 from typing import TypedDict
 
 from app.config import settings
 from app.core.llm import llm
-from app.agents.router import classify_intent
+from app.agents.router import orchestrate
 
 logger = logging.getLogger(__name__)
+
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+
+def _now_str() -> str:
+    """当前北京时间字符串，用于注入LLM上下文"""
+    now = datetime.now(BEIJING_TZ)
+    weekdays = '一二三四五六日'
+    return now.strftime(f'%Y年%m月%d日 %H:%M:%S 星期{weekdays[now.weekday()]}')
 
 
 class AgentState(TypedDict):
@@ -31,78 +41,9 @@ class AgentState(TypedDict):
     token_usage: dict
 
 
-# ============== Router 总指挥 ==============
-
-ROUTER_ORCHESTRATOR_PROMPT = """你是Open436平台的总指挥Router。你有两个职责：
-1. 判断用户意图
-2. 如果用户需要发帖或出题，先用爬虫工具收集相关数据
-
-可用的爬虫工具：
-- crawl_webpage(url): 爬取单个网页
-- crawl_search(keyword, max_results, engine): 搜索关键词并爬取结果
-- crawl_deep(url, max_depth, max_pages): 深度爬取同域页面
-
-请返回JSON，格式如下：
-{
-  "intent": "forum|problem|chat|query|unclear",
-  "need_crawl": true/false,
-  "crawl_queries": ["搜索关键词1", "搜索关键词2"],
-  "reason": "简短说明"
-}
-
-规则：
-- chat/query/unclear 不需要爬取
-- forum（发帖）通常需要搜索相关资料
-- problem（出题）通常需要搜索算法题目和解法
-- 用户明确说"不需要搜索"时 need_crawl=false"""
-
-
 async def _call_llm(messages: list, tools: list = None) -> dict:
     """调用OpenAI兼容API - 委托给统一客户端"""
     return await llm.chat(messages=messages, tools=tools, temperature=0.3, max_tokens=1024)
-
-
-async def route_and_plan(state: AgentState) -> AgentState:
-    """Router：意图识别 + 判断是否需要爬取"""
-    result = await classify_intent(state['user_message'])
-    state['intent'] = result['intent']
-    state['agent_name'] = 'router'
-    logger.info(f'意图分类: {result}')
-    return state
-
-
-def _should_crawl(intent: str, user_message: str) -> bool:
-    """判断是否需要爬取数据
-
-    规则：
-    - chat/query/unclear 不需要
-    - search 意图：始终需要爬取
-    - 用户消息超过 500 字符，认为已提供内容，不需要爬取
-    - problem 意图：有 URL 才爬取（改编题目），无 URL 则直接生成
-    - forum 意图：有 URL 爬取，无 URL 搜索
-    """
-    import re as _re
-
-    # search 意图始终需要爬取
-    if intent == 'search':
-        return True
-
-    if intent not in ('forum', 'problem'):
-        return False
-    # 用户已提供大量内容（粘贴文章），跳过爬取
-    if len(user_message) > 500:
-        logger.info(f'用户消息较长({len(user_message)}字符)，跳过爬取')
-        return False
-    # 有 URL → 需要爬取
-    url_pattern = r'https?://[^\s<>"\')\]]+'
-    if _re.search(url_pattern, user_message):
-        return True
-    # problem 意图无 URL → 直接生成，不需要爬取
-    if intent == 'problem':
-        logger.info('出题意图且无 URL，跳过爬取，直接生成')
-        return False
-    # forum 意图无 URL → 搜索资料
-    return True
 
 
 async def crawl_node(state: AgentState) -> AgentState:
@@ -147,6 +88,7 @@ async def crawl_node(state: AgentState) -> AgentState:
             logger.info(f'并行爬取完成: {len(crawled)}/{len(urls)} 成功')
         else:
             # 没有 URL → 用 LLM 规划搜索关键词
+            # P0优化：最多2个关键词，每词3篇，够用即停
             plan_prompt = f"""用户请求: {user_msg}
 
 请判断需要搜索哪些关键词来收集数据。
@@ -154,10 +96,10 @@ async def crawl_node(state: AgentState) -> AgentState:
 规则：
 - 如果用户已经给了明确的搜索词，直接使用
 - 优先使用英文关键词（搜索结果更丰富）
-- 最多3个关键词
+- 最多2个关键词（精简高效，避免冗余搜索）
 - 不需要搜索则返回空列表
 
-返回JSON：{{"queries": ["关键词1", "关键词2"], "max_results": 5}}"""
+返回JSON：{{"queries": ["关键词1", "关键词2"], "max_results": 3}}"""
 
             data = await _call_llm([
                 {'role': 'system', 'content': '你是数据收集规划师。根据用户请求，规划需要搜索的关键词。只返回JSON。'},
@@ -172,12 +114,19 @@ async def crawl_node(state: AgentState) -> AgentState:
                 plan = json.loads(match.group()) if match else {'queries': []}
 
             queries = plan.get('queries', [])
-            max_results = plan.get('max_results', 5)
+            max_results = min(plan.get('max_results', 3), 3)  # P0: 每词最多3篇
+
+            # P0: 够了就停的阈值
+            ENOUGH_PAGES = 5
 
             # 先尝试爬虫服务，失败则降级到 DuckDuckGo
             use_ddg_fallback = False
 
-            for query in queries[:3]:
+            # P0: queries[:3] → queries[:2]，且够了就提前退出
+            for query in queries[:2]:
+                if len(crawled) >= ENOUGH_PAGES:
+                    logger.info(f'已收集{len(crawled)}页，提前结束搜索')
+                    break
                 logger.info(f'爬取搜索: {query}')
                 try:
                     result = await crawl_search.ainvoke({
@@ -200,9 +149,11 @@ async def crawl_node(state: AgentState) -> AgentState:
                     break
 
             # 降级方案：使用 DuckDuckGo 搜索
-            if use_ddg_fallback or not crawled:
+            if (use_ddg_fallback or not crawled) and len(crawled) < ENOUGH_PAGES:
                 logger.info('使用 DuckDuckGo 作为降级搜索方案')
-                for query in queries[:3]:
+                for query in queries[:2]:
+                    if len(crawled) >= ENOUGH_PAGES:
+                        break
                     try:
                         ddg_results = await search_web.ainvoke({
                             'query': query,
@@ -243,7 +194,7 @@ async def crawl_node(state: AgentState) -> AgentState:
     return state
 
 
-async def forum_node(state: AgentState) -> AgentState:
+async def forum_node(state: AgentState, history: list[dict] = None) -> AgentState:
     """论坛Agent：纯加工，接收爬取数据生成帖子"""
     from app.agents.forum import execute_forum_task_with_data
 
@@ -259,7 +210,7 @@ async def forum_node(state: AgentState) -> AgentState:
     return state
 
 
-async def problem_node(state: AgentState) -> AgentState:
+async def problem_node(state: AgentState, history: list[dict] = None) -> AgentState:
     """出题Agent：纯加工，接收爬取数据生成题目"""
     from app.agents.problem import execute_problem_task_with_data
 
@@ -267,6 +218,7 @@ async def problem_node(state: AgentState) -> AgentState:
         user_message=state['user_message'],
         user_id=state['user_id'],
         crawled_data=state.get('crawled_data', []),
+        history=history,
     )
     state['agent_name'] = 'problem'
     state['reply'] = result['reply']
@@ -288,9 +240,11 @@ CHAT_SYSTEM_PROMPT = """你是Open436平台的AI助手小46。你性格友好、
 
 
 async def chat_node(state: AgentState, history: list[dict] = None) -> AgentState:
-    """通用聊天节点：直接对话，不走爬虫"""
+    """通用聊天节点：直接对话，不走爬虫（注入当前时间）"""
     try:
-        messages = [{'role': 'system', 'content': CHAT_SYSTEM_PROMPT}]
+        # 注入当前北京时间，让模型能回答"现在几点/今天日期"等
+        system_content = f'{CHAT_SYSTEM_PROMPT}\n\n【当前时间】{_now_str()}（北京时间）。'
+        messages = [{'role': 'system', 'content': system_content}]
         if history:
             messages.extend(history[-10:])
         messages.append({'role': 'user', 'content': state['user_message']})
@@ -318,7 +272,8 @@ async def chat_node(state: AgentState, history: list[dict] = None) -> AgentState
 
 async def chat_node_stream(state: AgentState, history: list[dict] = None):
     """流式聊天节点 - yield delta chunks"""
-    messages = [{'role': 'system', 'content': CHAT_SYSTEM_PROMPT}]
+    system_content = f'{CHAT_SYSTEM_PROMPT}\n\n【当前时间】{_now_str()}（北京时间）。'
+    messages = [{'role': 'system', 'content': system_content}]
     if history:
         messages.extend(history[-10:])
     messages.append({'role': 'user', 'content': state['user_message']})
@@ -349,25 +304,90 @@ async def unclear_node(state: AgentState) -> AgentState:
     return state
 
 
-async def search_node(state: AgentState) -> AgentState:
-    """搜索节点：LLM + 联网搜索工具，优先用搜索结果，LLM 知识作为补充"""
-    from app.tools.search_tools import search_web
+def _patch_outdated_models(reply: str) -> str:
+    """后处理：替换过时版本号 + 检测时间矛盾"""
+    import re
+    import sys
+    from datetime import datetime
+
+    sys.stderr.write(f'[_patch] called, reply length: {len(reply)}\n')
+    sys.stderr.flush()
+
+    # Claude 模型版本映射（过时 → 最新）
+    claude_patches = [
+        (r'Claude 3\.5 Sonnet', 'Claude 4.X Sonnet (Sonnet 4.6) [官方已知]'),
+        (r'Claude 3\.5 Opus', 'Claude 4.X Opus (Opus 4.8) [官方已知]'),
+        (r'Claude 3\.5 Haiku', 'Claude 4.X Haiku (Haiku 4.5) [官方已知]'),
+        (r'Claude 3 Sonnet(?!\s*4)', 'Claude 4.X Sonnet (Sonnet 4.6) [官方已知]'),
+        (r'Claude 3 Opus(?!\s*4)', 'Claude 4.X Opus (Opus 4.8) [官方已知]'),
+        (r'Claude 3 Haiku(?!\s*4)', 'Claude 4.X Haiku (Haiku 4.5) [官方已知]'),
+        (r'Claude 3\.7 Sonnet', 'Claude 4.X Sonnet (Sonnet 4.6) [官方已知]'),
+    ]
+
+    for pattern, replacement in claude_patches:
+        reply = re.sub(pattern, replacement, reply)
+
+    # 如果回复中提到"最新模型是Claude 3.x"，追加说明
+    if re.search(r'最新.*Claude 3\.[0-9]', reply):
+        reply += '\n\n⚠️ 注意：以上搜索结果可能过时。Claude 当前最新家族为 Claude 4.X（Opus 4.8, Sonnet 4.6, Haiku 4.5）[官方已知]。'
+
+    # 时间矛盾检测：回复中提到"将于/即将/尚未开始"等未来时态，但当前已过该日期
+    now = datetime.now(BEIJING_TZ)
+    # 匹配 "X月X日" 格式
+    date_matches = re.findall(r'(\d{1,2})月(\d{1,2})日', reply)
+    for month_str, day_str in date_matches:
+        month, day = int(month_str), int(day_str)
+        try:
+            mentioned_date = datetime(now.year, month, day, tzinfo=BEIJING_TZ)
+            # 如果提到的日期已过，且回复中有"将于/即将/尚未"等未来时态词
+            if mentioned_date < now and re.search(r'将于|即将|尚未开始|还没有开始|还没开始|即将开始', reply):
+                sys.stderr.write(f'[_patch] time contradiction detected: {month}月{day}日 already passed\n')
+                sys.stderr.flush()
+                reply += f'\n\n⚠️ 注意：当前时间是{now.strftime("%Y年%m月%d日")}，{month}月{day}日已过。以上信息可能来自早期报道，建议搜索最新结果。'
+                break
+        except ValueError:
+            pass
+
+    sys.stderr.write(f'[_patch] done, has 4.X: {"4.X" in reply}\n')
+    sys.stderr.flush()
+    return reply
+
+
+async def search_node(state: AgentState, history: list[dict] = None) -> AgentState:
+    """搜索节点：LLM + CrawlerService 联网搜索，优先用搜索结果，LLM 知识作为补充"""
+    from app.tools.crawler_tools import crawl_search
 
     crawled = state.get('crawled_data', [])
     user_msg = state['user_message']
 
-    # 如果没有爬取数据，用 DuckDuckGo 搜索补充
+    # 如果没有爬取数据，用 CrawlerService 搜索补充（默认 Bing，结果更新）
     if not crawled:
         try:
-            # 用 LLM 生成搜索关键词
+            # 用 LLM 生成搜索关键词（智能补年份，提升时效性）
+            current_year = _now_str()[:4]
             kw_data = await _call_llm([
-                {'role': 'system', 'content': '根据用户问题，生成最有效的搜索关键词。优先使用英文关键词（搜索结果更丰富）。只返回关键词，不要其他内容。'},
+                {'role': 'system', 'content': f'''根据用户问题，生成最有效的搜索关键词。
+
+时间处理规则（核心）：
+1. 用户已给出具体时间/年份 → 直接使用，不要改
+   例："25年最厉害的国产模型" → 关键词含 "2025"
+2. 用户未给时间，但涉及"最新/现在/当前/版本/latest/newest/current/什么时候/几点/今天"等时效词 → 自动加当前年份 {current_year}
+   例："世界杯什么时候开始" → 关键词含 "{current_year}"
+   例："Claude最新模型" → 关键词含 "{current_year}"
+3. 纯知识/历史问题（不涉及时效）→ 不加年份
+   例："Python怎么排序" → 不加年份
+
+其他规则：
+- 优先使用英文关键词（搜索结果更丰富）
+- 只返回关键词，不要其他内容'''},
                 {'role': 'user', 'content': user_msg},
             ])
             keyword = kw_data['choices'][0]['message']['content'].strip().strip('"')
             logger.info(f'搜索关键词: {keyword}')
 
-            search_result = await search_web.ainvoke({'query': keyword, 'max_results': 5})
+            # 使用 SearXNG 搜索（聚合 Google/Bing/DuckDuckGo 等多引擎）
+            from app.tools.search_tools import search_web
+            search_result = await search_web.ainvoke({'query': keyword, 'max_results': 8})
             if isinstance(search_result, list):
                 for item in search_result:
                     if isinstance(item, dict) and item.get('url'):
@@ -376,7 +396,7 @@ async def search_node(state: AgentState) -> AgentState:
                             'url': item.get('url', ''),
                             'markdown': item.get('content', ''),
                         })
-                logger.info(f'联网搜索完成: {len(crawled)} 个结果')
+                logger.info(f'SearXNG搜索完成: {len(crawled)} 个结果')
         except Exception as e:
             logger.warning(f'联网搜索失败: {e}')
 
@@ -391,39 +411,90 @@ async def search_node(state: AgentState) -> AgentState:
             context_parts.append(f'--- 来源 {i}: {title} ({url}) ---\n{content}')
         crawled_context = '\n\n'.join(context_parts)
 
-    # 用 LLM 直接回答用户问题（LLM 有知识库，可以回答很多问题）
+    # 用 LLM 基于搜索结果回答（强制接地：以搜索为准，标注来源）
+    now_str = _now_str()
     if crawled_context:
         prompt = f"""用户请求: {user_msg}
 
-以下是搜索到的参考内容（可能不完整或不相关）：
+当前时间：{now_str}
+
+以下是实时搜索到的参考内容（可能过时）：
 {crawled_context}
 
-请根据你的知识和以上参考内容，直接回答用户的问题。
+⚠️ 重要规则：
+1. 【时间推理】搜索结果中的日期/时间必须与当前时间对比：
+   - 若搜索结果说"将于X月X日开始"，而当前时间已过该日期 → 说明已经开始，应搜索最新结果
+   - 若搜索结果说"已于X月X日结束"，而当前时间在该日期之前 → 说明尚未结束
+   - 绝不能照搬搜索结果的未来/过去时态，必须结合当前时间判断
+2. 搜索结果中的版本号若明显过时（如仍显示旧版本），必须使用以下已知最新信息替代：
+   - Claude 最新家族：Claude 4.X（Opus 4.8, Sonnet 4.6, Haiku 4.5）[官方已知]
+   - GPT 最新：GPT-4o / GPT-4.1 [官方已知]
+3. 搜索结果仍有效的内容，标注[来源N]。
+3. 综合两方面信息回答，以已知最新信息为准。
 
-回答要求：
-1. 严格按照用户要求的格式输出（序号、列表、模板等）
-2. 只输出用户要求的内容，不要加旁白、解释、开场白
-3. 如果参考内容不相关或过时，用你自己的知识回答
-4. 如果你不确定，说明信息可能不是最新的
-5. 输出要干净整洁，不要有HTML标签或乱码"""
+输出要求：
+- 严格按照用户要求的格式
+- 干净整洁
+- 关键事实后附 [来源N] 或 [官方已知]"""
     else:
         prompt = f"""用户请求: {user_msg}
 
-请根据你的知识直接回答用户的问题。
+⚠️ 本次搜索未返回任何结果。请诚实处理：
+1. 不要用训练记忆编造时效性信息（版本号、价格、当前事件）。
+2. 明确告知："未能搜索到相关结果，以下是基于我已有知识的回答（可能不是最新）"。
+3. 涉及最新/版本/价格的内容，建议用户换关键词重试或自行核实。
 
-回答要求：
-1. 严格按照用户要求的格式输出（序号、列表、模板等）
-2. 只输出用户要求的内容，不要加旁白、解释、开场白
-3. 如果你不确定，说明信息可能不是最新的
-4. 输出要干净整洁"""
+请基于你的知识回答，但开头必须标注"以下信息可能不是最新"。
+
+输出要求：
+- 严格按照用户要求的格式
+- 干净整洁"""
 
     try:
-        system_prompt = '你是知识丰富的AI助手。直接回答用户的问题，严格按照用户要求的格式输出。只输出结果，不要加旁白或开场白。如果你不确定，诚实说明信息可能不是最新的。'
+        system_prompt = """你是严谨的信息检索助手。回答的核心事实优先基于搜索结果，并标注来源[来源N]。
+
+**重要：当用户要求"找题/搜题/看题"时**：
+- 用户想要的是**题目内容**，不是解题思路
+- 输出格式：题目标题、题目描述、输入格式、输出格式、样例输入输出
+- 不要输出解题思路、代码实现、算法分析
+- 每道题用清晰的结构展示，不要混在一起
+
+示例输出格式：
+---
+## 题目1：XXX
+
+**题目描述：**
+...
+
+**输入格式：**
+...
+
+**输出格式：**
+...
+
+**样例输入：**
+```
+...
+```
+
+**样例输出：**
+```
+...
+```
+
+**来源：** [来源N]
+---
+
+禁止用训练记忆编造时效性信息。"""
         data = await _call_llm([
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': prompt},
         ])
         reply = data['choices'][0]['message']['content'].strip()
+
+        # 后处理：替换过时的模型版本号
+        reply = _patch_outdated_models(reply)
+
         usage = data.get('usage', {})
         token_usage = {
             'input': usage.get('prompt_tokens', 0),
@@ -449,289 +520,234 @@ async def search_node(state: AgentState) -> AgentState:
     return state
 
 
-async def decompose_task(user_message: str) -> list[dict] | None:
-    """任务拆解：判断是否需要将一个请求拆分为多个子任务
+async def _execute_step(step: dict, user_id: int, crawled_data: list[dict],
+                        history: list[dict] = None) -> AgentState:
+    """执行单个步骤：根据 agent 类型分发到对应节点"""
+    agent = step.get('agent', 'chat')
+    task_input = step.get('input', step.get('task', ''))
 
-    场景：用户给一个训练页/题单 URL，要求爬取多道题并分别发帖
-    返回：子任务列表 [{"url": "...", "action": "forum|problem", "description": "..."}]
-    返回 None 表示不需要拆解
-    """
-    import re as _re
-
-    # 提取 URL
-    url_pattern = r'https?://[^\s<>"\')\]]+'
-    urls = _re.findall(url_pattern, user_message)
-
-    if not urls:
-        return None
-
-    # 用 LLM 判断是否需要拆解
-    decompose_prompt = f"""用户请求: {user_message}
-
-URL: {urls[0]}
-
-判断这个请求是否需要拆分为多个子任务。
-
-判断规则：
-- 用户要求"每个题/每篇文章"单独处理 → 需要拆解
-- 用户只说"看看/获取这个页面" → 不需要拆解
-- 用户给了多个URL → 需要拆解
-
-action 类型：
-- "forum"：需要创建帖子
-- "search"：只需要展示内容，不创建
-
-返回 JSON：
-需要拆解：
-{{"need_decompose": true, "tasks": [
-  {{"url": "https://...", "action": "forum|search", "description": "任务描述"}},
-  ...
-]}}
-
-不需要拆解：
-{{"need_decompose": false}}
-
-示例：
-- "训练页前5题，每题发帖" → 拆解5个 action=forum
-- "训练页后3题，发给我看看" → 拆解3个 action=search
-- "看看这个页面" → 不拆解"""
-
-    try:
-        data = await _call_llm([
-            {'role': 'system', 'content': '你是任务拆解专家。判断用户请求是否需要拆分为多个子任务。只返回JSON。'},
-            {'role': 'user', 'content': decompose_prompt},
-        ])
-
-        content = data['choices'][0]['message']['content'].strip()
-        # 去掉可能的 markdown 代码块标记
-        if '```' in content:
-            content = _re.sub(r'```json?\s*', '', content)
-            content = content.replace('```', '').strip()
-
-        if content.startswith('{'):
-            result = json.loads(content)
-        else:
-            match = _re.search(r'\{.*\}', content, _re.DOTALL)
-            result = json.loads(match.group()) if match else {}
-
-        if result.get('need_decompose') and result.get('tasks'):
-            logger.info(f'任务拆解: {len(result["tasks"])} 个子任务')
-            return result['tasks']
-
-    except Exception as e:
-        logger.error(f'任务拆解失败: {e}')
-
-    return None
-
-
-async def run_agent(user_message: str, user_id: int, history: list[dict] = None) -> dict:
-    """
-    执行Agent工作流 - Router 总指挥架构
-
-    Args:
-        user_message: 用户消息
-        user_id: 用户ID
-        history: 历史消息列表 [{'role': 'user'/'assistant', 'content': '...'}]
-
-    Returns:
-        {reply, intent, agent_name, tool_calls, token_usage}
-    """
-    import asyncio
-
-    # Step 1: Router 意图识别
-    intent_result = await classify_intent(user_message)
-    intent = intent_result['intent']
-    logger.info(f'意图分类: {intent_result}')
-
-    # Step 2: 判断是否需要任务拆解
-    sub_tasks = await decompose_task(user_message)
-
-    if sub_tasks and len(sub_tasks) > 1:
-        logger.info(f'多子任务模式: {len(sub_tasks)} 个任务')
-        return await _run_multi_tasks(sub_tasks, user_id, intent)
-
-    # 单任务模式
     state: AgentState = {
-        'user_message': user_message,
+        'user_message': task_input,
         'user_id': user_id,
-        'intent': intent,
-        'agent_name': 'router',
+        'intent': agent,
+        'agent_name': agent,
         'reply': '',
-        'crawled_data': [],
+        'crawled_data': crawled_data,
         'tool_calls': [],
         'token_usage': {'input': 0, 'output': 0},
     }
 
-    need_crawl = _should_crawl(intent, user_message)
-
-    if need_crawl:
-        state = await crawl_node(state)
-
-    if intent == 'forum':
-        state = await forum_node(state)
-    elif intent == 'problem':
-        state = await problem_node(state)
-    elif intent == 'search':
-        state = await search_node(state)
-    elif intent == 'query':
+    if agent == 'forum':
+        state = await forum_node(state, history=history)
+    elif agent == 'problem':
+        state = await problem_node(state, history=history)
+    elif agent == 'search':
+        state = await search_node(state, history=history)
+    elif agent == 'query':
         state = await query_node(state)
-    elif intent == 'chat':
+    elif agent == 'chat':
         state = await chat_node(state, history=history)
     else:
         state = await unclear_node(state)
 
+    return state
+
+
+def _should_crawl_for_step(step: dict) -> bool:
+    """判断某个步骤是否需要先爬取数据"""
+    agent = step.get('agent', 'chat')
+    task = step.get('task', '') + step.get('input', '')
+
+    if agent not in ('forum', 'problem', 'search'):
+        return False
+
+    # 有 URL → 需要爬取
+    if re.search(r'https?://[^\s<>"\')\]]+', task):
+        return True
+
+    # search agent 始终需要
+    if agent == 'search':
+        return True
+
+    # forum/problem 无 URL → 让 agent 自己决定（可能不需要搜索）
+    return False
+
+
+async def run_agent(user_message: str, user_id: int, history: list[dict] = None) -> dict:
+    """
+    执行Agent工作流 - Orchestrator 架构（理解→规划→委派）
+
+    Args:
+        user_message: 用户消息
+        user_id: 用户ID
+        history: 历史消息列表
+
+    Returns:
+        {reply, intent, agent_name, tool_calls, token_usage}
+    """
+    import sys
+    sys.stderr.write(f'[run_agent] ENTER called\n')
+    sys.stderr.flush()
+
+    # Step 1: Orchestrator 理解任务 + 规划步骤
+    plan = await orchestrate(user_message)
+    steps = plan.get('steps', [])
+    logger.info(f'Orchestrator 规划: {plan.get("understanding")} → {len(steps)} 步')
+
+    if not steps:
+        steps = [{'step': 1, 'agent': 'unclear', 'task': user_message, 'input': user_message}]
+
+    # Step 2: 逐步执行，传递上下文
+    all_crawled = []
+    all_tool_calls = []
+    total_tokens = {'input': 0, 'output': 0}
+    step_results = []  # 每步的结果，供后续步骤参考
+
+    for step in steps:
+        agent = step.get('agent', 'chat')
+        step_input = step.get('input', step.get('task', ''))
+
+        # 如果 input 引用了前序步骤的结果，替换为实际内容
+        for i, prev_result in enumerate(step_results):
+            placeholder = f'step {i+1}'
+            if placeholder in step_input.lower() or f'步骤{i+1}' in step_input:
+                # 把前序结果作为上下文注入
+                step_input = f'{step_input}\n\n前序步骤结果:\n{prev_result["reply"][:2000]}'
+                step['input'] = step_input
+
+        # 判断是否需要爬取
+        if _should_crawl_for_step(step):
+            crawl_state: AgentState = {
+                'user_message': step_input,
+                'user_id': user_id,
+                'intent': agent,
+                'agent_name': 'crawl',
+                'reply': '',
+                'crawled_data': [],
+                'tool_calls': [],
+                'token_usage': {'input': 0, 'output': 0},
+            }
+            crawl_state = await crawl_node(crawl_state)
+            all_crawled.extend(crawl_state.get('crawled_data', []))
+            all_tool_calls.extend(crawl_state.get('tool_calls', []))
+
+        # 执行步骤
+        state = await _execute_step(step, user_id, all_crawled, history)
+        step_results.append(state)
+
+        all_tool_calls.extend(state.get('tool_calls', []))
+        total_tokens['input'] += state['token_usage'].get('input', 0)
+        total_tokens['output'] += state['token_usage'].get('output', 0)
+
+    # Step 3: 汇总结果
+    if len(step_results) == 1:
+        # 单步骤：直接返回
+        final = step_results[0]
+    else:
+        # 多步骤：合并回复
+        replies = []
+        for i, result in enumerate(step_results):
+            if result['reply']:
+                replies.append(result['reply'])
+        final_reply = '\n\n'.join(replies)
+        final = {
+            'reply': final_reply,
+            'agent_name': step_results[-1]['agent_name'],
+        }
+
+    # 后处理：替换过时的模型版本号
+    final_reply = _patch_outdated_models(final['reply'])
+
     return {
-        'reply': state['reply'],
-        'intent': state['intent'],
-        'agent_name': state['agent_name'],
-        'tool_calls': state['tool_calls'],
-        'token_usage': state['token_usage'],
+        'reply': final_reply,
+        'intent': steps[-1].get('agent', 'chat'),
+        'agent_name': final['agent_name'],
+        'tool_calls': all_tool_calls,
+        'token_usage': total_tokens,
     }
 
 
 async def run_agent_stream(user_message: str, user_id: int, history: list[dict] = None):
-    """流式执行Agent工作流 - yield delta chunks
-
-    对于 chat 意图：直接流式输出 LLM delta
-    对于 forum/problem 意图：先执行工具获取结果，再流式输出最终回复
+    """流式执行Agent工作流 - Orchestrator 架构
 
     Yields:
         dict: {'type': 'content', 'content': '...'} 或 {'type': 'meta', ...}
     """
-    # Step 1: Router 意图识别
-    intent_result = await classify_intent(user_message)
-    intent = intent_result['intent']
-    logger.info(f'[stream] 意图分类: {intent_result}')
+    # Step 1: Orchestrator 理解任务 + 规划步骤
+    plan = await orchestrate(user_message)
+    steps = plan.get('steps', [])
+    logger.info(f'[stream] Orchestrator 规划: {plan.get("understanding")} → {len(steps)} 步')
 
-    state: AgentState = {
-        'user_message': user_message,
-        'user_id': user_id,
-        'intent': intent,
-        'agent_name': 'router',
-        'reply': '',
-        'crawled_data': [],
-        'tool_calls': [],
-        'token_usage': {'input': 0, 'output': 0},
-    }
+    if not steps:
+        steps = [{'step': 1, 'agent': 'unclear', 'task': user_message, 'input': user_message}]
 
-    # 发送意图元数据
-    yield {'type': 'meta', 'intent': intent}
+    # 发送规划元数据
+    yield {'type': 'meta', 'understanding': plan.get('understanding', ''), 'steps': len(steps)}
 
-    if intent == 'chat':
-        # 流式输出
-        state['agent_name'] = 'chat'
-        full_reply = ''
-        async for delta in chat_node_stream(state, history=history):
-            content = delta.get('content', '')
-            if content:
-                full_reply += content
-                yield {'type': 'content', 'content': content}
-        state['reply'] = full_reply
+    # Step 2: 逐步执行
+    all_crawled = []
+    step_results = []
 
-    elif intent in ('forum', 'problem'):
-        # 先执行工具（爬取 + 生成），再把结果分块 yield
-        need_crawl = _should_crawl(intent, user_message)
-        if need_crawl:
-            state = await crawl_node(state)
+    for step in steps:
+        agent = step.get('agent', 'chat')
+        step_input = step.get('input', step.get('task', ''))
 
-        if intent == 'forum':
-            state = await forum_node(state)
-        else:
-            state = await problem_node(state)
+        # 替换前序步骤引用
+        for i, prev_result in enumerate(step_results):
+            placeholder = f'step {i+1}'
+            if placeholder in step_input.lower() or f'步骤{i+1}' in step_input:
+                step_input = f'{step_input}\n\n前序步骤结果:\n{prev_result["reply"][:2000]}'
 
-        # 把完整回复分块输出（模拟流式）
-        reply = state['reply']
-        chunk_size = 50
-        for i in range(0, len(reply), chunk_size):
-            yield {'type': 'content', 'content': reply[i:i+chunk_size]}
+        # 爬取
+        if _should_crawl_for_step(step):
+            crawl_state: AgentState = {
+                'user_message': step_input,
+                'user_id': user_id,
+                'intent': agent,
+                'agent_name': 'crawl',
+                'reply': '',
+                'crawled_data': [],
+                'tool_calls': [],
+                'token_usage': {'input': 0, 'output': 0},
+            }
+            crawl_state = await crawl_node(crawl_state)
+            all_crawled.extend(crawl_state.get('crawled_data', []))
 
-    elif intent == 'search':
-        need_crawl = _should_crawl(intent, user_message)
-        if need_crawl:
-            state = await crawl_node(state)
-        state = await search_node(state)
-        reply = state['reply']
-        chunk_size = 50
-        for i in range(0, len(reply), chunk_size):
-            yield {'type': 'content', 'content': reply[i:i+chunk_size]}
-
-    elif intent == 'query':
-        state = await query_node(state)
-        yield {'type': 'content', 'content': state['reply']}
-
-    else:
-        state = await unclear_node(state)
-        yield {'type': 'content', 'content': state['reply']}
-
-    # 最终元数据
-    yield {
-        'type': 'done',
-        'intent': state['intent'],
-        'agent_name': state['agent_name'],
-        'tool_calls': state['tool_calls'],
-        'token_usage': state['token_usage'],
-    }
-
-
-async def _run_multi_tasks(sub_tasks: list[dict], user_id: int, intent: str) -> dict:
-    """处理多个子任务：并行爬取 + 逐个处理"""
-    import asyncio
-    from app.tools.crawler_tools import crawl_webpage
-
-    # Step 1: 并行爬取所有子任务的 URL
-    async def _crawl_task(task: dict) -> dict | None:
-        url = task.get('url', '')
-        if not url:
-            return None
-        logger.info(f'子任务爬取: {url}')
-        result = await crawl_webpage.ainvoke({'url': url})
-        return result if result.get('success') else None
-
-    crawl_results = await asyncio.gather(*[_crawl_task(t) for t in sub_tasks])
-    crawled_data = [r for r in crawl_results if r is not None]
-    logger.info(f'子任务爬取完成: {len(crawled_data)}/{len(sub_tasks)} 成功')
-
-    # Step 2: 逐个处理每个子任务
-    replies = []
-    all_tool_calls = []
-    total_tokens = {'input': 0, 'output': 0}
-
-    for i, (task, crawled) in enumerate(zip(sub_tasks, crawl_results)):
-        if not crawled:
-            replies.append(f'❌ 子任务 {i+1}: 爬取失败 - {task.get("url", "")}')
-            continue
-
-        task_state: AgentState = {
-            'user_message': task.get('description', task.get('url', '')),
+        # 执行
+        state: AgentState = {
+            'user_message': step_input,
             'user_id': user_id,
-            'intent': intent,
-            'agent_name': 'router',
+            'intent': agent,
+            'agent_name': agent,
             'reply': '',
-            'crawled_data': [crawled],
+            'crawled_data': all_crawled,
             'tool_calls': [],
             'token_usage': {'input': 0, 'output': 0},
         }
 
-        if intent == 'forum' or task.get('action') == 'forum':
-            task_state = await forum_node(task_state)
-        elif intent == 'problem' or task.get('action') == 'problem':
-            task_state = await problem_node(task_state)
+        if agent == 'chat':
+            full_reply = ''
+            async for delta in chat_node_stream(state, history=history):
+                content = delta.get('content', '')
+                if content:
+                    full_reply += content
+                    yield {'type': 'content', 'content': content}
+            state['reply'] = full_reply
         else:
-            task_state = await forum_node(task_state)
+            state = await _execute_step(step, user_id, all_crawled, history)
+            # 分块输出
+            reply = state['reply']
+            chunk_size = 50
+            for i in range(0, len(reply), chunk_size):
+                yield {'type': 'content', 'content': reply[i:i+chunk_size]}
 
-        replies.append(f'**子任务 {i+1}**: {task.get("description", task.get("url", ""))}\n{task_state["reply"]}')
-        all_tool_calls.extend(task_state.get('tool_calls', []))
-        total_tokens['input'] += task_state['token_usage'].get('input', 0)
-        total_tokens['output'] += task_state['token_usage'].get('output', 0)
+        step_results.append(state)
 
-    # 汇总结果
-    summary = f'✅ 共处理 {len(sub_tasks)} 个子任务，成功 {len(crawled_data)} 个\n\n'
-    summary += '\n\n---\n\n'.join(replies)
-
-    return {
-        'reply': summary,
-        'intent': intent,
-        'agent_name': 'router',
-        'tool_calls': all_tool_calls,
-        'token_usage': total_tokens,
+    # 最终元数据
+    yield {
+        'type': 'done',
+        'intent': steps[-1].get('agent', 'chat'),
+        'agent_name': step_results[-1]['agent_name'] if step_results else 'unknown',
+        'tool_calls': [],
+        'token_usage': {'input': 0, 'output': 0},
     }

@@ -455,9 +455,13 @@ async def search_node(state: AgentState, history: list[dict] = None) -> AgentSta
 
 **重要：当用户要求"找题/搜题/看题"时**：
 - 用户想要的是**题目内容**，不是解题思路
+- **【强制要求】必须严格按照用户要求的数量返回题目**（如"找两道题"就必须返回2道，"找三道题"就必须返回3道，不能少）
+- 如果搜索结果不足，**必须**基于你的算法知识补充题目（确保题目准确、符合要求）
+- **注意：返回题目数量不足 = 任务失败！** 用户说几道就必须返回几道
 - 输出格式：题目标题、题目描述、输入格式、输出格式、样例输入输出
 - 不要输出解题思路、代码实现、算法分析
-- 每道题用清晰的结构展示，不要混在一起
+- 每道题用清晰的结构展示，用"## 题目1"、"## 题目2"等分隔
+- 每道题末尾标注来源[来源N]或[基于算法知识]
 
 示例输出格式：
 ---
@@ -518,6 +522,111 @@ async def search_node(state: AgentState, history: list[dict] = None) -> AgentSta
     state['tool_calls'] = []
     state['token_usage'] = token_usage
     return state
+
+
+async def search_node_stream(state: AgentState):
+    """搜索节点流式版：先爬取，再流式生成回答
+
+    Yields:
+        str: 内容片段
+    """
+    from app.tools.search_tools import search_web
+
+    crawled = state.get('crawled_data', [])
+    user_msg = state['user_message']
+
+    # 如果没有爬取数据，用 SearXNG 搜索补充
+    if not crawled:
+        try:
+            current_year = _now_str()[:4]
+            kw_data = await _call_llm([
+                {'role': 'system', 'content': f'根据用户问题，生成最有效的搜索关键词。规则：\n1. 优先使用英文关键词\n2. 涉及"最新/现在/当前/版本/latest"时，加当前年份 {current_year}\n3. 只返回关键词'},
+                {'role': 'user', 'content': user_msg},
+            ])
+            keyword = kw_data['choices'][0]['message']['content'].strip().strip('"')
+            logger.info(f'[stream] 搜索关键词: {keyword}')
+
+            search_result = await search_web.ainvoke({'query': keyword, 'max_results': 8})
+            if isinstance(search_result, list):
+                for item in search_result:
+                    if isinstance(item, dict) and item.get('url'):
+                        crawled.append({
+                            'title': item.get('title', ''),
+                            'url': item.get('url', ''),
+                            'markdown': item.get('content', ''),
+                        })
+                logger.info(f'[stream] SearXNG搜索完成: {len(crawled)} 个结果')
+        except Exception as e:
+            logger.warning(f'[stream] 联网搜索失败: {e}')
+
+    # 构建上下文
+    crawled_context = ''
+    if crawled:
+        context_parts = []
+        for i, page in enumerate(crawled[:10], 1):
+            title = page.get('title', '无标题')
+            url = page.get('url', '')
+            content = (page.get('markdown') or page.get('content') or '')[:3000]
+            context_parts.append(f'--- 来源 {i}: {title} ({url}) ---\n{content}')
+        crawled_context = '\n\n'.join(context_parts)
+
+    # 流式生成回答
+    now_str = _now_str()
+    if crawled_context:
+        prompt = f"""用户请求: {user_msg}
+
+当前时间：{now_str}
+
+以下是实时搜索到的参考内容（可能过时）：
+{crawled_context}
+
+⚠️ 重要规则：
+1. 【时间推理】搜索结果中的日期/时间必须与当前时间对比
+2. 搜索结果中的版本号若明显过时，使用已知最新信息替代
+3. 搜索结果仍有效的内容，标注[来源N]
+
+输出要求：
+- 严格按照用户要求的格式
+- 干净整洁
+- 关键事实后附 [来源N] 或 [官方已知]"""
+    else:
+        prompt = f"""用户请求: {user_msg}
+
+当前时间：{now_str}
+
+⚠️ 本次搜索未返回任何结果。请基于你的知识回答，但开头必须标注"以下信息可能不是最新"。"""
+
+    try:
+        system_prompt = '你是严谨的信息检索助手。回答的核心事实优先基于搜索结果，并标注来源[来源N]。当搜索结果明显过时时，使用已知最新信息并标注[官方已知]。'
+        full_reply = ''
+        async for delta in llm.chat_stream(
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': prompt},
+            ],
+            temperature=0.7,
+            max_tokens=2048,
+            timeout=60.0,
+        ):
+            content = delta.get('content', '')
+            if content:
+                full_reply += content
+                yield content
+
+        # 流结束后后处理
+        full_reply = _patch_outdated_models(full_reply)
+        state['agent_name'] = 'search'
+        state['reply'] = full_reply
+        state['tool_calls'] = []
+        state['token_usage'] = {'input': 0, 'output': 0}
+    except Exception as e:
+        logger.error(f'[stream] Search LLM 处理失败: {e}')
+        error_msg = f'抱歉，处理失败: {str(e)}'
+        yield error_msg
+        state['agent_name'] = 'search'
+        state['reply'] = error_msg
+        state['tool_calls'] = []
+        state['token_usage'] = {'input': 0, 'output': 0}
 
 
 async def _execute_step(step: dict, user_id: int, crawled_data: list[dict],
@@ -729,6 +838,14 @@ async def run_agent_stream(user_message: str, user_id: int, history: list[dict] 
             full_reply = ''
             async for delta in chat_node_stream(state, history=history):
                 content = delta.get('content', '')
+                if content:
+                    full_reply += content
+                    yield {'type': 'content', 'content': content}
+            state['reply'] = full_reply
+        elif agent == 'search':
+            # search 真流式：先爬取，再流式生成
+            full_reply = ''
+            async for content in search_node_stream(state):
                 if content:
                     full_reply += content
                     yield {'type': 'content', 'content': content}

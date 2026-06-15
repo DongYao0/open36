@@ -18,7 +18,7 @@ import ForumHeader from '@/components/ForumHeader.vue'
   background: var(--bg-page, #f5f7fa);
 }
 .forum-main {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: var(--s-lg) var(--s-lg) 80px;
 }

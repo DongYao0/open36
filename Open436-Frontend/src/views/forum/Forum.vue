@@ -1,43 +1,20 @@
 <template>
-  <!-- Search Bar -->
-  <div class="fm-search">
-    <div class="fm-search-inner">
-      <svg class="fm-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input
-        v-model="searchQuery"
-        class="fm-search-input"
-        type="text"
-        placeholder="搜索帖子..."
-        @keyup.enter="doSearch"
-      />
-      <button v-if="searchQuery" class="fm-search-clear" @click="searchQuery = ''">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
+  <!-- Stats + Section Chips -->
+  <div class="fm-bar">
+    <div class="fm-chips">
+      <button
+        v-for="s in sectionStore.forumSections"
+        :key="s.key"
+        class="fm-chip"
+        :class="{ active: sectionStore.activeSection === s.key }"
+        :style="sectionStore.activeSection === s.key ? { background: s.color, borderColor: s.color } : {}"
+        @click="selectSection(s.key)"
+      >
+        {{ s.name }}
+        <span v-if="s.key !== 'all' && s.count" class="fm-chip-count">{{ s.count }}</span>
       </button>
     </div>
-    <div class="fm-search-meta">
-      <span>{{ totalCount }} 篇帖子</span>
-      <span>·</span>
-      <span>{{ sectionStore.forumSections.filter(s => s.key !== 'all').length }} 个板块</span>
-    </div>
-  </div>
-
-  <!-- Section Chips -->
-  <div class="fm-chips">
-    <button
-      v-for="s in sectionStore.forumSections"
-      :key="s.key"
-      class="fm-chip"
-      :class="{ active: sectionStore.activeSection === s.key }"
-      :style="sectionStore.activeSection === s.key ? { background: s.color, borderColor: s.color } : {}"
-      @click="selectSection(s.key)"
-    >
-      {{ s.name }}
-      <span v-if="s.key !== 'all' && s.count" class="fm-chip-count">{{ s.count }}</span>
-    </button>
+    <span class="fm-bar-meta">{{ totalCount }} 篇帖子</span>
   </div>
 
   <!-- Posts Grid -->
@@ -102,7 +79,6 @@ const router = useRouter()
 const sectionStore = useSectionStore()
 const auth = useAuthStore()
 
-const searchQuery = ref('')
 const fetchError = ref('')
 const loading = ref(false)
 const posts = ref([])
@@ -129,18 +105,12 @@ function selectSection(key) {
   fetchPosts(1)
 }
 
-function doSearch() {
-  currentPage.value = 1
-  fetchPosts(1)
-}
-
 async function fetchPosts(page = 1) {
   loading.value = true
   fetchError.value = ''
   try {
     const params = { page, page_size: PAGE_SIZE }
     if (activeSectionId.value) params.section_id = activeSectionId.value
-    if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
     const res = await getPosts(params)
     const data = res?.data || {}
     totalCount.value = data.count || 0
@@ -181,39 +151,12 @@ onUnmounted(() => { observer?.disconnect() })
 </script>
 
 <style scoped>
-/* ---- Search ---- */
-.fm-search {
+/* ---- Bar (chips + meta) ---- */
+.fm-bar {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: var(--s-base); gap: var(--s-base); flex-wrap: wrap;
+  margin-bottom: var(--s-lg); gap: var(--s-base); flex-wrap: wrap;
 }
-.fm-search-inner {
-  position: relative; flex: 1; min-width: 240px; max-width: 480px;
-}
-.fm-search-icon {
-  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-  color: var(--text-disabled); pointer-events: none;
-}
-.fm-search-input {
-  width: 100%; height: 42px; padding: 0 36px 0 40px;
-  border: 1px solid var(--divider); border-radius: 999px;
-  background: var(--bg); font-size: 14px; color: var(--text-primary);
-  outline: none; transition: border-color var(--t-fast), box-shadow var(--t-fast);
-}
-.fm-search-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(25,118,210,0.1);
-}
-.fm-search-input::placeholder { color: var(--text-disabled); }
-.fm-search-clear {
-  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-  background: none; border: none; cursor: pointer; color: var(--text-disabled);
-  padding: 4px; border-radius: 50%; display: flex;
-}
-.fm-search-clear:hover { color: var(--text-primary); background: var(--divider); }
-.fm-search-meta {
-  display: flex; align-items: center; gap: var(--s-xs);
-  font-size: 13px; color: var(--text-disabled); white-space: nowrap;
-}
+.fm-bar-meta { font-size: 13px; color: var(--text-disabled); white-space: nowrap; }
 
 /* ---- Section Chips ---- */
 .fm-chips {

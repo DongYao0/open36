@@ -42,8 +42,7 @@ export default defineConfig({
       },
       '/api/comments': {
         target: 'http://localhost:8003',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/comments/, '/api')
+        changeOrigin: true
       },
       '/api/users': {
         target: 'http://localhost:8081',

@@ -408,7 +408,7 @@ async def search_node(state: AgentState, history: list[dict] = None) -> AgentSta
             title = page.get('title', '无标题')
             url = page.get('url', '')
             content = (page.get('markdown') or page.get('content') or '')[:3000]
-            context_parts.append(f'--- 来源 {i}: {title} ({url}) ---\n{content}')
+            context_parts.append(f'--- {title} ---\n来源: {url}\n{content}')
         crawled_context = '\n\n'.join(context_parts)
 
     # 用 LLM 基于搜索结果回答（强制接地：以搜索为准，标注来源）
@@ -429,13 +429,14 @@ async def search_node(state: AgentState, history: list[dict] = None) -> AgentSta
 2. 搜索结果中的版本号若明显过时（如仍显示旧版本），必须使用以下已知最新信息替代：
    - Claude 最新家族：Claude 4.X（Opus 4.8, Sonnet 4.6, Haiku 4.5）[官方已知]
    - GPT 最新：GPT-4o / GPT-4.1 [官方已知]
-3. 搜索结果仍有效的内容，标注[来源N]。
+3. 搜索结果仍有效的内容，直接展示来源名称和URL。
 3. 综合两方面信息回答，以已知最新信息为准。
 
 输出要求：
 - 严格按照用户要求的格式
 - 干净整洁
-- 关键事实后附 [来源N] 或 [官方已知]"""
+- **来源必须直接展示**：不要用[来源N]隐藏，直接写"来源：XXX（URL）"
+- 示例：`**来源：** 洛谷P1001 https://www.luogu.com.cn/problem/P1001`"""
     else:
         prompt = f"""用户请求: {user_msg}
 
@@ -451,7 +452,7 @@ async def search_node(state: AgentState, history: list[dict] = None) -> AgentSta
 - 干净整洁"""
 
     try:
-        system_prompt = """你是严谨的信息检索助手。回答的核心事实优先基于搜索结果，并标注来源[来源N]。
+        system_prompt = """你是严谨的信息检索助手。回答的核心事实优先基于搜索结果，直接展示来源名称和URL。
 
 **重要：当用户要求"找题/搜题/看题"时**：
 - 用户想要的是**题目内容**，不是解题思路
@@ -461,7 +462,8 @@ async def search_node(state: AgentState, history: list[dict] = None) -> AgentSta
 - 输出格式：题目标题、题目描述、输入格式、输出格式、样例输入输出
 - 不要输出解题思路、代码实现、算法分析
 - 每道题用清晰的结构展示，用"## 题目1"、"## 题目2"等分隔
-- 每道题末尾标注来源[来源N]或[基于算法知识]
+- **来源必须直接展示**：不要用[来源N]隐藏，直接写"来源：XXX（URL）"
+- 示例：`**来源：** 洛谷P1001 https://www.luogu.com.cn/problem/P1001` 或 `**来源：** [基于算法知识]`
 
 示例输出格式：
 ---

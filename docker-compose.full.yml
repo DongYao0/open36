@@ -302,6 +302,8 @@ services:
     container_name: open436-ai-service
     restart: unless-stopped
     ports: ["8008:8008"]
+    volumes:
+      - ./Open436-AIService:/app
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_started }

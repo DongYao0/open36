@@ -56,7 +56,7 @@ async def _call_hoj_api(method: str, path: str, **kwargs) -> dict:
         return resp.json()
 
 
-async def execute_problem_task_with_data(user_message: str, user_id: int, crawled_data: list[dict]) -> dict:
+async def execute_problem_task_with_data(user_message: str, user_id: int, crawled_data: list[dict], history: list[dict] = None) -> dict:
     """执行出题任务（快速模式）"""
     import time as _time
     from app.tools.problem_tools import execute_cyaron_script, run_brute_vs_solution, submit_problem_to_hoj
@@ -84,11 +84,25 @@ async def execute_problem_task_with_data(user_message: str, user_id: int, crawle
             context_parts.append(f'--- 参考 {i}: {title} ({url}) ---\n{content}')
         crawled_context = '\n\n'.join(context_parts) if context_parts else '（无参考数据，请根据用户描述直接生成题目）'
 
+        # Step 2.5: 提取历史消息中的题目内容（如果有）
+        history_context = ''
+        if history:
+            history_parts = []
+            for msg in history[-6:]:  # 最近6条消息
+                role = msg.get('role', '')
+                content = msg.get('content', '')
+                if role == 'assistant' and ('题目' in content or '题解' in content or '输入格式' in content or '输出格式' in content):
+                    history_parts.append(f'--- 历史对话中的题目信息 ---\n{content[:2000]}')
+            if history_parts:
+                history_context = '\n\n'.join(history_parts)
+
         # Step 3: LLM 一次性生成题目所有内容
         gen_prompt = f"""用户请求: {user_message}
 
 参考资料：
 {crawled_context}
+
+{history_context}
 
 {existing_context}
 
@@ -101,14 +115,36 @@ async def execute_problem_task_with_data(user_message: str, user_id: int, crawle
 4. 暴力解必须正确（可慢），正解必须高效
 5. 难度标签与实际难度匹配（0简单/1中等/2困难）
 
-CYaRon 脚本规范：
+CYaRon 脚本规范（严格遵守，否则脚本无法生成文件）：
 - 导入：from cyaron import *
 - 随机数：randint(1, 100)  ← 2个参数，不是3个
-- 创建文件：IO(file_prefix='test', data_id=i)
-- 写输入：io.input_writeln(x)
-- 写输出：io.output_writeln(正确答案)  ← 重要：直接写答案，不要用 io.output_gen()
-- 循环 range(1, 9) 生成8组，包含边界数据
-- 每组测试用例的输出必须是正确答案（用暴力解计算）
+- 禁止用 print() 输出！必须用 IO 类生成文件！
+
+完整示例（照抄结构，只改逻辑）：
+```python
+from cyaron import *
+for i in range(1, 11):
+    io = IO(file_prefix="test", data_id=i)
+    n = randint(1, 100)
+    arr = [randint(1, 1000) for _ in range(n)]
+    io.input_writeln(n)
+    io.input_writeln(arr)
+    # 计算答案（直接算，不要定义函数）
+    ans = sum(arr)
+    io.output_writeln(ans)
+```
+
+- 创建文件：io = IO(file_prefix='test', data_id=i)  ← 每轮循环都要创建
+- 写输入：io.input_writeln(x)  ← 可多次调用
+- 写输出：io.output_writeln(正确答案)  ← 直接写答案，不要用 io.output_gen()
+- 循环 range(1, 11) 生成10组
+- 前几组手动构造边界数据，后面用随机
+
+⚠️ 重要：CYaRon脚本中禁止嵌入暴力解函数！
+- CYaRon脚本只负责生成输入数据和写入正确输出
+- 对于需要计算答案的题目，直接在脚本中用简单逻辑计算答案
+- 不要定义 brute_force/solve 等函数，不要调用复杂算法
+- 大数据组（n>1000）的输出必须用数学公式或简单计算，不能用O(n²)算法
 
 返回 JSON 格式（只返回 JSON）：
 {{

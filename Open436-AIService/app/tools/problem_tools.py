@@ -38,6 +38,21 @@ async def execute_cyaron_script(script_code: str, test_count: int = 10) -> dict:
         # 匹配 io.output_gen(...) 和 output_gen(...) 各种写法
         fixed_script = _re.sub(r'output_gen\s*\([^)]*\)', 'output_writeln(0)', fixed_script)
 
+        # 修复 random() -> random.random()：LLM 常把 import random 后的模块当函数调用
+        # 只替换孤立的 random()，不替换 xxx.random() 或 from random import random 后的调用
+        fixed_script = _re.sub(r'(?<![\w.])random\s*\(\s*\)', 'random.random()', fixed_script)
+        # 如果修复后用到了 random.random() 但没有 import random，补上
+        if 'random.random()' in fixed_script and 'import random' not in fixed_script:
+            fixed_script = 'import random\n' + fixed_script
+
+        # 检测脚本是否使用了 IO 类（CYaRon 必须用 IO 生成文件，print() 不会生成文件）
+        if 'IO(' not in fixed_script and 'io.input' not in fixed_script.lower():
+            return {
+                'success': False,
+                'error': 'CYaRon 脚本缺少 IO 类，无法生成测试数据文件。必须使用 io = IO(file_prefix="test", data_id=i) 创建文件，用 io.input_writeln() 和 io.output_writeln() 写入数据。禁止使用 print()。',
+                'test_cases': [],
+            }
+
         # 写入 CYaRon 脚本
         script_path = os.path.join(work_dir, 'gen.py')
         with open(script_path, 'w', encoding='utf-8') as f:

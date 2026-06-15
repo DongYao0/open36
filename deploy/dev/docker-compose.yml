@@ -123,6 +123,34 @@ services:
       # 注意：仅挂载自定义插件子目录，避免覆盖内置 bundled 插件
       - ./kong/plugins/satoken-auth:/usr/local/share/lua/5.1/kong/plugins/satoken-auth
 
+  # AI Service (开发模式)
+  ai-service:
+    build:
+      context: ../../Open436-AIService
+      dockerfile: Dockerfile
+    container_name: open436-ai-service-dev
+    ports:
+      - "8008:8008"
+    volumes:
+      # 挂载代码目录，支持热更新
+      - ../../Open436-AIService:/app
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - open436-dev-network
+    environment:
+      DATABASE_URL: postgresql://open436:open436@postgres:5432/open436
+      REDIS_URL: redis://redis:6379/2
+      HOJ_API_URL: http://host.docker.internal:6688
+      HOJ_ADMIN_USER: root
+      HOJ_ADMIN_PASS: root123
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      APP_DEBUG: "true"
+      APP_LOG_LEVEL: debug
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   consul-dev-data:
   postgres-dev-data:

@@ -54,8 +54,10 @@
         <label class="pn-label">内容</label>
         <div class="pn-editor">
           <div class="pn-toolbar">
-            <button v-for="t in toolbar" :key="t.label" class="pn-tool" @click="insertMarkdown(t.syntax)" :title="t.label" v-html="t.icon"></button>
+            <button v-for="t in toolbar" :key="t.label" class="pn-tool" @click="t.action ? t.action() : insertMarkdown(t.syntax)" :title="t.label" :disabled="imageUploading" v-html="t.icon"></button>
+            <span v-if="imageUploading" class="pn-uploading-hint">上传中...</span>
           </div>
+          <input ref="imageFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/svg+xml" style="display:none" @change="handleImageUpload" />
           <div class="pn-split">
             <textarea v-model="form.content" class="pn-textarea" placeholder="支持 Markdown 语法..." rows="16"></textarea>
             <div class="pn-preview">
@@ -87,12 +89,15 @@ import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { markdownToHtml } from '@/utils/format'
 import { createPost } from '@/api/post'
+import { uploadFile } from '@/api/file'
 
 const router = useRouter()
 const sectionStore = useSectionStore()
 const ui = useUIStore()
 const auth = useAuthStore()
 const submitting = ref(false)
+const imageUploading = ref(false)
+const imageFileInput = ref(null)
 const form = ref({ title: '', summary: '', section: 'tech', content: '' })
 
 const toolbar = [
@@ -101,7 +106,7 @@ const toolbar = [
   { label: '标题', syntax: '\n## 标题\n', icon: 'H' },
   { label: '代码', syntax: '`代码`', icon: '&lt;/&gt;' },
   { label: '链接', syntax: '[链接文本](https://)', icon: '🔗' },
-  { label: '图片', syntax: '![图片描述](https://)', icon: '🖼' },
+  { label: '图片', icon: '🖼', action: () => imageFileInput.value?.click() },
   { label: '列表', syntax: '\n- 列表项\n', icon: '&#8226;' },
   { label: '引用', syntax: '\n> 引用内容\n', icon: '❝' }
 ]
@@ -115,6 +120,35 @@ onMounted(() => {
 })
 
 function insertMarkdown(syntax) { form.value.content += syntax }
+
+async function handleImageUpload(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  // 重置 input 以便重复选择同一文件
+  e.target.value = ''
+
+  // 客户端校验
+  const maxSize = 5 * 1024 * 1024
+  if (file.size > maxSize) { ui.showToast('图片大小不能超过 5MB', 'warning'); return }
+  const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml']
+  if (!allowed.includes(file.type)) { ui.showToast('仅支持 JPG / PNG / GIF / SVG 格式', 'warning'); return }
+
+  imageUploading.value = true
+  try {
+    const res = await uploadFile(file, 'post')
+    // 响应拦截器已解包 {code, message, data}，res 即 data 部分
+    const url = res.data?.url || res.url
+    const filename = res.data?.filename || file.name
+    if (!url) { ui.showToast('上传成功但未获取到图片地址', 'error'); return }
+    insertMarkdown(`\n![${filename}](${url})\n`)
+    ui.showToast('图片上传成功', 'success')
+  } catch (err) {
+    const msg = err?.response?.data?.message || '图片上传失败，请稍后重试'
+    ui.showToast(msg, 'error')
+  } finally {
+    imageUploading.value = false
+  }
+}
 
 async function submitPost() {
   if (!canSubmit.value) { ui.showToast('请填写完整内容', 'warning'); return }
@@ -196,6 +230,8 @@ async function submitPost() {
   color: var(--text-secondary); transition: all var(--t-fast);
 }
 .pn-tool:hover { background: var(--bg); color: var(--text-primary); }
+.pn-tool:disabled { opacity: 0.5; cursor: not-allowed; }
+.pn-uploading-hint { font-size: 12px; color: var(--primary); margin-left: 8px; align-self: center; }
 .pn-split { display: flex; }
 .pn-textarea {
   flex: 1; border: none; resize: none; font-family: var(--mono);
@@ -208,6 +244,7 @@ async function submitPost() {
   min-height: 300px;
 }
 .pn-preview-placeholder { color: var(--text-disabled); }
+.pn-preview :deep(img) { max-width: 100%; border-radius: var(--r-sm); margin: var(--s-sm) 0; }
 
 .pn-actions { display: flex; justify-content: flex-end; gap: var(--s-sm); padding-top: var(--s-lg); border-top: 1px solid var(--divider); }
 

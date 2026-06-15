@@ -122,9 +122,9 @@ pub async fn upload_handler(
         .await
         .map_err(|e| FileError::Database(e))?;
 
-    // 9. 返回响应
+    // 9. 返回响应（code:200 与前端响应拦截器约定一致）
     let response = UploadResponse {
-        code: 201,
+        code: 200,
         message: "File uploaded successfully".to_string(),
         data: UploadData {
             file_id: file.id.to_string(),
@@ -140,6 +140,6 @@ pub async fn upload_handler(
         timestamp: chrono::Utc::now().to_rfc3339(),
     };
 
-    Ok(HttpResponse::Created().json(response))
+    Ok(HttpResponse::Ok().json(response))
 }
 

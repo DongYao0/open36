@@ -316,8 +316,8 @@ services:
       MILVUS_PORT: "19530"
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       TAVILY_API_KEY: ${TAVILY_API_KEY}
-      CONTENT_SERVICE_URL: http://forum-service:8003
-      SECTION_SERVICE_URL: http://forum-service:8003
+      CONTENT_SERVICE_URL: http://host.docker.internal:8003
+      SECTION_SERVICE_URL: http://host.docker.internal:8003
       USER_SERVICE_URL: http://auth:8081
       HOJ_API_URL: http://hoj-backend:6688
       HOJ_ADMIN_USER: ${HOJ_ADMIN_USER:-admin}

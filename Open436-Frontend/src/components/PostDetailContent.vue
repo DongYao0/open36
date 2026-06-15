@@ -39,4 +39,5 @@ const postHtml = computed(() => markdownToHtml(props.post?.content || ''))
 .post-content :deep(pre) { background: #1e1e1e; color: #d4d4d4; padding: var(--s-base); border-radius: var(--r-md); overflow-x: auto; margin: var(--s-base) 0; }
 .post-content :deep(pre code) { background: none; padding: 0; color: inherit; }
 .post-content :deep(blockquote) { border-left: 3px solid var(--primary); padding-left: var(--s-base); color: var(--text-secondary); margin: var(--s-base) 0; }
+.post-content :deep(img) { max-width: 100%; border-radius: var(--r-sm); margin: var(--s-sm) 0; }
 </style>

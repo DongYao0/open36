@@ -44,6 +44,10 @@ export default defineConfig({
         target: 'http://localhost:8003',
         changeOrigin: true
       },
+      '/api/files': {
+        target: 'http://localhost:8007',
+        changeOrigin: true
+      },
       '/api/users': {
         target: 'http://localhost:8081',
         changeOrigin: true

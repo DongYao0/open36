@@ -57,6 +57,43 @@
         <p>{{ contest.tips }}</p>
       </div>
     </div>
+
+    <!-- 评论区 -->
+    <div class="detail-section">
+      <h2>评论 ({{ comments.length }})</h2>
+      <!-- 发表评论 -->
+      <div class="comment-form" v-if="auth.isLoggedIn">
+        <textarea
+          v-model="newComment"
+          class="comment-textarea"
+          placeholder="写下你的评论..."
+          rows="3"
+        ></textarea>
+        <button class="comment-submit" @click="submitComment" :disabled="!newComment.trim()">
+          发表评论
+        </button>
+      </div>
+      <div v-else class="comment-login-tip">
+        <router-link to="/login">登录</router-link>后可发表评论
+      </div>
+
+      <!-- 评论列表 -->
+      <div class="comments-list">
+        <div v-for="c in comments" :key="c.id" class="comment-item">
+          <div class="comment-header">
+            <img :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(c.author)}&background=6366F1&color=fff&size=32`" class="comment-avatar" />
+            <div class="comment-meta">
+              <span class="comment-author">{{ c.author }}</span>
+              <span class="comment-time">{{ c.time }}</span>
+            </div>
+          </div>
+          <div class="comment-body">{{ c.content }}</div>
+        </div>
+        <div v-if="comments.length === 0" class="comment-empty">
+          暂无评论，快来抢沙发吧
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 未找到 -->
@@ -67,10 +104,41 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const auth = useAuthStore()
+const newComment = ref('')
+const comments = ref([])
+
+// 从 localStorage 加载评论
+function loadComments() {
+  const key = `contest_comments_${route.params.id}`
+  try {
+    comments.value = JSON.parse(localStorage.getItem(key) || '[]')
+  } catch {
+    comments.value = []
+  }
+}
+
+// 发表评论
+function submitComment() {
+  if (!newComment.value.trim()) return
+  const comment = {
+    id: Date.now(),
+    author: auth.nickname || '匿名用户',
+    content: newComment.value.trim(),
+    time: new Date().toLocaleString('zh-CN'),
+  }
+  comments.value.unshift(comment)
+  const key = `contest_comments_${route.params.id}`
+  localStorage.setItem(key, JSON.stringify(comments.value))
+  newComment.value = ''
+}
+
+onMounted(loadComments)
 
 // 所有赛事数据（与 Contests.vue 保持一致）
 const allContests = [
@@ -219,6 +287,97 @@ const contest = computed(() => {
   color: var(--text-secondary);
 }
 .contest-empty p { margin-bottom: 16px; }
+
+/* ---- 评论区 ---- */
+.comment-form {
+  margin-bottom: 20px;
+}
+.comment-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+.comment-textarea:focus {
+  border-color: #6366F1;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+.comment-submit {
+  margin-top: 8px;
+  padding: 8px 20px;
+  background: #6366F1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.comment-submit:hover { background: #4F46E5; }
+.comment-submit:disabled { background: #C7D2FE; cursor: not-allowed; }
+.comment-login-tip {
+  padding: 16px;
+  background: var(--bg-secondary, #f5f7fa);
+  border-radius: 10px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+.comment-login-tip a { color: #6366F1; text-decoration: none; font-weight: 500; }
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.comment-item {
+  padding: 16px;
+  background: var(--bg-secondary, #f5f7fa);
+  border-radius: 10px;
+}
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.comment-meta {
+  display: flex;
+  flex-direction: column;
+}
+.comment-author {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.comment-time {
+  font-size: 12px;
+  color: var(--text-disabled);
+}
+.comment-body {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  padding-left: 42px;
+}
+.comment-empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-disabled);
+  font-size: 14px;
+}
 
 @media (max-width: 640px) {
   .detail-header { flex-direction: column; text-align: center; }

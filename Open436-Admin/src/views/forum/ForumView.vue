@@ -328,10 +328,7 @@ async function loadSections() {
     // Mock fallback
     sections.value = [
       { id: 1, slug: 'tech', name: '技术交流', description: '技术话题讨论与经验分享', color: '#1976D2', icon: '💻', postsCount: 234, sortOrder: 1, isEnabled: true },
-      { id: 3, slug: 'discuss', name: '综合讨论', description: '自由讨论各种话题', color: '#ff9800', icon: '💬', postsCount: 89, sortOrder: 3, isEnabled: true },
-      { id: 4, slug: 'question', name: '问答求助', description: '遇到问题？在这里寻求帮助', color: '#4caf50', icon: '❓', postsCount: 312, sortOrder: 4, isEnabled: true },
-      { id: 5, slug: 'share', name: '资源分享', description: '优质资源、工具、教程推荐', color: '#9c27b0', icon: '🔗', postsCount: 78, sortOrder: 5, isEnabled: false },
-      { id: 6, slug: 'announce', name: '公告通知', description: '官方公告与活动通知', color: '#f44336', icon: '📢', postsCount: 23, sortOrder: 6, isEnabled: true }
+      { id: 5, slug: 'share', name: '资源分享', description: '优质资源、工具、教程推荐', color: '#9c27b0', icon: '🔗', postsCount: 78, sortOrder: 2, isEnabled: true }
     ]
   }
 }

@@ -122,7 +122,7 @@ FORUM_SYSTEM_PROMPT = """你是Open436平台的论坛内容管理Agent。你的�
 
 板块选择规则：
 - 技术交流：编程技术、开发经验、技术趋势
-- 综合讨论：非技术话题"""
+- 资源分享：工具、教程、开源项目推荐"""
 
 
 async def _call_llm(messages: list, tools: list = None) -> dict:

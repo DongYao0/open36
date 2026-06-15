@@ -61,10 +61,7 @@ CREATE TRIGGER update_sections_updated_at
 INSERT INTO public.sections (slug, name, description, color, sort_order, is_enabled, posts_count) 
 VALUES
     ('tech', '技术交流', '分享编程技术和开发经验，讨论最新技术趋势', '#1976D2', 1, TRUE, 0),
-    ('discuss', '综合讨论', '各类话题的自由讨论空间', '#4CAF50', 3, TRUE, 0),
-    ('question', '问答求助', '技术问题求助、疑难解答互助', '#FF9800', 4, TRUE, 0),
-    ('share', '资源分享', '开发工具、学习教程、开源项目推荐', '#00BCD4', 5, TRUE, 0),
-    ('announce', '公告通知', '官方公告、重要通知、系统更新', '#F44336', 6, TRUE, 0)
+    ('share', '资源分享', '开发工具、学习教程、开源项目推荐', '#00BCD4', 2, TRUE, 0)
 ON CONFLICT (slug) DO NOTHING;
 
 -- 6. 添加表注释

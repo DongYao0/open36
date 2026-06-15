@@ -14,13 +14,6 @@
       </div>
     </div>
 
-    <div class="fh-search">
-      <input v-model="searchQuery" placeholder="搜索帖子..." @keypress.enter="doSearch" />
-      <svg class="fh-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-      </svg>
-    </div>
-
     <div class="fh-right">
       <button class="fh-menu-btn" @click="ui.toggleSidebar()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -68,15 +61,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const ui = useUIStore()
 
-const searchQuery = ref('')
 const dropdownOpen = ref(false)
-
-function doSearch() {
-  if (searchQuery.value.trim()) {
-    router.push({ path: '/forum/search', query: { q: searchQuery.value.trim() } })
-    searchQuery.value = ''
-  }
-}
 
 function handleLogout() {
   dropdownOpen.value = false
@@ -116,21 +101,6 @@ onUnmounted(() => { document.removeEventListener('click', closeDropdown) })
   font-size: 14px; font-weight: 800;
 }
 .fh-brand-text { font-size: 16px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.5px; }
-
-.fh-search {
-  position: relative; flex: 1; max-width: 420px; margin: 0 auto;
-}
-.fh-search input {
-  width: 100%; height: 36px; padding: 0 12px 0 36px;
-  border: 1px solid var(--divider); border-radius: 18px;
-  background: var(--bg-secondary); font-size: 14px; transition: all var(--t-fast);
-}
-.fh-search input:focus { border-color: var(--primary); background: var(--bg); box-shadow: 0 0 0 3px rgba(25,118,210,0.08); }
-.fh-search input::placeholder { color: var(--text-disabled); }
-.fh-search-icon {
-  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-  width: 16px; height: 16px; color: var(--text-disabled);
-}
 
 .fh-right { display: flex; align-items: center; gap: var(--s-sm); flex-shrink: 0; }
 .fh-menu-btn {

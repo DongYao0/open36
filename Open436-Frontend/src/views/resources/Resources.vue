@@ -46,7 +46,7 @@
         <!-- 卡片主体：标题 + 简介 -->
         <div class="res-card-body">
           <h3 class="res-card-title">{{ post.title }}</h3>
-          <p class="res-card-desc">{{ post.content }}</p>
+          <p class="res-card-desc">{{ post.summary || post.content }}</p>
         </div>
 
         <!-- 卡片底部：统计 -->
@@ -122,7 +122,7 @@ const filteredPosts = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   return posts.value.filter(p =>
     p.title.toLowerCase().includes(q) ||
-    p.content.toLowerCase().includes(q) ||
+    (p.summary || p.content).toLowerCase().includes(q) ||
     p.author.toLowerCase().includes(q)
   )
 })
@@ -142,6 +142,7 @@ async function fetchResources(page = 1) {
     const results = (data.results || []).map(p => ({
       id: p.id,
       title: p.title,
+      summary: p.summary || '',
       content: p.content_preview || p.content || '',
       author: p.author?.nickname || `用户${p.author?.user_id || ''}`,
       views: p.views_count || 0,
@@ -229,8 +230,8 @@ onUnmounted(() => { observer?.disconnect() })
 /* ---- 卡片网格 ---- */
 .res-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: var(--s-lg);
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: var(--s-xl);
   margin-bottom: var(--s-xl);
 }
 
@@ -239,13 +240,14 @@ onUnmounted(() => { observer?.disconnect() })
   background: var(--bg);
   border: 1px solid var(--divider);
   border-radius: 16px;
-  padding: 20px;
+  padding: 24px;
   cursor: pointer;
   transition: all 0.25s ease;
   animation: resFadeUp 400ms ease-out both;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+  min-height: 200px;
 }
 .res-card:hover {
   border-color: #F59E0B;
@@ -297,11 +299,11 @@ onUnmounted(() => { observer?.disconnect() })
   flex: 1;
 }
 .res-card-title {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.4;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -310,9 +312,9 @@ onUnmounted(() => { observer?.disconnect() })
 .res-card-desc {
   font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.7;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

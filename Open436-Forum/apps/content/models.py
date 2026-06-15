@@ -29,6 +29,7 @@ class Post(models.Model):
 
     id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=100, help_text='帖子标题（5-100字符）')
+    summary = models.CharField(max_length=300, blank=True, null=True, help_text='资源简介（卡片展示用，最多300字）')
     content = models.TextField(help_text='帖子内容（支持富文本）')
     author_id = models.IntegerField(help_text='作者ID（关联M1 users_auth.id）')
     section_id = models.IntegerField(help_text='板块ID（关联M5 sections.id）')

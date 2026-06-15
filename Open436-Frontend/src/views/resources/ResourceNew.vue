@@ -7,7 +7,11 @@
         <input v-model="form.title" class="form-input" placeholder="请输入资源标题" maxlength="100" />
       </div>
       <div class="form-group">
-        <label class="form-label">内容</label>
+        <label class="form-label">简介 <span class="form-hint">（卡片展示用，不超过300字）</span></label>
+        <textarea v-model="form.summary" class="form-textarea" placeholder="简要描述这个资源的用途和亮点..." rows="3" maxlength="300"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">正文内容</label>
         <div class="editor-toolbar">
           <button v-for="t in toolbar" :key="t.label" class="toolbar-btn" @click="insertMarkdown(t.syntax)" :title="t.label" v-html="t.icon"></button>
         </div>
@@ -38,7 +42,7 @@ const sectionStore = useSectionStore()
 const ui = useUIStore()
 const auth = useAuthStore()
 const submitting = ref(false)
-const form = ref({ title: '', content: '' })
+const form = ref({ title: '', summary: '', content: '' })
 
 const toolbar = [
   { label: '加粗', syntax: '**粗体文本**', icon: '<b>B</b>' },
@@ -82,6 +86,7 @@ async function submitPost() {
     }
     const payload = {
       title: form.value.title.trim(),
+      summary: form.value.summary.trim(),
       content: form.value.content.trim(),
       section_id: sid
     }

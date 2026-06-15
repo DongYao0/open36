@@ -14,7 +14,7 @@ class PostListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
-            'id', 'title', 'content_preview', 'author', 'section',
+            'id', 'title', 'summary', 'content_preview', 'author', 'section',
             'is_pinned', 'pin_type', 'views_count', 'replies_count', 'likes_count',
             'status', 'created_at', 'updated_at',
         ]
@@ -27,6 +27,9 @@ class PostListSerializer(serializers.ModelSerializer):
 
     def get_content_preview(self, obj):
         import re
+        # 优先返回 summary，没有则截取 content
+        if obj.summary:
+            return obj.summary
         text = re.sub(r'<[^>]+>', '', obj.content)
         return text[:200] + ('...' if len(text) > 200 else '')
 
@@ -77,12 +80,13 @@ class PostDetailSerializer(serializers.ModelSerializer):
 class PostCreateSerializer(serializers.ModelSerializer):
     """创建帖子序列化器"""
     title = serializers.CharField(max_length=100)
+    summary = serializers.CharField(max_length=300, required=False, allow_blank=True)
     content = serializers.CharField()
     section_id = serializers.IntegerField()
 
     class Meta:
         model = Post
-        fields = ['title', 'content', 'section_id']
+        fields = ['title', 'summary', 'content', 'section_id']
 
     def validate_title(self, value):
         value = value.strip()
@@ -104,12 +108,13 @@ class PostCreateSerializer(serializers.ModelSerializer):
 class PostUpdateSerializer(serializers.ModelSerializer):
     """更新帖子序列化器"""
     title = serializers.CharField(required=False, max_length=100)
+    summary = serializers.CharField(max_length=300, required=False, allow_blank=True)
     content = serializers.CharField(required=False)
     section_id = serializers.IntegerField(required=False)
 
     class Meta:
         model = Post
-        fields = ['title', 'content', 'section_id']
+        fields = ['title', 'summary', 'content', 'section_id']
 
     def validate_title(self, value):
         value = value.strip()

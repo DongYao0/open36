@@ -14,15 +14,8 @@ const routes = [
       { path: 'favorites', name: 'Favorites', component: () => import('@/views/forum/Favorites.vue'), meta: { title: '我的收藏', auth: true, write: true } },
     ]
   },
-  {
-    path: '/resources',
-    component: () => import('@/views/resources/ResourcesLayout.vue'),
-    children: [
-      { path: '', name: 'Resources', component: () => import('@/views/resources/Resources.vue'), meta: { title: '资源分享' } },
-      { path: 'new', name: 'ResourceNew', component: () => import('@/views/resources/ResourceNew.vue'), meta: { title: '分享资源', auth: true, write: true } },
-      { path: ':id', name: 'ResourceDetail', component: () => import('@/views/resources/ResourceDetail.vue'), meta: { title: '资源详情' } },
-    ]
-  },
+  { path: '/resources', redirect: '/forum' },
+  { path: '/resources/:id', redirect: to => ({ path: `/forum/post/${to.params.id}` }) },
   {
     path: '/announcements',
     component: () => import('@/views/announcements/AnnouncementsLayout.vue'),

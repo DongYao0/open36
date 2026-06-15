@@ -2,19 +2,22 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { getSections } from '@/api/section'
 
-const SECTION_DEFAULTS = [
-  { key: 'all', name: '全部', icon: 'mdi:apps', color: '#757575', count: 0 },
-  { key: 'tech', name: '技术交流', icon: 'mdi:code-tags', color: '#1976D2', count: 0 },
-  { key: 'share', name: '资源分享', icon: 'mdi:share-variant', color: '#FF9800', count: 0 },
-  { key: 'announce', name: '公告通知', icon: 'mdi:bullhorn', color: '#F44336', count: 0 }
-]
+// 图标 fallback（API 没返回 icon 时用）
+const ICON_MAP = {
+  tech: 'mdi:code-tags',
+  discuss: 'mdi:forum',
+  question: 'mdi:help-circle',
+  share: 'mdi:share-variant',
+  announce: 'mdi:bullhorn',
+}
 
 export const useSectionStore = defineStore('section', () => {
-  const sections = ref(SECTION_DEFAULTS)
+  // 'all' 是虚拟的"全部"筛选项，不在数据库中
+  const sections = ref([
+    { key: 'all', name: '全部', icon: 'mdi:apps', color: '#757575', count: 0 }
+  ])
   const activeSection = ref('all')
-  // slug → 数据库 section_id
   const sectionIdMap = ref({})
-  // section_id → slug 反向映射
   const idToSlugMap = ref({})
 
   function setActive(key) { activeSection.value = key }
@@ -29,21 +32,32 @@ export const useSectionStore = defineStore('section', () => {
     try {
       const res = await getSections()
       const data = res?.results || res?.data?.results || res?.data || []
-      data.forEach(s => {
-        sectionIdMap.value[s.slug] = s.id
-        idToSlugMap.value[s.id] = s.slug
-        const local = sections.value.find(ls => ls.key === s.slug)
-        if (local) {
-          local.count = s.posts_count || 0
-          local.name = s.name || local.name
-        }
-      })
+
+      // 保留 'all'，其余从 API 动态构建
+      const allEntry = sections.value.find(s => s.key === 'all')
+      const dynamicSections = data
+        .filter(s => s.is_enabled !== false)
+        .sort((a, b) => (a.sort_order || 999) - (b.sort_order || 999))
+        .map(s => {
+          sectionIdMap.value[s.slug] = s.id
+          idToSlugMap.value[s.id] = s.slug
+          return {
+            key: s.slug,
+            name: s.name,
+            icon: ICON_MAP[s.slug] || 'mdi:tag',
+            color: s.color || '#757575',
+            count: s.posts_count || 0,
+          }
+        })
+
+      sections.value = [allEntry, ...dynamicSections]
     } catch (e) {
       console.warn('Failed to fetch sections:', e)
     }
   }
 
-  const forumSections = computed(() => sections.value.filter(s => ['all', 'tech'].includes(s.key)))
+  // 论坛板块 = 所有板块（含 'all'）
+  const forumSections = computed(() => sections.value)
 
   return { sections, forumSections, activeSection, sectionIdMap, idToSlugMap, setActive, getSection, getSectionId, getSectionById, fetchSections }
 })

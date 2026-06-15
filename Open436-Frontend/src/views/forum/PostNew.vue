@@ -29,6 +29,12 @@
       </div>
 
       <div class="pn-field">
+        <label class="pn-label">摘要</label>
+        <textarea v-model="form.summary" class="pn-textarea-simple" placeholder="简要描述内容要点（卡片预览展示）" rows="3" maxlength="300"></textarea>
+        <div class="pn-counter">{{ form.summary.length }}/300</div>
+      </div>
+
+      <div class="pn-field">
         <label class="pn-label">板块</label>
         <div class="pn-sections">
           <button
@@ -87,7 +93,7 @@ const sectionStore = useSectionStore()
 const ui = useUIStore()
 const auth = useAuthStore()
 const submitting = ref(false)
-const form = ref({ title: '', section: 'tech', content: '' })
+const form = ref({ title: '', summary: '', section: 'tech', content: '' })
 
 const toolbar = [
   { label: '加粗', syntax: '**粗体文本**', icon: '<b>B</b>' },
@@ -118,7 +124,7 @@ async function submitPost() {
     let sectionId = sectionStore.getSectionId(form.value.section)
     if (!sectionId) { await sectionStore.fetchSections(); sectionId = sectionStore.getSectionId(form.value.section) }
     if (!sectionId) { ui.showToast('板块信息异常，请刷新重试', 'error'); return }
-    await createPost({ title: form.value.title.trim(), content: form.value.content.trim(), section_id: sectionId })
+    await createPost({ title: form.value.title.trim(), summary: form.value.summary.trim(), content: form.value.content.trim(), section_id: sectionId })
     ui.showToast('发布成功！', 'success')
     router.push('/forum')
   } catch (e) {
@@ -163,6 +169,12 @@ async function submitPost() {
 }
 .pn-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(25,118,210,0.1); }
 .pn-counter { text-align: right; font-size: 12px; color: var(--text-disabled); margin-top: var(--s-xs); }
+.pn-textarea-simple {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--divider);
+  border-radius: var(--r-sm); font-size: 14px; resize: vertical; line-height: 1.6;
+  transition: all var(--t-fast);
+}
+.pn-textarea-simple:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(25,118,210,0.1); outline: none; }
 
 .pn-sections { display: flex; gap: var(--s-sm); flex-wrap: wrap; }
 .pn-section-btn {

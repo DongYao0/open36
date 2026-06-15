@@ -26,6 +26,7 @@ const routes = [
   },
   { path: '/login', name: 'Login', component: () => import('@/views/Login.vue'), meta: { title: '登录' } },
   { path: '/register', name: 'Register', component: () => import('@/views/Register.vue'), meta: { title: '注册' } },
+  { path: '/contests', name: 'Contests', component: () => import('@/views/contests/Contests.vue'), meta: { title: '赛事日历' } },
   { path: '/quiz', name: 'Quiz', component: () => import('@/views/Quiz.vue'), meta: { title: '算法' } },
   { path: '/enroll', name: 'Enroll', component: () => import('@/views/Enroll.vue'), meta: { title: '报名加入' } },
   { path: '/mine', name: 'Mine', component: () => import('@/views/Mine.vue'), meta: { title: '我的', auth: true } },

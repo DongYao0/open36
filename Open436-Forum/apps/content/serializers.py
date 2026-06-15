@@ -3,6 +3,18 @@ Post serializers
 """
 from rest_framework import serializers
 from .models import Post, PostEditHistory
+from apps.section.models import Section
+
+
+# 板块名称缓存（避免 N+1 查询）
+_section_cache = {}
+
+def _get_section_info(section_id):
+    """查询板块名称，带内存缓存"""
+    if not _section_cache:
+        for s in Section.objects.filter(is_enabled=True).values('id', 'name', 'slug', 'color'):
+            _section_cache[s['id']] = s
+    return _section_cache.get(section_id, {'id': section_id, 'name': '', 'slug': '', 'color': '#757575'})
 
 
 class PostListSerializer(serializers.ModelSerializer):
@@ -23,7 +35,8 @@ class PostListSerializer(serializers.ModelSerializer):
         return {'user_id': obj.author_id, 'nickname': None, 'avatar_url': None}
 
     def get_section(self, obj):
-        return {'section_id': obj.section_id, 'name': None}
+        info = _get_section_info(obj.section_id)
+        return {'section_id': obj.section_id, 'name': info['name'], 'slug': info['slug'], 'color': info['color']}
 
     def get_content_preview(self, obj):
         import re
@@ -57,7 +70,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
         return {'user_id': obj.author_id, 'nickname': None, 'avatar_url': None}
 
     def get_section(self, obj):
-        return {'section_id': obj.section_id, 'name': None}
+        info = _get_section_info(obj.section_id)
+        return {'section_id': obj.section_id, 'name': info['name'], 'slug': info['slug'], 'color': info['color']}
 
     def get_is_edited(self, obj):
         return obj.edit_count > 0

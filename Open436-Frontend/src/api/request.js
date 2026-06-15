@@ -56,8 +56,8 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   (response) => {
     const res = response.data
-    // 后端统一返回 {code, message, data} 格式，非 200 视为业务错误
-    if (res && typeof res.code === 'number' && res.code !== 200) {
+    // 后端统一返回 {code, message, data} 格式，200/201 视为成功
+    if (res && typeof res.code === 'number' && res.code !== 200 && res.code !== 201) {
       return Promise.reject({ response: { data: res, status: res.code } })
     }
     return res

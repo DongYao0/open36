@@ -67,10 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
           roleList: user.value?.role === 'admin' ? ['admin'] : ['user']
         }
         localStorage.setItem('userInfo', JSON.stringify(hojUserInfo))
-        // 写入 open436_token，供 HOJ 统一登出检测使用
-        if (token.value) {
-          localStorage.setItem('open436_token', token.value)
-        }
+        // open436_token 由 setToken() 统一管理（JSON 编码），此处不再覆盖
       }
     } catch (e) {
       console.error('HOJ 同步失败:', e)

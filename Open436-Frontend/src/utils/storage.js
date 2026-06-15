@@ -29,7 +29,13 @@ export const storage = {
   get(key, defaultValue = null) {
     try {
       const item = localStorage.getItem(PREFIX + key)
-      return item ? JSON.parse(item) : defaultValue
+      if (item === null) return defaultValue
+      try {
+        return JSON.parse(item)
+      } catch {
+        // 非 JSON 格式（如旧版直接写入的原始字符串），返回原始值
+        return item
+      }
     } catch (error) {
       console.error('读取失败：', error)
       return defaultValue

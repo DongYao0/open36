@@ -5,7 +5,6 @@ import { getSections } from '@/api/section'
 const SECTION_DEFAULTS = [
   { key: 'all', name: '全部', icon: 'mdi:apps', color: '#757575', count: 0 },
   { key: 'tech', name: '技术交流', icon: 'mdi:code-tags', color: '#1976D2', count: 0 },
-  { key: 'design', name: '设计分享', icon: 'mdi:palette', color: '#FF6F00', count: 0 },
   { key: 'share', name: '资源分享', icon: 'mdi:share-variant', color: '#FF9800', count: 0 },
   { key: 'announce', name: '公告通知', icon: 'mdi:bullhorn', color: '#F44336', count: 0 }
 ]
@@ -44,7 +43,7 @@ export const useSectionStore = defineStore('section', () => {
     }
   }
 
-  const forumSections = computed(() => sections.value.filter(s => ['all', 'tech', 'design'].includes(s.key)))
+  const forumSections = computed(() => sections.value.filter(s => ['all', 'tech'].includes(s.key)))
 
   return { sections, forumSections, activeSection, sectionIdMap, idToSlugMap, setActive, getSection, getSectionId, getSectionById, fetchSections }
 })

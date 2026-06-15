@@ -61,7 +61,6 @@ CREATE TRIGGER update_sections_updated_at
 INSERT INTO public.sections (slug, name, description, color, sort_order, is_enabled, posts_count) 
 VALUES
     ('tech', '技术交流', '分享编程技术和开发经验，讨论最新技术趋势', '#1976D2', 1, TRUE, 0),
-    ('design', '设计分享', 'UI/UX 设计作品展示、设计心得分享', '#9C27B0', 2, TRUE, 0),
     ('discuss', '综合讨论', '各类话题的自由讨论空间', '#4CAF50', 3, TRUE, 0),
     ('question', '问答求助', '技术问题求助、疑难解答互助', '#FF9800', 4, TRUE, 0),
     ('share', '资源分享', '开发工具、学习教程、开源项目推荐', '#00BCD4', 5, TRUE, 0),

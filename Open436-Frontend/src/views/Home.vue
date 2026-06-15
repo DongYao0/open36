@@ -8,6 +8,7 @@
       </router-link>
       <div class="landing-nav-links">
         <router-link to="/forum">论坛</router-link>
+        <router-link to="/contests">赛事</router-link>
         <router-link to="/announcements">公告</router-link>
         <a href="javascript:void(0)" @click="goToAlgo">算法</a>
       </div>

@@ -28,6 +28,7 @@
         :key="c.id"
         class="contest-card"
         :style="{ animationDelay: `${i * 60}ms` }"
+        @click="router.push(`/contests/${c.id}`)"
       >
         <div class="contest-cover">
           <img :src="c.cover" :alt="c.name" />
@@ -72,6 +73,9 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const selectedMonth = ref(new Date().getMonth() + 1)
 const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -209,6 +213,7 @@ const monthContests = {
   overflow: hidden;
   transition: all 0.25s ease;
   animation: fadeUp 300ms ease both;
+  cursor: pointer;
 }
 .contest-card:hover {
   border-color: #C7D2FE;

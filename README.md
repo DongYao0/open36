@@ -92,14 +92,14 @@ mvn spring-boot:run
 cd Open436-Enrollment
 mvn spring-boot:run
 
-# 终端 3：论坛服务
+# 终端 3：论坛服务（使用项目根 .venv，Forum 与 AIService 共用）
+source .venv/bin/activate   # Windows: .venv\Scripts\activate（在项目根目录执行）
 cd Open436-Forum
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-python manage.py runserver 8003
+python manage.py runserver 0.0.0.0:8003   # 必须 0.0.0.0，否则 Kong 容器经 host.docker.internal 无法访问
 
-# 终端 4：AI 服务
+# 终端 4：AI 服务（使用项目根 .venv）
 cd Open436-AIService
-python -m uvicorn app.main:app --port 8008
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8008
 ```
 
 ### 第三步：启动前端服务

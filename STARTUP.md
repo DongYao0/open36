@@ -10,10 +10,12 @@
 
 ```bash
 # 0. 安装 Python 依赖（首次或依赖变更时）
-cd Open436-AIService && pip install -r requirements.txt
-cd ../Open436-Forum && pip install -r requirements.txt
-# AI Service 额外依赖（处理表单/文件上传）
-pip install python-multipart
+# 项目使用统一的项目根 .venv（含 Django/FastAPI/uvicorn/langchain 等全部依赖，Forum 与 AIService 共用，无独立 venv）
+python -m venv .venv                                  # 仅首次创建
+source .venv/bin/activate                             # Windows: .venv\Scripts\activate
+pip install -r Open436-AIService/requirements.txt
+pip install -r Open436-Forum/requirements.txt
+pip install python-multipart                          # AI Service 处理表单/文件上传所需
 
 # 1. 启动基础设施 + FileService（数据库、缓存、Kong、文件服务等）
 docker compose up -d
@@ -233,6 +235,104 @@ spring:
 ```bash
 docker compose -f docker-compose.full.yml build file-service
 docker compose -f docker-compose.full.yml up -d file-service
+```
+
+### 6. Forum 接口报 `column xxx does not exist`（500）
+
+**现象**：`GET /api/posts/` 等 Forum 接口返回 500，日志报 `ProgrammingError: column posts.summary does not exist`
+
+**原因**：Forum 数据库 schema 由 `db-init/` SQL 脚本管理，**不是 Django 迁移**（`django_migrations` 表对 content/comment/section 为空，`showmigrations` 永远显示 `[ ]` 属正常现象）。模型新增字段后若只改 `models.py`、不同步 `db-init/` SQL，DB 就缺列。
+
+**解决**（直接改 SQL，**勿用** `python manage.py migrate`，会因"表已存在"失败）：
+
+```bash
+# 1. 对 live DB 加列（幂等）
+docker exec open436-postgres psql -U open436 -d open436 \
+  -c "ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS summary VARCHAR(300);"
+# 2. 同步 db-init/ SQL 以便重建库仍生效（新增 db-init/V{N}__add_xxx.sql）
+```
+
+### 7. 首页跳转到 3000 而非 5173
+
+**现象**：重启 Vue dev server 后浏览器自动打开 `localhost:3000/app/`，跳转到空白页（而非 3D Landing 首页 `localhost:5173/`）。
+
+**原因**：`Open436-Frontend/vite.config.js` 曾设 `open: true`，但 **:5173 (Landing)** 才是聚合入口。Vue (:3000) 不该自动打开浏览器——它只是被 Landing 代理的后端子应用。Vue Router 在 `/` 路径会执行 `window.location.href='/'` 跳回 Landing 根，但 3000 端口上没有 Landing。
+
+**解决**：已修复（2026-07-30），无需手动干预：
+- `Open436-Frontend/vite.config.js`: `open: true` → `open: false`
+- `Open436-Landing/vite.config.js`: 已添加 `open: true`
+
+**正确启动顺序**：
+```bash
+# 先启 Vue（静默，不打开浏览器）
+cd Open436-Frontend && npm run dev    # :3000, open:false
+
+# 后启 Landing（自动打开浏览器到 :5173）
+cd Open436-Landing && npm run dev     # :5173, open:true
+```
+
+### 8. AI Service 启动失败合集
+
+#### 8.1 缺少 `langchain-openai`
+
+**现象**：`ModuleNotFoundError: No module named 'langchain_openai'`
+
+**原因**：`requirements.txt` 未包含此依赖
+
+**解决**：
+```bash
+pip install langchain-openai
+# 警告 langgraph-prebuilt 与 langchain-core 版本冲突可忽略，不影响运行
+```
+
+#### 8.2 端口 0.0.0.0:8008 绑定失败（WinError 10048）
+
+**现象**：`[winerror 10048] error while attempting to bind on address ('0.0.0.0', 8008)`
+
+**原因**：Windows 端口保留或旧进程残留（非 Docker 容器原因，`open436-ai-service` 容器早已停止）
+
+**解决**：改用 `127.0.0.1` 绑定，开发环境仅需本地访问：
+```bash
+cd Open436-AIService
+../.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8008
+```
+
+### 9. Kong 路由 host 指向旧 IP 导致 502
+
+**现象**：`curl http://localhost:8000/api/auth/register` 返回 502，直连 `:8081` 正常
+
+**原因**：`kong-config.sh` 重复执行产生多条路由，旧路由 host 为 `192.168.50.97`（已失效的旧开发机 IP）
+
+**解决**：
+```bash
+# 修复 auth-service 上游地址
+curl -X PATCH http://localhost:8001/services/auth-service \
+  --data host=host.docker.internal --data port=8081
+```
+
+### 10. 算法平台显示错误 / HOJ MySQL 不自动重启
+
+**现象**：访问算法平台 `/algo/` 显示错误，`hoj-backend` 日志报 `CommunicationsLinkFailure: UnknownHostException: hoj-mysql`。
+
+**直接原因**：`hoj-mysql` 容器 Exited 后没有自动重启，backend 连不上 MySQL。
+
+**深层根因**（2026-07-30 修复）：
+`docker-compose.yml` 中 **只有 `hoj-mysql` 缺少 `restart` 策略**，其他所有 HOJ 容器（go-judge / hoj-backend / hoj-judge / hoj-vue）都有 `restart: unless-stopped`。当 Docker Desktop 重启或系统关机后，MySQL 不会自动恢复，backend 启动即报 500。
+
+**修复**（已应用到 `docker-compose.yml`）：
+```yaml
+# hoj-mysql：新增 restart 策略
+restart: unless-stopped
+
+# hoj-backend：改为健康依赖（原来只检查启动，不检查 MySQL 是否就绪）
+depends_on:
+  hoj-mysql: { condition: service_healthy }
+```
+
+**手动恢复**（如已发生）：
+```bash
+docker compose up -d hoj-mysql
+# hoj-backend 在 MySQL ready 后自动重连，约 10s 恢复
 ```
 
 ---

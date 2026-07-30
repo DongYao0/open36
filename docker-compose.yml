@@ -139,7 +139,7 @@ services:
       S3_BUCKET: open436-posts
       S3_ACCESS_KEY: ${MINIO_USER:-minioadmin}
       S3_SECRET_KEY: ${MINIO_PASS:-minioadmin}
-      S3_PUBLIC_URL: http://localhost:${MINIO_API:-9000}
+      S3_PUBLIC_URL: http://localhost:${MINIO_API:-9000}/${MINIO_BUCKET:-open436-posts}
       S3_PATH_STYLE: "true"
       CONSUL_URL: http://consul:8500
 
@@ -160,6 +160,7 @@ services:
     image: mysql:8.0
     container_name: open436-hoj-mysql
     profiles: [hoj]
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${HOJ_MYSQL_PASS:-hoj123456}
       MYSQL_DATABASE: hoj
@@ -179,7 +180,8 @@ services:
     profiles: [hoj]
     restart: unless-stopped
     ports: ["6688:6688"]
-    depends_on: [hoj-mysql]
+    depends_on:
+      hoj-mysql: { condition: service_healthy }
     networks: [open436-net]
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://hoj-mysql:3306/hoj?useSSL=false&serverTimezone=Asia/Shanghai

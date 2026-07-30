@@ -1,7 +1,7 @@
 <template>
   <!-- Back nav -->
   <div class="pd-nav">
-    <router-link to="/forum" class="pd-back">
+    <router-link :to="post && post.sectionKey ? `/forum/${post.sectionKey}` : '/forum/tech'" class="pd-back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
       返回论坛
     </router-link>
@@ -68,6 +68,7 @@ async function fetchPost(id) {
         id: raw.id, title: raw.title || '', content: raw.content || '',
         author: raw.author?.nickname || `用户${raw.author?.user_id || ''}`,
         section: sec?.name || '未知板块',
+        sectionKey: sec?.key || '',
         votes: raw.likes_count || 0, createdAt: raw.created_at
       }
     } else { post.value = null }

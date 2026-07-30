@@ -32,6 +32,7 @@
       </svg>
     </div>
 
+    <ThemeToggle class="navbar-theme-btn" />
     <div class="navbar-user" v-if="auth.isLoggedIn">
       <div class="user-trigger" @click="dropdownOpen = !dropdownOpen">
         <img :src="auth.isVisitor ? 'https://ui-avatars.com/api/?name=Guest&background=9E9E9E&color=fff&size=40' : auth.avatar" class="avatar avatar-sm" :alt="auth.isVisitor ? '游客' : auth.nickname" />
@@ -73,6 +74,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -99,11 +101,15 @@ function isTabActive(tab) {
 }
 
 async function goToAlgo() {
-  if (auth.isGuest) {
-    ui.showToast('审核通过后方可进入算法平台', 'warning')
+  if (auth.isVisitor) {
+    ui.showToast('游客模式不可访问算法平台，请先报名注册', 'warning')
     return
   }
-  if (auth.isLoggedIn && !auth.isVisitor) {
+  if (auth.isGuest) {
+    ui.showToast('您的报名正在审核中，审核通过后方可进入算法平台', 'warning')
+    return
+  }
+  if (auth.isLoggedIn) {
     await auth.syncToHoj()
   }
   window.location.href = '/algo/'

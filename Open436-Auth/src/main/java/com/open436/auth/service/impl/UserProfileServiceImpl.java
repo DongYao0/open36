@@ -54,7 +54,7 @@ public class UserProfileServiceImpl implements UserProfileService {
             profile.setAvatarUrl(request.getAvatarUrl());
         }
 
-        profileRepository.save(profile);
+        profile = profileRepository.save(profile);
         return UserProfileResponse.from(profile);
     }
 
@@ -114,11 +114,10 @@ public class UserProfileServiceImpl implements UserProfileService {
         UserProfile profile = new UserProfile();
         profile.setUserId(userId);
         profile.setNickname(nickname != null ? nickname : "用户" + userId);
-        profileRepository.save(profile);
-
         UserStatistics stats = new UserStatistics();
         stats.setProfile(profile);
-        statisticsRepository.save(stats);
+        profile.setStatistics(stats);
+        profileRepository.save(profile);
     }
 
     @Override

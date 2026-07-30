@@ -6,7 +6,7 @@ import json
 import logging
 import re
 
-from app.core.llm import llm
+from app.core.llm import get_chat_model
 
 logger = logging.getLogger(__name__)
 
@@ -73,16 +73,11 @@ async def classify_intent(user_message: str) -> dict:
         {"intent": "forum|problem|query|unclear", "reason": "..."}
     """
     try:
-        data = await llm.chat(
-            messages=[
-                {'role': 'system', 'content': ROUTER_SYSTEM_PROMPT},
-                {'role': 'user', 'content': user_message},
-            ],
-            temperature=0.3,
-            max_tokens=256,
-            timeout=30.0,
-        )
-        content = data['choices'][0]['message']['content'].strip()
+        msg = await get_chat_model(temperature=0.3, max_tokens=256).ainvoke([
+            {'role': 'system', 'content': ROUTER_SYSTEM_PROMPT},
+            {'role': 'user', 'content': user_message},
+        ])
+        content = msg.content.strip()
 
         if content.startswith('{'):
             result = json.loads(content)
@@ -266,16 +261,11 @@ async def orchestrate(user_message: str) -> dict:
         }
     """
     try:
-        data = await llm.chat(
-            messages=[
-                {'role': 'system', 'content': ORCHESTRATOR_SYSTEM_PROMPT},
-                {'role': 'user', 'content': user_message},
-            ],
-            temperature=0.3,
-            max_tokens=512,
-            timeout=30.0,
-        )
-        content = data['choices'][0]['message']['content'].strip()
+        msg = await get_chat_model(temperature=0.3, max_tokens=512).ainvoke([
+            {'role': 'system', 'content': ORCHESTRATOR_SYSTEM_PROMPT},
+            {'role': 'user', 'content': user_message},
+        ])
+        content = msg.content.strip()
 
         # 解析JSON（兼容markdown代码块）
         if '```' in content:

@@ -81,7 +81,10 @@
           <div class="form-group"><label>密码</label><div class="password-wrap"><input ref="pRef" v-model="f.p" :type="showP ? 'text' : 'password'" placeholder="至少 6 位" autocomplete="current-password" required @focus="onPasswordFocus" @blur="onBlur"/><button type="button" class="eye-btn" @click="showP = !showP"><svg v-if="showP" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="1" y1="1" x2="23" y2="23"/></svg><svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
 
           <template v-if="isEnroll">
-            <div class="form-group"><label>确认密码</label><div class="password-wrap"><input v-model="f.cp" :type="showP ? 'text' : 'password'" placeholder="再次输入密码" required @focus="onPasswordFocus" @blur="onBlur"/></div></div>
+            <div class="form-row">
+              <div class="form-group"><label>确认密码</label><div class="password-wrap"><input v-model="f.cp" :type="showP ? 'text' : 'password'" placeholder="再次输入密码" required @focus="onPasswordFocus" @blur="onBlur"/></div></div>
+              <div class="form-group"><label>昵称</label><input v-model="f.n" type="text" placeholder="显示名称（可选）" @focus="onTextFocus" @blur="onBlur"/></div>
+            </div>
             <div class="form-row">
               <div class="form-group"><label>学号</label><input v-model="f.sid" type="text" placeholder="请输入学号" maxlength="30" required @focus="onTextFocus" @blur="onBlur"/></div>
               <div class="form-group"><label>真实姓名</label><input v-model="f.rn" type="text" placeholder="请输入真实姓名" maxlength="50" required @focus="onTextFocus" @blur="onBlur"/></div>
@@ -90,7 +93,6 @@
               <div class="form-group"><label>电话号码</label><input v-model="f.ph" type="tel" placeholder="请输入电话号码" maxlength="20" required @focus="onTextFocus" @blur="onBlur"/></div>
               <div class="form-group"><label>专业</label><input v-model="f.mj" type="text" placeholder="请输入专业名称" maxlength="50" required @focus="onTextFocus" @blur="onBlur"/></div>
             </div>
-            <div class="form-group"><label>昵称</label><input v-model="f.n" type="text" placeholder="显示名称（可选）" @focus="onTextFocus" @blur="onBlur"/></div>
           </template>
 
           <div v-if="!isEnroll" class="form-options"><label class="remember"><input type="checkbox" v-model="f.r"/><span>记住我</span></label><a href="#" class="forgot">忘记密码？</a></div>
@@ -324,7 +326,7 @@ function enterAsGuest() {
 .form-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
+  gap: 10px;
 }
 @media (max-width: 480px) {
   .form-row { grid-template-columns: 1fr; }

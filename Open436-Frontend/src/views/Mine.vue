@@ -155,7 +155,7 @@
             <div v-else-if="replies.length === 0" class="empty-state">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <p>还没有发表过回复</p>
-              <router-link to="/forum" class="link-btn">去看看</router-link>
+              <router-link to="/forum/tech" class="link-btn">去看看</router-link>
             </div>
             <div v-else class="post-list">
               <div v-for="reply in replies" :key="reply.id" class="post-item" @click="$router.push(`/forum/post/${reply.postId}`)">
@@ -358,11 +358,15 @@ function readAssignment(item) {
 }
 
 async function goToAlgo() {
+  if (auth.isVisitor) {
+    ui.showToast('游客模式不可访问算法平台，请先报名注册', 'warning')
+    return
+  }
   if (auth.isGuest) {
     ui.showToast('审核通过后方可进入算法平台', 'warning')
     return
   }
-  if (auth.isLoggedIn && !auth.isVisitor) {
+  if (auth.isLoggedIn) {
     await auth.syncToHoj()
   }
   window.location.href = '/algo/'

@@ -7,7 +7,7 @@
         <span>OPEN436</span>
       </router-link>
       <div class="landing-nav-links">
-        <router-link to="/forum">论坛</router-link>
+        <router-link to="/forum/tech">论坛</router-link>
         <router-link to="/contests">赛事</router-link>
         <router-link to="/announcements">公告</router-link>
         <a href="javascript:void(0)" @click="goToAlgo">算法</a>
@@ -88,7 +88,7 @@
           <p class="footer-slogan">0436 技术社区</p>
         </div>
         <div class="footer-links">
-          <router-link to="/forum">论坛</router-link>
+          <router-link to="/forum/tech">论坛</router-link>
           <router-link to="/announcements">公告</router-link>
           <a href="javascript:void(0)" @click="goToAlgo">算法</a>
           <router-link to="/login">登录</router-link>
@@ -107,11 +107,15 @@ const auth = useAuthStore()
 const ui = useUIStore()
 
 async function goToAlgo() {
-  if (auth.isGuest) {
-    ui.showToast('审核通过后方可进入算法平台', 'warning')
+  if (auth.isVisitor) {
+    ui.showToast('游客模式不可访问算法平台，请先报名注册', 'warning')
     return
   }
-  if (auth.isLoggedIn && !auth.isVisitor) {
+  if (auth.isGuest) {
+    ui.showToast('您的报名正在审核中，审核通过后方可进入算法平台', 'warning')
+    return
+  }
+  if (auth.isLoggedIn) {
     await auth.syncToHoj()
   }
   window.location.href = '/algo/'

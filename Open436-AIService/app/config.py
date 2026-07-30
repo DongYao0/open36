@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # LLM
     ANTHROPIC_API_KEY: str = ''
     LLM_BASE_URL: str = ''  # DeepSeek/OpenAI兼容API的base_url
-    LLM_MODEL: str = 'deepseek-chat'  # 默认模型
+    LLM_MODEL: str = 'deepseek-v4-flash'  # 默认模型
 
     # 联网搜索（Tavily）
     TAVILY_API_KEY: str = ''

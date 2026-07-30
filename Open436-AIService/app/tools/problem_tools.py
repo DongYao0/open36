@@ -142,47 +142,6 @@ async def execute_cyaron_script(script_code: str, test_count: int = 10) -> dict:
 
 
 @tool
-async def validate_test_data(test_input: str, constraints: str) -> dict:
-    """
-    验证测试数据是否符合题目约束。
-
-    Args:
-        test_input: 测试输入数据
-        constraints: 约束条件描述（如 "1 <= n <= 100000, 1 <= arr[i] <= 10^9"）
-    Returns:
-        {"valid": bool, "reason": "..."}
-    """
-    try:
-        lines = test_input.strip().split('\n')
-        if not lines:
-            return {'valid': False, 'reason': '输入为空'}
-
-        # 基本格式检查
-        first_line = lines[0].strip().split()
-        if not first_line:
-            return {'valid': False, 'reason': '第一行为空'}
-
-        # 尝试解析为数字
-        try:
-            values = [int(x) for x in first_line]
-        except ValueError:
-            try:
-                values = [float(x) for x in first_line]
-            except ValueError:
-                return {'valid': True, 'reason': '非数值格式，跳过自动校验'}
-
-        # 检查是否有负数（如果约束要求正数）
-        if 'n >= 1' in constraints or 'n>=1' in constraints:
-            if values and values[0] < 1:
-                return {'valid': False, 'reason': f'n={values[0]} < 1，违反约束'}
-
-        return {'valid': True, 'reason': '基本校验通过'}
-
-    except Exception as e:
-        return {'valid': True, 'reason': f'校验异常，跳过: {str(e)}'}
-
-
-@tool
 async def run_brute_vs_solution(
     test_input: str,
     brute_code: str,

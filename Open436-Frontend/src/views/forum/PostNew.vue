@@ -1,7 +1,7 @@
 <template>
   <!-- Back nav -->
   <div class="pn-nav">
-    <router-link to="/forum" class="pn-back">
+    <router-link to="/forum/tech" class="pn-back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
       返回论坛
     </router-link>
@@ -160,7 +160,7 @@ async function submitPost() {
     if (!sectionId) { ui.showToast('板块信息异常，请刷新重试', 'error'); return }
     await createPost({ title: form.value.title.trim(), summary: form.value.summary.trim(), content: form.value.content.trim(), section_id: sectionId })
     ui.showToast('发布成功！', 'success')
-    router.push('/forum')
+    router.push('/forum/' + (form.value.section || 'tech'))
   } catch (e) {
     const errData = e?.response?.data
     const msg = errData?.message || '发布失败，请稍后重试'

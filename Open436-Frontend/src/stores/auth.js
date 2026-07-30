@@ -55,6 +55,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function syncToHoj() {
+    // 待审核报名用户只能浏览平台，后端会拒绝其 HOJ 同步请求。
+    if (user.value?.status !== 'active') return
+
     try {
       const res = await request.post('/api/auth/algo-sync', {})
       if (res.code === 200 && res.data) {

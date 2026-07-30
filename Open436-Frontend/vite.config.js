@@ -5,7 +5,11 @@ import { fileURLToPath, URL } from 'node:url'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue()],
-  
+
+  // 应用挂载到 /app 子路径（根路径 / 由 3D portfolio 首页占用）
+  // 由 Nginx 反向代理聚合：/ -> portfolio, /app -> 本应用
+  base: '/app/',
+
   // 路径别名
   resolve: {
     alias: {
@@ -17,7 +21,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
-    open: true,
+    open: false,
     // 代理配置 - Open436 API 通过 Kong，HOJ 资源直连 HOJ 前端 devServer
     proxy: {
       '/api/auth': {

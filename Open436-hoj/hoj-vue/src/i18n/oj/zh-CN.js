@@ -269,7 +269,7 @@ export const m = {
   Memory_Limit: '内存限制',
   Other: '其他语言',
   Created: '出题人',
-  Please_login_first: '请先登录!',
+  Please_login_first: '非正式成员不可进行算法答题，请先报名并等待管理员审核通过',
   Please_login_first_by_admin_account:'请重新使用管理员账号登录！',
   Submit: '提交评测',
   Online_Test:'在线自测',

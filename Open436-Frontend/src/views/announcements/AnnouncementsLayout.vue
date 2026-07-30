@@ -1,5 +1,5 @@
 <template>
-  <ForumHeader />
+  <AnnouncementsHeader />
   <div class="forum-layout">
     <div class="forum-main">
       <router-view />
@@ -8,5 +8,5 @@
 </template>
 
 <script setup>
-import ForumHeader from '@/components/ForumHeader.vue'
+import AnnouncementsHeader from '@/components/AnnouncementsHeader.vue'
 </script>

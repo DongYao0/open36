@@ -55,16 +55,13 @@ if "%mode%"=="1" (
     echo   请在 IDE 中启动应用服务:
     echo     Auth:       8081
     echo     Enrollment: 8084
-    echo     User:       8002
-    echo     Content:    8003
-    echo     Comment:    8004
-    echo     Section:    8005
+    echo     Forum:      8003
     echo     File:       8007
     echo     AI:         8008
     echo.
     echo   基础设施:
-    echo     PostgreSQL: localhost:55432  (open436/open436)
-    echo     Redis:      localhost:6379
+    echo     PostgreSQL: localhost:55400  (open436/open436)
+    echo     Redis:      localhost:6380
     echo     Consul:     http://localhost:8500
     echo     Minio:      http://localhost:9001  (minioadmin/minioadmin)
     echo     Kong Proxy: http://localhost:8000
@@ -94,8 +91,8 @@ if "%mode%"=="1" (
     echo     管理后台:  http://localhost:3001
     echo.
     echo   基础设施:
-    echo     PostgreSQL: localhost:55432  (open436/open436)
-    echo     Redis:      localhost:6379
+    echo     PostgreSQL: localhost:55400  (open436/open436)
+    echo     Redis:      localhost:6380
     echo     Consul:     http://localhost:8500
     echo     Minio:      http://localhost:9001  (minioadmin/minioadmin)
     echo     Kong Proxy: http://localhost:8000

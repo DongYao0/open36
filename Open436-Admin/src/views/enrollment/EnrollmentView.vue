@@ -65,40 +65,31 @@
       <el-pagination v-model:current-page="page" :page-size="10" :total="total" layout="total, prev, pager, next" @current-change="loadList" />
     </div>
 
-    <!-- 详情抽屉 -->
-    <el-drawer v-model="drawerVisible" :title="`申请详情 - ${currentItem?.realName || ''}`" size="480px">
-      <template v-if="currentItem">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="姓名">{{ currentItem.realName }}</el-descriptions-item>
-          <el-descriptions-item label="用户名">{{ currentItem.username }}</el-descriptions-item>
-          <el-descriptions-item label="学号">{{ currentItem.studentId }}</el-descriptions-item>
-          <el-descriptions-item label="专业">{{ currentItem.major }}</el-descriptions-item>
-          <el-descriptions-item label="手机">{{ currentItem.phone }}</el-descriptions-item>
-          <el-descriptions-item label="提交时间">{{ currentItem.submittedAt }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="statusTagType[currentItem.status]" size="small">{{ statusLabels[currentItem.status] }}</el-tag>
-          </el-descriptions-item>
-        </el-descriptions>
-        <div style="margin-top:20px">
-          <h4 style="margin-bottom:8px">自我介绍</h4>
-          <p style="color:#666;line-height:1.6">{{ currentItem.selfIntro }}</p>
-        </div>
-        <div style="margin-top:16px">
-          <h4 style="margin-bottom:8px">技能标签</h4>
-          <div>
-            <el-tag v-for="skill in currentItem.skills?.split(',')" :key="skill" style="margin:2px 4px">{{ skill.trim() }}</el-tag>
-          </div>
-        </div>
-        <div v-if="currentItem.reviewReason" style="margin-top:16px">
-          <h4 style="margin-bottom:8px">审核意见</h4>
-          <p style="color:#f56c6c">{{ currentItem.reviewReason }}</p>
-        </div>
-        <div v-if="currentItem.status === 'pending'" style="margin-top:24px;display:flex;gap:12px">
-          <el-button type="success" @click="handleReview(currentItem, 'approved'); drawerVisible = false">通过</el-button>
-          <el-button type="danger" @click="showRejectReason = true">拒绝</el-button>
+    <!-- 详情弹窗 -->
+    <el-dialog v-model="dialogVisible" :title="`申请详情 - ${currentItem?.realName || ''}`" width="500px" :close-on-click-modal="false" center>
+      <el-descriptions v-if="currentItem" :column="1" border>
+        <el-descriptions-item label="姓名">{{ currentItem.realName }}</el-descriptions-item>
+        <el-descriptions-item label="用户名">{{ currentItem.username }}</el-descriptions-item>
+        <el-descriptions-item label="学号">{{ currentItem.studentId }}</el-descriptions-item>
+        <el-descriptions-item label="专业">{{ currentItem.major }}</el-descriptions-item>
+        <el-descriptions-item label="手机">{{ currentItem.phone }}</el-descriptions-item>
+        <el-descriptions-item label="提交时间">{{ currentItem.submittedAt }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <el-tag :type="statusTagType[currentItem.status]" size="small">{{ statusLabels[currentItem.status] }}</el-tag>
+        </el-descriptions-item>
+      </el-descriptions>
+      <div v-if="currentItem?.reviewReason" style="margin-top:16px">
+        <h4 style="margin-bottom:8px">审核意见</h4>
+        <p style="color:#f56c6c">{{ currentItem.reviewReason }}</p>
+      </div>
+      <template #footer>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <el-button v-if="currentItem?.status === 'pending'" type="success" @click="handleReview(currentItem, 'approved'); dialogVisible = false">通过</el-button>
+          <el-button v-if="currentItem?.status === 'pending'" type="danger" @click="showRejectReason = true">拒绝</el-button>
+          <el-button @click="dialogVisible = false">关闭</el-button>
         </div>
       </template>
-    </el-drawer>
+    </el-dialog>
 
     <!-- 拒绝原因对话框 -->
     <el-dialog v-model="showRejectReason" title="拒绝原因" width="400px">
@@ -125,7 +116,7 @@ const keyword = ref('')
 const statusFilter = ref('')
 const selectedIds = ref([])
 const stats = ref({ total: 0, pending: 0, approved: 0, rejected: 0, approvalRate: 0 })
-const drawerVisible = ref(false)
+const dialogVisible = ref(false)
 const currentItem = ref(null)
 const showRejectReason = ref(false)
 const rejectReason = ref('')
@@ -157,7 +148,7 @@ function handleSelectionChange(rows) {
 
 function openDetail(row) {
   currentItem.value = row
-  drawerVisible.value = true
+  dialogVisible.value = true
 }
 
 async function handleReview(row, status) {
@@ -181,7 +172,7 @@ async function confirmReject() {
   ElMessage.success('已拒绝')
   showRejectReason.value = false
   rejectReason.value = ''
-  drawerVisible.value = false
+  dialogVisible.value = false
   loadList()
   loadStats()
 }

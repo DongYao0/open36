@@ -1,0 +1,123 @@
+# Nacos 配置映射（dev 环境下无 Nacos，直接本地配置）
+hoj:
+  db:
+    username: root
+    password: hoj123456
+    name: hoj
+    host: 127.0.0.1
+    public-host: 127.0.0.1
+    port: 3307
+    public-port: 3307
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password:
+  jwt:
+    secret: default
+    expire: 86400
+    checkRefreshExpire: 43200
+  judge:
+    token: hoj-dev-token
+
+# redis配置
+redis-host: 127.0.0.1
+redis-port: 6379
+redis-password:
+
+# 本服务连接mysql的地址和端口号
+mysql-host: 127.0.0.1
+mysql-port: 3307
+# mysql的公网地址和端口号
+mysql-public-host: 127.0.0.1
+mysql-public-port: 3306
+mysql-username: root
+mysql-password: hoj123456
+mysql-name: hoj
+
+# token密钥，default表示随机生成
+jwt-token-secret: default
+# token过期时间 单位s
+jwt-token-expire: 86400
+# token可刷新的过期时间 单位s
+jwt-token-fresh-expire: 43200
+
+# 网站是否开启远程评测
+open-remote-judge: true
+# 调用评测服务的token, default表示随机生成
+judge-token: default
+
+server:
+  port: 8088
+  servlet:
+    encoding:
+      force: true
+
+spring:
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+      config:
+        enabled: false
+  servlet:
+    multipart:
+      max-file-size: 512MB
+      max-request-size: 512MB
+
+  redis:
+    host: ${redis-host}
+    port: ${redis-port}
+    timeout: 60000
+    jedis:
+      pool:
+        min-idle: 10
+        max-idle: 50
+        max-active: 200
+        max-wait: -1
+    password: ${redis-password}
+  datasource:
+    username: ${mysql-username}
+    password: ${mysql-password}
+    url: jdbc:mysql://${mysql-host}:${mysql-port}/${mysql-name}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true&rewriteBatchedStatements=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    initial-size: 10
+    min-idle: 20
+    maxActive: 200
+    maxWait: 60000
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1 FROM DUAL
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    poolPreparedStatements: true
+    maxPoolPreparedStatementPerConnectionSize: 20
+    connectionErrorRetryAttempts: 3
+    breakAfterAcquireFailure: true
+    timeBetweenConnectErrorMillis: 300000
+    asyncInit: true
+    remove-abandoned: true
+    remove-abandoned-timeout: 1800
+    transaction-query-timeout: 6000
+    filters: stat,wall,log4j
+    connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+  thymeleaf:
+    encoding: UTF-8
+
+shiro-redis:
+  enabled: true
+  redis-manager:
+    host: ${redis-host}:${redis-port}
+    password: ${redis-password}
+
+logging:
+  level:
+    com:
+      alibaba:
+        nacos:
+          client:
+            naming: info
+    root: info
+  file:
+    path: ./hoj_judgeserver

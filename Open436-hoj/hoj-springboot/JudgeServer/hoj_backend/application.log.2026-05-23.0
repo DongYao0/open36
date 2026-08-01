@@ -1,0 +1,143 @@
+2026-05-23 21:57:54 [main] INFO  top.hcode.hoj.DataBackupApplication - The following profiles are active: dev
+2026-05-23 21:57:58 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-05-23 21:57:58 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-05-23 21:57:59 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 850ms. Found 0 Redis repository interfaces.
+2026-05-23 21:57:59 [main] INFO  o.springframework.cloud.context.scope.GenericScope - BeanFactory id=4bfd25d0-a7eb-3e37-b45b-d7aedfcab117
+2026-05-23 21:57:59 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'org.apache.shiro.spring.config.web.autoconfigure.ShiroBeanAutoConfiguration' of type [org.apache.shiro.spring.config.web.autoconfigure.ShiroBeanAutoConfiguration$$EnhancerBySpringCGLIB$$fa4139a6] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:57:59 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'asyncTaskConfig' of type [top.hcode.hoj.config.AsyncTaskConfig$$EnhancerBySpringCGLIB$$9ce26bc5] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:57:59 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'org.springframework.retry.annotation.RetryConfiguration' of type [org.springframework.retry.annotation.RetryConfiguration$$EnhancerBySpringCGLIB$$bc4f3151] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:57:59 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'redisConfig' of type [top.hcode.hoj.config.RedisConfig$$EnhancerBySpringCGLIB$$deb7515f] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:57:59 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'redisAutoConfig' of type [top.hcode.hoj.config.RedisAutoConfig$$EnhancerBySpringCGLIB$$fc76b4ce] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:57:59 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'jedisPool' of type [redis.clients.jedis.JedisPoolConfig] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:00 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'scopedTarget.jedisPoolConfigure' of type [top.hcode.hoj.config.JedisPoolConfigure] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:00 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'scopedTarget.jedisConfig' of type [org.springframework.data.redis.connection.RedisStandaloneConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:00 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'redisConnectionFactory' of type [org.springframework.data.redis.connection.jedis.JedisConnectionFactory] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:00 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'redisTemplate' of type [org.springframework.data.redis.core.RedisTemplate] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:00 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'redisUtils' of type [top.hcode.hoj.utils.RedisUtils] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:00 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'jwtUtils' of type [top.hcode.hoj.utils.JwtUtils] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:00 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'jwtFilter' of type [top.hcode.hoj.shiro.JwtFilter] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:00 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'shiroConfig' of type [top.hcode.hoj.config.ShiroConfig$$EnhancerBySpringCGLIB$$93e8ca15] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:01 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'mybatis-plus-com.baomidou.mybatisplus.autoconfigure.MybatisPlusProperties' of type [com.baomidou.mybatisplus.autoconfigure.MybatisPlusProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:01 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'mybatisPlusConfig' of type [top.hcode.hoj.config.MybatisPlusConfig$$EnhancerBySpringCGLIB$$450f33f1] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:01 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'optimisticLockerInterceptor' of type [com.baomidou.mybatisplus.extension.plugins.OptimisticLockerInterceptor] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:01 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'paginationInterceptor' of type [com.baomidou.mybatisplus.extension.plugins.PaginationInterceptor] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:01 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration' of type [com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration$$EnhancerBySpringCGLIB$$45405c6] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:01 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'myMetaObjectConfig' of type [top.hcode.hoj.config.MyMetaObjectConfig] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:03 [main] WARN  c.b.mybatisplus.core.metadata.TableInfoHelper - Warn: Could not find @TableId in Class: top.hcode.hoj.pojo.entity.user.RoleAuth.
+2026-05-23 21:58:03 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'sqlSessionFactory' of type [org.apache.ibatis.session.defaults.DefaultSqlSessionFactory] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:03 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'sqlSessionTemplate' of type [org.mybatis.spring.SqlSessionTemplate] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:03 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'userRoleMapper' of type [org.mybatis.spring.mapper.MapperFactoryBean] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:03 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'userRoleMapper' of type [jdk.proxy2.$Proxy129] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'shiro-redis.redis-manager-org.crazycake.shiro.RedisManagerProperties' of type [org.crazycake.shiro.RedisManagerProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'shiro-redis.cache-manager-org.crazycake.shiro.CacheManagerProperties' of type [org.crazycake.shiro.CacheManagerProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'shiro-redis.session-dao-org.crazycake.shiro.RedisSessionDAOProperties' of type [org.crazycake.shiro.RedisSessionDAOProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'org.crazycake.shiro.ShiroRedisAutoConfiguration' of type [org.crazycake.shiro.ShiroRedisAutoConfiguration$$EnhancerBySpringCGLIB$$d65edf42] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'redisManager' of type [org.crazycake.shiro.RedisManager] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'redisSessionDAO' of type [org.crazycake.shiro.RedisSessionDAO] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'userRoleEntityServiceImpl' of type [top.hcode.hoj.dao.user.impl.UserRoleEntityServiceImpl] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'userInfoMapper' of type [org.mybatis.spring.mapper.MapperFactoryBean] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'userInfoMapper' of type [jdk.proxy2.$Proxy132] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'userInfoEntityServiceImpl' of type [top.hcode.hoj.dao.user.impl.UserInfoEntityServiceImpl] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'roleAuthMapper' of type [org.mybatis.spring.mapper.MapperFactoryBean] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'roleAuthMapper' of type [jdk.proxy2.$Proxy134] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'accountRealm' of type [top.hcode.hoj.shiro.AccountRealm] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'securityManager' of type [org.apache.shiro.web.mgt.DefaultWebSecurityManager] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'authorizationAttributeSourceAdvisor' of type [org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'shiroFilterChainDefinition' of type [org.apache.shiro.spring.web.config.DefaultShiroFilterChainDefinition] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:04 [main] INFO  o.s.c.s.PostProcessorRegistrationDelegate$BeanPostProcessorChecker - Bean 'eventBus' of type [org.apache.shiro.event.support.DefaultEventBus] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2026-05-23 21:58:05 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 6688 (http)
+2026-05-23 21:58:05 [main] INFO  org.apache.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-6688"]
+2026-05-23 21:58:05 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-05-23 21:58:05 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.33]
+2026-05-23 21:58:05 [main] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-05-23 21:58:05 [main] INFO  org.springframework.web.context.ContextLoader - Root WebApplicationContext: initialization completed in 11358 ms
+2026-05-23 21:58:06 [main] WARN  hoj - [MySQL] [Config Init] name:[hoj], host:[127.0.0.1], port:[3307], username:[root], password:[hoj123456]
+2026-05-23 21:58:06 [main] INFO  hoj - [Switch Config] [Init Succeeded] [SwitchConfig(hduUsernameList=[], hduPasswordList=[], cfUsernameList=[], cfPasswordList=[], pojUsernameList=[], pojPasswordList=[], atcoderUsernameList=[], atcoderPasswordList=[], spojUsernameList=[], spojPasswordList=[], libreojUsernameList=[], libreojPasswordList=[], openPublicDiscussion=true, openGroupDiscussion=true, openContestComment=true, openPublicJudge=true, openGroupJudge=true, openContestJudge=true, hideNonContestSubmissionCode=false, defaultSubmitInterval=8, defaultCreateGroupDailyLimit=2, defaultCreateGroupLimit=5, defaultCreateGroupACInitValue=20, defaultCreateDiscussionDailyLimit=5, defaultCreateDiscussionACInitValue=10, defaultCreateCommentACInitValue=10)]
+2026-05-23 21:58:06 [main] INFO  hoj - [Web Config] [Init Succeeded] [WebConfig(emailUsername=your_email_username, emailPassword=your_email_password, emailHost=smtp.qq.com, emailPort=465, emailSsl=true, emailBGImg=https://cdn.jsdelivr.net/gh/HimitZH/CDN/images/HCODE.png, baseUrl=http://26.76.212.161, name=Hcode Online Judge, shortName=HOJ, description=null, register=true, recordName=null, recordUrl=null, projectName=HOJ, projectUrl=https://gitee.com/himitzh0730/hoj)]
+2026-05-23 21:58:08 [main] INFO  org.springframework.cloud.commons.util.InetUtils - Cannot determine local hostname
+2026-05-23 21:58:10 [main] INFO  o.s.b.actuate.endpoint.web.EndpointLinksResolver - Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-05-23 21:58:10 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Initializing ExecutorService
+2026-05-23 21:58:10 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Initializing ExecutorService 'judgeTaskAsyncPool'
+2026-05-23 21:58:10 [main] INFO  s.d.s.w.PropertySourcedRequestMappingHandlerMapping - Mapped URL path [/v2/api-docs] onto method [springfox.documentation.swagger2.web.Swagger2Controller#getDocumentation(String, HttpServletRequest)]
+2026-05-23 21:58:10 [main] WARN  com.netflix.config.sources.URLConfigurationSource - No URLs will be polled as dynamic configuration sources.
+2026-05-23 21:58:10 [main] INFO  com.netflix.config.sources.URLConfigurationSource - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2026-05-23 21:58:10 [main] WARN  com.netflix.config.sources.URLConfigurationSource - No URLs will be polled as dynamic configuration sources.
+2026-05-23 21:58:10 [main] INFO  com.netflix.config.sources.URLConfigurationSource - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2026-05-23 21:58:11 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskScheduler - Initializing ExecutorService 'taskScheduler'
+2026-05-23 21:58:12 [main] INFO  org.springframework.cloud.commons.util.InetUtils - Cannot determine local hostname
+2026-05-23 21:58:12 [main] INFO  s.d.s.web.plugins.DocumentationPluginsBootstrapper - Context refreshed
+2026-05-23 21:58:12 [main] INFO  s.d.s.web.plugins.DocumentationPluginsBootstrapper - Found 1 custom documentation plugin(s)
+2026-05-23 21:58:12 [main] INFO  s.d.spring.web.scanners.ApiListingReferenceScanner - Scanning for api listing references
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getProblemListUsingGET_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addProblemUsingPOST_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: deleteProblemUsingDELETE_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getProblemUsingGET_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getProblemListUsingGET_2
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: updateProblemUsingPUT_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addProblemFromPublicUsingPOST_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: deleteProblemUsingDELETE_2
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getProblemListUsingGET_3
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: updateProblemUsingPUT_2
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addAnnouncementUsingPOST_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: deleteAnnouncementUsingDELETE_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getAnnouncementListUsingGET_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: updateAnnouncementUsingPUT_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getContestListUsingGET_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getContestProblemUsingGET_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: removeDiscussionUsingDELETE_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: updateDiscussionUsingPUT_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addAnnouncementUsingPOST_2
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: deleteAnnouncementUsingDELETE_2
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getAnnouncementListUsingGET_2
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: updateAnnouncementUsingPUT_2
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addContestUsingPOST_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addProblemUsingPOST_2
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addProblemFromPublicUsingPOST_2
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: changeContestVisibleUsingPUT_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: deleteContestUsingDELETE_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getContestUsingGET_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getContestListUsingGET_2
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getContestProblemUsingGET_2
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: updateContestUsingPUT_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addDiscussionUsingPOST_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getDiscussionListUsingGET_1
+2026-05-23 21:58:12 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: updateDiscussionUsingPUT_2
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addProblemUsingPOST_3
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: changeProblemAuthUsingPUT_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: compileInteractiveUsingPOST_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: compileSpjUsingPOST_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: deleteProblemUsingDELETE_3
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getAllProblemTagsListUsingGET_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getProblemUsingGET_2
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getProblemCasesUsingGET_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getProblemListUsingGET_4
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: updateProblemUsingPUT_3
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addProblemFromGroupUsingPOST_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addProblemFromPublicUsingPOST_3
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: addTrainingUsingPOST_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: changeTrainingStatusUsingPUT_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: deleteTrainingUsingDELETE_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getTrainingUsingGET_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getTrainingListUsingGET_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: updateTrainingUsingPUT_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getWebConfigUsingGET_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getSysNoticeUsingGET_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: loginUsingPOST_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: logoutUsingGET_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getProblemListUsingGET_5
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getRankListUsingGET_1
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getTrainingUsingGET_2
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getTrainingListUsingGET_2
+2026-05-23 21:58:13 [main] INFO  s.d.s.w.r.operation.CachingOperationNameGenerator - Generating unique operation named: getTrainingProblemListUsingGET_1
+2026-05-23 21:58:13 [main] INFO  org.apache.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-6688"]
+2026-05-23 21:58:13 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 6688 (http) with context path ''
+2026-05-23 21:58:14 [main] INFO  org.springframework.cloud.commons.util.InetUtils - Cannot determine local hostname
+2026-05-23 21:58:14 [main] INFO  top.hcode.hoj.DataBackupApplication - Started DataBackupApplication in 23.824 seconds (JVM running for 26.172)
+2026-05-23 21:58:15 [main] INFO  com.alibaba.druid.pool.DruidDataSource - {dataSource-1} inited
+2026-05-23 21:58:15 [main] ERROR hoj - [Init System Config] [HDU]: There is no account or password configured for remote judge, username list:[], password list:[]
+2026-05-23 21:58:15 [main] ERROR hoj - [Init System Config] [POJ]: There is no account or password configured for remote judge, username list:[], password list:[]
+2026-05-23 21:58:15 [main] ERROR hoj - [Init System Config] [CF]: There is no account or password configured for remote judge, username list:[], password list:[]
+2026-05-23 21:58:15 [main] ERROR hoj - [Init System Config] [SPOJ]: There is no account or password configured for remote judge, username list:[], password list:[]
+2026-05-23 21:58:15 [main] ERROR hoj - [Init System Config] [AC]: There is no account or password configured for remote judge, username list:[], password list:[]
+2026-05-23 21:58:15 [main] ERROR hoj - [Init System Config] [LIBRE]: There is no account or password configured for remote judge, username list:[], password list:[]
+2026-05-23 22:00:01 [scheduling-1] INFO  hoj - 获取牛客API的比赛列表成功！共获取数据9条

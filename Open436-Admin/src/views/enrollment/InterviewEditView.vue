@@ -45,23 +45,9 @@
           />
         </el-form-item>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="意向">
-              <el-input v-model="form.direction" placeholder="如：前端/后端/算法/运维" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="评分">
-              <div style="display:flex;align-items:center;gap:16px">
-                <el-slider v-model="form.score" :min="0" :max="10" :step="1" show-stops style="flex:1" />
-                <span style="font-size:20px;font-weight:600;color:#409eff;min-width:40px;text-align:center">
-                  {{ form.score ?? '-' }}
-                </span>
-              </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="意向">
+          <el-input v-model="form.direction" placeholder="如：前端/后端/算法/运维" />
+        </el-form-item>
       </el-form>
 
       <div class="form-actions">
@@ -94,7 +80,6 @@ const submitting = ref(false)
 const detail = ref(null)
 const form = ref({
   enrollmentId: null,
-  score: 5,
   direction: '',
   summary: ''
 })
@@ -110,7 +95,6 @@ async function loadDetail() {
     detail.value = res.data
     form.value = {
       enrollmentId: res.data.enrollmentId,
-      score: res.data.score != null ? res.data.score : 5,
       direction: res.data.direction || '',
       summary: res.data.summary || ''
     }
@@ -123,15 +107,14 @@ async function loadDetail() {
 }
 
 async function submitForm() {
-  if (!form.value.summary && form.value.score == null) {
-    ElMessage.warning('请至少填写评分或面试记录')
+  if (!form.value.summary) {
+    ElMessage.warning('请填写面试记录')
     return
   }
   submitting.value = true
   try {
     await recordInterview({
       enrollmentId: form.value.enrollmentId,
-      score: form.value.score,
       direction: form.value.direction,
       summary: form.value.summary
     })

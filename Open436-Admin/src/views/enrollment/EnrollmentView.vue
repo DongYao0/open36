@@ -44,7 +44,7 @@
       <el-table-column prop="studentId" label="学号" width="130" />
       <el-table-column prop="major" label="专业" width="150" />
       <el-table-column prop="phone" label="联系方式" width="130" />
-      <el-table-column prop="submittedAt" label="提交时间" width="160" />
+      <el-table-column prop="submittedAt" label="提交时间" width="160" :formatter="formatDate" />
       <el-table-column label="状态" width="90">
         <template #default="{ row }">
           <el-tag :type="statusTagType[row.status]" size="small">{{ statusLabels[row.status] }}</el-tag>
@@ -74,7 +74,7 @@
           <el-descriptions-item label="学号">{{ currentItem.studentId }}</el-descriptions-item>
           <el-descriptions-item label="专业">{{ currentItem.major }}</el-descriptions-item>
           <el-descriptions-item label="手机">{{ currentItem.phone }}</el-descriptions-item>
-          <el-descriptions-item label="提交时间">{{ currentItem.submittedAt }}</el-descriptions-item>
+          <el-descriptions-item label="提交时间">{{ formatDate(null, null, currentItem.submittedAt) }}</el-descriptions-item>
           <el-descriptions-item label="状态">
             <el-tag :type="statusTagType[currentItem.status]" size="small">{{ statusLabels[currentItem.status] }}</el-tag>
           </el-descriptions-item>
@@ -132,6 +132,17 @@ const rejectReason = ref('')
 
 const statusLabels = { pending: '待审核', approved: '已通过', rejected: '已拒绝' }
 const statusTagType = { pending: 'warning', approved: 'success', rejected: 'danger' }
+
+function formatDate(row, column, cellValue) {
+  const val = cellValue !== undefined ? cellValue : row
+  if (!val) return '-'
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return val
+  const yy = String(d.getFullYear()).slice(-2)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yy}-${mm}-${dd}`
+}
 
 async function loadStats() {
   try {

@@ -15,10 +15,10 @@ import lombok.NoArgsConstructor;
 public class RegisterRequest {
 
     /**
-     * 用户名（3-20字符）
+     * 用户名（2-20字符，报名时即真实姓名）
      */
     @NotBlank(message = "用户名不能为空")
-    @Size(min = 3, max = 20, message = "用户名长度必须为3-20个字符")
+    @Size(min = 2, max = 20, message = "用户名长度必须为2-20个字符")
     private String username;
 
     /**

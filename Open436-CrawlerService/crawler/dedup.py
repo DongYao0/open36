@@ -1,0 +1,405 @@
+"""
+内容去重模块
+
+提供多层级去重能力：
+- Layer 1: URL精确去重
+- Layer 2: 内容指纹去重（SimHash简化版）
+- Layer 3: 标题相似度去重
+"""
+
+import hashlib
+import re
+from typing import List, Optional
+import difflib
+from collections import Counter
+
+
+class ContentFingerprint:
+    """内容指纹，用于检测重复/相似内容"""
+
+    def __init__(self, text: str):
+        self.text = text or ""
+        self._hash = None
+        self._simhash = None
+
+    @property
+    def exact_hash(self) -> str:
+        """精确哈希（用于完全相同的文本）"""
+        if self._hash is None:
+            self._hash = hashlib.sha256(self.text.encode('utf-8')).hexdigest()
+        return self._hash
+
+    @property
+    def simhash(self) -> int:
+        """简化版SimHash（用于检测内容改写/转载）"""
+        if self._simhash is None:
+            self._simhash = self._compute_simhash()
+        return self._simhash
+
+    def _compute_simhash(self) -> int:
+        """
+        简化版SimHash算法：
+        1. 提取特征词（2-gram，带词频权重）
+        2. 每个特征词用稳定哈希（md5）后按位加权
+        3. 结果归并为64位整数
+
+        注意：使用 hashlib.md5 替代内置 hash()，避免 Python hash 随机化
+        导致不同进程/重启后同一文本得到不同的 SimHash。
+        """
+        features = self._extract_features(self.text)
+        if not features:
+            return 0
+
+        # 计算词频权重
+        freq = Counter(features)
+
+        # 64位向量
+        vector = [0] * 64
+
+        for feature, weight in freq.items():
+            # 稳定哈希：md5 取前16个hex字符转int（64位）
+            h = int(hashlib.md5(feature.encode('utf-8')).hexdigest()[:16], 16)
+
+            for i in range(64):
+                bit = (h >> i) & 1
+                if bit:
+                    vector[i] += weight
+                else:
+                    vector[i] -= weight
+
+        # 生成simhash
+        result = 0
+        for i in range(64):
+            if vector[i] > 0:
+                result |= (1 << i)
+        return result
+
+    @staticmethod
+    def _extract_features(text: str) -> List[str]:
+        """提取文本特征：中文 3-gram + 英文 word 2-gram。
+
+        中文连续字符间无空格，空格分词后几乎无特征；
+        改为按字符级 3-gram 提取中文特征，英文仍用空格分词后的 2-gram。
+        """
+        if not text:
+            return []
+
+        features: List[str] = []
+
+        # 中文片段：字符级 3-gram
+        chinese_segments = re.findall(r'[一-鿿]+', text)
+        for segment in chinese_segments:
+            if len(segment) >= 3:
+                for i in range(len(segment) - 2):
+                    features.append(f"zh_{segment[i:i+3]}")
+            elif segment:
+                features.append(f"zh_{segment}")
+
+        # 英文/数字：空格分词后 2-gram
+        cleaned = re.sub(r'[^a-zA-Z0-9\s]', ' ', text)
+        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+        words = cleaned.split()
+        if len(words) >= 2:
+            for i in range(len(words) - 1):
+                features.append(f"en_{words[i].lower()}_{words[i+1].lower()}")
+        elif words:
+            features.append(f"en_{words[0].lower()}")
+
+        return features
+
+
+def hamming_distance(hash1: int, hash2: int) -> int:
+    """计算两个64位整数的汉明距离"""
+    return bin(hash1 ^ hash2).count('1')
+
+
+class DedupEngine:
+    """去重引擎"""
+
+    # 类级默认值（保持向后兼容）
+    SIMHASH_THRESHOLD = 12
+    TITLE_SIMILARITY_THRESHOLD = 0.8
+    # SimHash 分桶数（64位哈希分为 4 × 16位桶，减少比较次数）
+    _BUCKET_COUNT = 4
+    _BUCKET_BITS = 16
+
+    def __init__(self, simhash_threshold=None, title_threshold=None):
+        self.simhash_threshold = simhash_threshold if simhash_threshold is not None else self.SIMHASH_THRESHOLD
+        self.title_threshold = title_threshold if title_threshold is not None else self.TITLE_SIMILARITY_THRESHOLD
+        self._url_seen: set = set()
+        self._fingerprint_seen: List[ContentFingerprint] = []
+        self._title_seen: List[str] = []
+        # SimHash 分桶索引：bucket_index -> set of fingerprint list positions
+        self._simhash_buckets: List[dict] = [{} for _ in range(self._BUCKET_COUNT)]
+
+    def add_reference(self, url: str, title: str = "", content: str = ""):
+        """添加参考内容（如历史采集记录），用于跨任务去重"""
+        self._url_seen.add(self._normalize_url(url))
+        if title:
+            self._title_seen.append(title.lower().strip())
+        if content and len(content) >= 100:
+            self._add_fingerprint(ContentFingerprint(content))
+
+    def add_precomputed_simhash(self, url: str, title: str = "", simhash: int = 0):
+        """直接加载预计算的 simhash 指纹（从 Java API 恢复跨日去重）。"""
+        self._url_seen.add(self._normalize_url(url))
+        if title:
+            self._title_seen.append(title.lower().strip())
+        if simhash:
+            fp = ContentFingerprint.__new__(ContentFingerprint)
+            fp._simhash = simhash
+            fp.text = ""
+            fp._hash = None
+            self._add_fingerprint(fp)
+
+    def is_duplicate(self, url: str, title: str = "", content: str = "") -> dict:
+        """
+        检测是否为重复内容
+
+        Returns:
+            {
+                "is_duplicate": bool,
+                "reason": str,  # "url" | "content_similar" | "title_similar" | "none"
+                "confidence": float,  # 0-1
+            }
+        """
+        # Layer 1: URL精确去重
+        normalized_url = self._normalize_url(url)
+        if normalized_url in self._url_seen:
+            return {
+                "is_duplicate": True,
+                "reason": "url",
+                "confidence": 1.0
+            }
+
+        # Layer 2: 内容相似度去重（使用 SimHash 分桶加速）
+        if content and len(content) >= 100:
+            fp = ContentFingerprint(content)
+            candidates = self._get_simhash_candidates(fp.simhash)
+            for idx in candidates:
+                seen_fp = self._fingerprint_seen[idx]
+                distance = hamming_distance(fp.simhash, seen_fp.simhash)
+                if distance <= self.simhash_threshold:
+                    confidence = 1.0 - (distance / self.simhash_threshold) * 0.3
+                    return {
+                        "is_duplicate": True,
+                        "reason": "content_similar",
+                        "confidence": min(confidence, 0.95)
+                    }
+
+        # Layer 3: 标题相似度去重
+        if title:
+            title_lower = title.lower().strip()
+            for seen_title in self._title_seen:
+                similarity = self._title_similarity(title_lower, seen_title)
+                if similarity >= self.title_threshold:
+                    return {
+                        "is_duplicate": True,
+                        "reason": "title_similar",
+                        "confidence": similarity
+                    }
+
+        return {
+            "is_duplicate": False,
+            "reason": "none",
+            "confidence": 0.0
+        }
+
+    def add(self, url: str, title: str = "", content: str = ""):
+        """添加新内容到去重库"""
+        self._url_seen.add(self._normalize_url(url))
+        if title:
+            self._title_seen.append(title.lower().strip())
+        if content and len(content) >= 100:
+            self._add_fingerprint(ContentFingerprint(content))
+
+    def _add_fingerprint(self, fp: ContentFingerprint):
+        """添加指纹并维护分桶索引"""
+        idx = len(self._fingerprint_seen)
+        self._fingerprint_seen.append(fp)
+        hash_val = fp.simhash
+        if hash_val == 0:
+            return
+        for bucket_idx in range(self._BUCKET_COUNT):
+            bucket_key = self._extract_bucket(hash_val, bucket_idx)
+            bucket = self._simhash_buckets[bucket_idx]
+            if bucket_key not in bucket:
+                bucket[bucket_key] = set()
+            bucket[bucket_key].add(idx)
+
+    def _get_simhash_candidates(self, hash_val: int) -> set:
+        """通过分桶索引获取候选指纹的下标集合"""
+        if not self._fingerprint_seen or hash_val == 0:
+            return set(range(len(self._fingerprint_seen)))
+        candidates = set()
+        for bucket_idx in range(self._BUCKET_COUNT):
+            bucket_key = self._extract_bucket(hash_val, bucket_idx)
+            bucket = self._simhash_buckets[bucket_idx]
+            if bucket_key in bucket:
+                candidates.update(bucket[bucket_key])
+        # 如果桶索引未命中任何候选，回退到全量扫描
+        return candidates if candidates else set(range(len(self._fingerprint_seen)))
+
+    def _extract_bucket(self, hash_val: int, bucket_idx: int) -> int:
+        """提取 64 位哈希的第 bucket_idx 个 16 位桶"""
+        shift = bucket_idx * self._BUCKET_BITS
+        mask = (1 << self._BUCKET_BITS) - 1
+        return (hash_val >> shift) & mask
+
+    @staticmethod
+    def _normalize_url(url: str) -> str:
+        """URL标准化：委托给共享的 normalize_url"""
+        from .utils import normalize_url
+        return normalize_url(url)
+
+    @staticmethod
+    def _title_similarity(title1: str, title2: str) -> float:
+        """
+        计算两个标题的相似度（Jaccard系数 60% + 编辑距离 40%）
+        返回 0-1 的浮点数
+
+        编辑距离辅助解决 "Spring Boot 3" vs "Spring Boot 3 的新特性"
+        这类空格/小差异导致的 Jaccard 低估问题。
+        """
+        if not title1 or not title2:
+            return 0.0
+
+        # 如果完全相同
+        if title1 == title2:
+            return 1.0
+
+        # 提取关键词集合（去除常见停用词）
+        stopwords = {'的', '了', '在', '是', '我', '有', '和', '就', '不', '人',
+                     '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去',
+                     '你', '会', '着', '没有', '看', '好', '自己', '这', '那',
+                     'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
+                     'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
+                     'would', 'could', 'should', 'may', 'might', 'must', 'shall',
+                     'can', 'need', 'dare', 'ought', 'used', 'to', 'of', 'in',
+                     'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into',
+                     'through', 'during', 'before', 'after', 'above', 'below',
+                     'between', 'under', 'again', 'further', 'then', 'once'}
+
+        words1 = set(w for w in re.findall(r'[一-鿿\w]+', title1) if w not in stopwords)
+        words2 = set(w for w in re.findall(r'[一-鿿\w]+', title2) if w not in stopwords)
+
+        if not words1 or not words2:
+            return 0.0
+
+        # Jaccard系数
+        intersection = len(words1 & words2)
+        union = len(words1 | words2)
+        jaccard = intersection / union if union > 0 else 0
+
+        # 编辑距离相似度（对空格/标点差异更敏感）
+        seq_ratio = difflib.SequenceMatcher(None, title1, title2).ratio()
+
+        # 综合：Jaccard 60% + 编辑距离 40%
+        return jaccard * 0.6 + seq_ratio * 0.4
+
+
+# 便捷函数：对搜索结果列表进行去重
+def dedup_results(
+    results: list,
+    content_preview_length: int | None = None,
+    skip_header_chars: int | None = None,
+    history_engine: Optional[DedupEngine] = None
+) -> list:
+    """
+    对爬取结果列表进行去重，支持跨任务历史去重。
+
+    Args:
+        results: CrawlResult字典列表或对象列表
+        content_preview_length: 用于相似度计算的内容预览长度（默认从 settings 读取）
+        skip_header_chars: 跳过正文头部导航区的字符数（默认从 settings 读取）
+        history_engine: 历史去重引擎（传入则可与历史记录去重，适合日报跨板块/跨日去重）
+
+    Returns:
+        去重后的结果列表
+    """
+    # 统一从 settings 读取默认值，确保所有调用点的指纹窗口一致
+    if skip_header_chars is None:
+        from config import settings
+        skip_header_chars = settings.filter_skip_header_chars
+    if content_preview_length is None:
+        from config import settings
+        content_preview_length = settings.filter_content_preview_length
+
+    # 本地去重引擎（用于跟踪本次结果，避免污染传入的 history_engine）
+    local_engine = DedupEngine()
+    unique_results = []
+
+    for result in results:
+        url = result.get('url', '') if isinstance(result, dict) else getattr(result, 'url', '')
+        title = result.get('title', '') if isinstance(result, dict) else getattr(result, 'title', '')
+        content = result.get('markdown', '') if isinstance(result, dict) else getattr(result, 'markdown', '')
+
+        # 跳过头部导航区，取中间段作为指纹（减少站点模板导致的误杀）
+        content_preview = ""
+        if content and len(content) > skip_header_chars:
+            content_preview = content[skip_header_chars:skip_header_chars + content_preview_length]
+        elif content:
+            content_preview = content[:content_preview_length]
+
+        # 先与历史引擎比对（跨任务去重），再与本次已有结果比对
+        is_dup = False
+        if history_engine:
+            is_dup = history_engine.is_duplicate(url, title, content_preview)["is_duplicate"]
+        if not is_dup:
+            is_dup = local_engine.is_duplicate(url, title, content_preview)["is_duplicate"]
+
+        if not is_dup:
+            unique_results.append(result)
+            local_engine.add(url, title, content_preview)
+
+    return unique_results
+
+
+def merge_results_into(
+    new_results: list,
+    seen_urls: set,
+    all_results: list,
+    content_dedup,
+    min_content_length: int = 100,
+) -> int:
+    """将新结果合并到全局列表（URL + SimHash 去重 + 指纹写入 metadata）
+
+    DigestOrchestrator._merge_results 和 OptimizationAgent._merge_optimized_results
+    的统一实现，消除重复的 3 层去重逻辑。
+
+    Returns:
+        新增结果数
+    """
+    from crawler.utils import normalize_url
+    from config import settings
+
+    skip = settings.filter_skip_header_chars
+    plen = settings.filter_content_preview_length
+    added = 0
+
+    for r in new_results:
+        url = r.url if hasattr(r, 'url') else (r.get('url', '') if isinstance(r, dict) else '')
+        success = r.success if hasattr(r, 'success') else (r.get('success', True) if isinstance(r, dict) else True)
+        if not url or not success:
+            continue
+        content = r.markdown if hasattr(r, 'markdown') else (r.get('markdown', '') if isinstance(r, dict) else '')
+        if len(content) < min_content_length:
+            continue
+        norm_url = normalize_url(url)
+        if norm_url in seen_urls:
+            continue
+        title = r.title if hasattr(r, 'title') else (r.get('title', '') if isinstance(r, dict) else '')
+        preview = content[skip:skip + plen] if len(content) > skip else content[:plen]
+        dup = content_dedup.is_duplicate(url, title, preview)
+        if dup["is_duplicate"]:
+            continue
+        seen_urls.add(norm_url)
+        all_results.append(r)
+        content_dedup.add(url, title, preview)
+        if len(preview) >= 100:
+            metadata = getattr(r, 'metadata', None) or {}
+            if hasattr(r, 'metadata'):
+                metadata["_simhash"] = ContentFingerprint(preview).simhash
+                r.metadata = metadata
+        added += 1
+    return added

@@ -213,12 +213,10 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import AppNavbar from '@/components/AppNavbar.vue'
 import { useAuthStore } from '@/stores/auth'
-import { useUIStore } from '@/stores/ui'
 import { getUserProfile, getUserStatistics, getUserPosts, getUserReplies, getUserResources, getMyAssignments } from '@/api/user'
 
 const router = useRouter()
 const auth = useAuthStore()
-const ui = useUIStore()
 
 const defaultAvatar = 'https://ui-avatars.com/api/?name=User&background=1976D2&color=fff&size=120'
 
@@ -358,14 +356,7 @@ function readAssignment(item) {
 }
 
 async function goToAlgo() {
-  if (auth.isVisitor) {
-    ui.showToast('游客模式不可访问算法平台，请先报名注册', 'warning')
-    return
-  }
-  if (auth.isGuest) {
-    ui.showToast('审核通过后方可进入算法平台', 'warning')
-    return
-  }
+  // 游客/待审核用户亦可进入算法平台浏览，提交与交互限制由 HOJ 自身处理
   if (auth.isLoggedIn) {
     await auth.syncToHoj()
   }

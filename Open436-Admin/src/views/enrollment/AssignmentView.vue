@@ -29,7 +29,7 @@
       <el-table :data="assignments" stripe v-loading="loading" @row-click="enterAssignment">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="title" label="作业标题" min-width="200" />
-        <el-table-column prop="deadline" label="截止时间" width="160" />
+        <el-table-column prop="deadline" label="截止时间" width="160" :formatter="formatDate" />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="statusTagType[row.status]" size="small">{{ statusLabels[row.status] }}</el-tag>
@@ -64,7 +64,7 @@
       <el-card class="assignment-info">
         <el-descriptions :column="3" border size="small">
           <el-descriptions-item label="作业标题">{{ selectedAssignment.title }}</el-descriptions-item>
-          <el-descriptions-item label="截止时间">{{ selectedAssignment.deadline }}</el-descriptions-item>
+          <el-descriptions-item label="截止时间">{{ formatDate(null, null, selectedAssignment.deadline) }}</el-descriptions-item>
           <el-descriptions-item label="状态">
             <el-tag :type="statusTagType[selectedAssignment.status]" size="small">{{ statusLabels[selectedAssignment.status] }}</el-tag>
           </el-descriptions-item>
@@ -106,7 +106,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="assignedAt" label="分配时间" width="160" />
+        <el-table-column prop="assignedAt" label="分配时间" width="160" :formatter="formatDate" />
         <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <el-button v-if="row.assigned" type="danger" link size="small" @click="removeMember(row)">移除</el-button>
@@ -207,6 +207,17 @@ const filteredStudents = computed(() => {
 
 const statusLabels = { active: '进行中', ended: '已截止', pending: '待分发' }
 const statusTagType = { active: 'warning', ended: 'success', pending: 'info' }
+
+function formatDate(row, column, cellValue) {
+  const val = cellValue !== undefined ? cellValue : row
+  if (!val) return '-'
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return val
+  const yy = String(d.getFullYear()).slice(-2)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yy}-${mm}-${dd}`
+}
 
 async function loadStats() {
   try {

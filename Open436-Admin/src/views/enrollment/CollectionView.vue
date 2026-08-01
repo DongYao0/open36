@@ -24,7 +24,7 @@
       <el-table :data="assignments" stripe v-loading="loading" @row-click="enterAssignment">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="title" label="作业标题" min-width="200" />
-        <el-table-column prop="deadline" label="截止时间" width="160" />
+        <el-table-column prop="deadline" label="截止时间" width="160" :formatter="formatDate" />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="statusTagType[row.status]" size="small">{{ statusLabels[row.status] }}</el-tag>
@@ -64,7 +64,7 @@
       <el-card class="assignment-info">
         <el-descriptions :column="3" border size="small">
           <el-descriptions-item label="作业标题">{{ selectedAssignment.title }}</el-descriptions-item>
-          <el-descriptions-item label="截止时间">{{ selectedAssignment.deadline }}</el-descriptions-item>
+          <el-descriptions-item label="截止时间">{{ formatDate(null, null, selectedAssignment.deadline) }}</el-descriptions-item>
           <el-descriptions-item label="提交情况">
             {{ selectedAssignment.submittedCount }} / {{ selectedAssignment.totalCount }}
           </el-descriptions-item>
@@ -94,7 +94,7 @@
             <el-tag :type="submitStatusType[row.status]" size="small">{{ submitStatusLabel[row.status] }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="submittedAt" label="提交时间" width="160" />
+        <el-table-column prop="submittedAt" label="提交时间" width="160" :formatter="formatDate" />
         <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click.stop="enterStudent(row)">
@@ -140,7 +140,7 @@
                   {{ submitStatusLabel[selectedStudent.status] }}
                 </el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="提交时间">{{ selectedStudent.submittedAt || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="提交时间">{{ formatDate(null, null, selectedStudent.submittedAt) }}</el-descriptions-item>
             </el-descriptions>
           </el-card>
         </el-col>
@@ -219,6 +219,17 @@ const statusTagType = { active: 'warning', ended: 'success', pending: 'info' }
 
 const submitStatusLabel = { submitted: '已提交', unsubmitted: '未提交' }
 const submitStatusType = { submitted: 'warning', unsubmitted: 'info' }
+
+function formatDate(row, column, cellValue) {
+  const val = cellValue !== undefined ? cellValue : row
+  if (!val) return '-'
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return val
+  const yy = String(d.getFullYear()).slice(-2)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yy}-${mm}-${dd}`
+}
 
 async function loadStats() {
   try {

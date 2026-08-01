@@ -20,7 +20,11 @@
 
     <!-- 筛选与操作 -->
     <div class="toolbar">
-      <el-input v-model="keyword" placeholder="搜索姓名/学号/专业" clearable style="width:240px" prefix-icon="Search" @input="loadList" />
+      <el-input v-model="keyword" placeholder="搜索姓名/学号/专业" clearable style="width:240px" @input="loadList">
+        <template #prefix>
+          <el-icon><Search /></el-icon>
+        </template>
+      </el-input>
       <el-radio-group v-model="statusFilter" @change="loadList">
         <el-radio-button value="">全部</el-radio-button>
         <el-radio-button value="pending">待审核</el-radio-button>
@@ -39,12 +43,12 @@
     <el-table :data="applications" stripe v-loading="loading" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="50" />
       <el-table-column prop="id" label="ID" width="60" />
-      <el-table-column prop="realName" label="姓名" width="90" />
+      <el-table-column prop="realName" label="姓名" width="100" />
       <el-table-column prop="username" label="用户名" width="120" />
       <el-table-column prop="studentId" label="学号" width="130" />
-      <el-table-column prop="major" label="专业" width="150" />
+      <el-table-column prop="major" label="专业" width="180" />
       <el-table-column prop="phone" label="联系方式" width="130" />
-      <el-table-column prop="submittedAt" label="提交时间" width="160" />
+      <el-table-column prop="submittedAt" label="提交时间" width="170" :formatter="formatDate" />
       <el-table-column label="状态" width="90">
         <template #default="{ row }">
           <el-tag :type="statusTagType[row.status]" size="small">{{ statusLabels[row.status] }}</el-tag>
@@ -66,7 +70,7 @@
     </div>
 
     <!-- 详情弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="`申请详情 - ${currentItem?.realName || ''}`" width="500px" :close-on-click-modal="false" center>
+    <el-dialog v-model="dialogVisible" :title="`申请详情 - ${currentItem?.realName || ''}`" width="480px" :close-on-click-modal="false" center>
       <el-descriptions v-if="currentItem" :column="1" border>
         <el-descriptions-item label="姓名">{{ currentItem.realName }}</el-descriptions-item>
         <el-descriptions-item label="用户名">{{ currentItem.username }}</el-descriptions-item>
@@ -78,16 +82,8 @@
           <el-tag :type="statusTagType[currentItem.status]" size="small">{{ statusLabels[currentItem.status] }}</el-tag>
         </el-descriptions-item>
       </el-descriptions>
-      <div v-if="currentItem?.reviewReason" style="margin-top:16px">
-        <h4 style="margin-bottom:8px">审核意见</h4>
-        <p style="color:#f56c6c">{{ currentItem.reviewReason }}</p>
-      </div>
       <template #footer>
-        <div style="display:flex;gap:12px;justify-content:flex-end">
-          <el-button v-if="currentItem?.status === 'pending'" type="success" @click="handleReview(currentItem, 'approved'); dialogVisible = false">通过</el-button>
-          <el-button v-if="currentItem?.status === 'pending'" type="danger" @click="showRejectReason = true">拒绝</el-button>
-          <el-button @click="dialogVisible = false">关闭</el-button>
-        </div>
+        <el-button @click="dialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
 
@@ -105,6 +101,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import StatCard from '@/components/StatCard.vue'
 import { getApplicationList, reviewApplication, batchReview, getEnrollmentStatistics } from '@/api/enrollment'
 
@@ -123,6 +120,20 @@ const rejectReason = ref('')
 
 const statusLabels = { pending: '待审核', approved: '已通过', rejected: '已拒绝' }
 const statusTagType = { pending: 'warning', approved: 'success', rejected: 'danger' }
+
+function formatDate(row, column, cellValue) {
+  const val = cellValue !== undefined ? cellValue : row
+  if (!val) return '-'
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return val
+  const y = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  const ss = String(d.getSeconds()).padStart(2, '0')
+  return `${y}-${mm}-${dd} ${hh}:${mi}:${ss}`
+}
 
 async function loadStats() {
   try {
@@ -194,3 +205,27 @@ onMounted(() => {
   loadList()
 })
 </script>
+
+<style scoped>
+.enrollment-view {
+  padding: 20px;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+</style>

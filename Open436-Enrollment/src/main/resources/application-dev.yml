@@ -29,6 +29,8 @@ spring:
           min-idle: 0
 
 logging:
+  file:
+    path: logs
   level:
     com.open436.enrollment: DEBUG
     org.springframework.web: DEBUG

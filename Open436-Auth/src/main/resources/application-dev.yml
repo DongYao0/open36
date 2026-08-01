@@ -33,6 +33,8 @@ hoj:
     api-key: open436-secret-key
 
 logging:
+  file:
+    path: logs
   level:
     com.open436.auth: DEBUG
     cn.dev33.satoken: DEBUG

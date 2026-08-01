@@ -132,7 +132,7 @@ const experiences = [
     title: "竞赛升学优势",
     company_name: "Advantages in Competition & Further Study",
     icon: competition,
-    iconBg: "#383E56",
+    iconBg: "#ffffff",
     points: [
       "学业升学成果突出，实验室往届学长学姐连续两年拿下计算机学院专业第一名，多名成员成功上岸985、211 重点院校，为学弟学妹提供成熟升学指导路径。",
       "国家级赛事奖项丰厚，团队先后斩获挑战杯一等奖、中国大学生计算机设计大赛国三、蓝桥杯省赛一二三等奖及全国总决赛奖项，覆盖 Java、C/C++ 多赛道，赛事成果可直接用于综测加分、奖学金评定、考研复试与校招简历背书。",
@@ -142,7 +142,7 @@ const experiences = [
     title: "培训实战优势",
     company_name: "Advantages of Training & Practical Development",
     icon: training,
-    iconBg: "#E6DEDD",
+    iconBg: "#ffffff",
     points: [
       "拥有前后端完整分层教学体系，学长学姐一对一全程带教，零基础可循序渐进上手主流开发技术。",
       "坐拥多款全栈、AI 落地自研项目，可查看完整源码，积累能够直接写入简历的开发实战经历。",
@@ -152,7 +152,7 @@ const experiences = [
     title: "硬件环境优势",
     company_name: "Advantages of Hardware & Study Environment",
     icon: hardware,
-    iconBg: "#383E56",
+    iconBg: "#ffffff",
     points: [
       "配备独立服务器、双屏工位、人体工学椅，搭配打印机、冰箱、中央空调，学习生活配套齐全。",
       "实验室全天开放，空间宽敞整洁，随时可进入开展编程学习与项目研发。",
@@ -162,7 +162,7 @@ const experiences = [
     title: "团队氛围优势",
     company_name: "Advantages of Team Atmosphere",
     icon: team,
-    iconBg: "#E6DEDD",
+    iconBg: "#ffffff",
     points: [
       "定期组织聚餐、桌游、剧本杀等团建活动，平衡学习与休闲，舒缓日常学习压力。",
       "团队互助氛围浓厚，学长无偿分享竞赛、考研、求职经验，大家互帮互助共同进步。",

@@ -17,20 +17,15 @@
         </div>
       </template>
 
-      <el-descriptions :column="4" border>
+      <el-descriptions :column="2" border>
         <el-descriptions-item label="姓名">{{ detail.realName }}</el-descriptions-item>
         <el-descriptions-item label="用户名">{{ detail.username }}</el-descriptions-item>
         <el-descriptions-item label="学号">{{ detail.studentId }}</el-descriptions-item>
         <el-descriptions-item label="专业">{{ detail.major }}</el-descriptions-item>
-        <el-descriptions-item label="自我介绍" :span="4">{{ detail.selfIntro || '暂无' }}</el-descriptions-item>
-        <el-descriptions-item label="技能标签" :span="4">
-          <el-tag v-for="skill in detail.skills?.split(',')" :key="skill" style="margin:2px 4px" v-if="detail.skills">{{ skill.trim() }}</el-tag>
-          <span v-else style="color:#c0c4cc">暂无</span>
-        </el-descriptions-item>
       </el-descriptions>
     </el-card>
 
-    <el-card shadow="never" class="main-card" style="margin-top:20px">
+    <el-card shadow="never" class="main-card">
       <template #header>
         <span class="card-title">面试记录</span>
       </template>
@@ -130,7 +125,7 @@ onMounted(loadDetail)
 
 <style scoped>
 .interview-edit-view {
-  padding: 20px;
+  padding: 24px;
   max-width: 1000px;
   margin: 0 auto;
 }
@@ -138,15 +133,20 @@ onMounted(loadDetail)
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 .page-header h2 {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
 }
+/* 统一卡片间距：相邻卡片之间保持 20px 间距 */
 .main-card {
   border-radius: 8px;
+  margin-bottom: 20px;
+}
+.main-card:last-of-type {
+  margin-bottom: 0;
 }
 .card-header {
   display: flex;
@@ -157,14 +157,22 @@ onMounted(loadDetail)
   font-size: 16px;
   font-weight: 600;
 }
+/* el-descriptions 内容统一字号与内边距，让候选人信息更整齐 */
+:deep(.el-descriptions__label) {
+  width: 90px;
+  font-weight: 500;
+}
+:deep(.el-descriptions__content) {
+  padding: 12px 16px;
+}
 .edit-form {
-  margin-top: 20px;
+  margin-top: 12px;
 }
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 30px;
+  margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid #ebeef5;
 }

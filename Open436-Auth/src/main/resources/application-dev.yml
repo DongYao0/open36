@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:55432/open436
+    url: jdbc:postgresql://localhost:55400/open436
     username: open436
     password: ${DB_PASSWORD:open436}
     driver-class-name: org.postgresql.Driver
@@ -23,7 +23,7 @@ spring:
   data:
     redis:
       host: localhost
-      port: 6379
+      port: 6380
       password:
       timeout: 3000ms
 
@@ -33,6 +33,8 @@ hoj:
     api-key: open436-secret-key
 
 logging:
+  file:
+    path: logs
   level:
     com.open436.auth: DEBUG
     cn.dev33.satoken: DEBUG

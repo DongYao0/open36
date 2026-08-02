@@ -77,13 +77,22 @@
         </div>
         <div class="form-header"><h1>{{ isEnroll ? '报名加入 Open436' : '欢迎回来！' }}</h1><p>{{ isEnroll ? '填写信息申请成为 0436 正式成员' : '请输入你的账号信息' }}</p></div>
         <form @submit.prevent="onSubmit" class="auth-form">
-          <div class="form-group"><label>{{ isEnroll ? '真实姓名' : '用户名' }}</label><input ref="uRef" v-model="f.u" type="text" :placeholder="isEnroll ? '2-20 位字符，将作为登录账号' : '3-20 位'" maxlength="20" autocomplete="username" required @focus="onTextFocus" @blur="onBlur"/></div>
+          <div class="form-group"><label>用户名</label><input ref="uRef" v-model="f.u" type="text" placeholder="3-20 位" autocomplete="username" required @focus="onTextFocus" @blur="onBlur"/></div>
           <div class="form-group"><label>密码</label><div class="password-wrap"><input ref="pRef" v-model="f.p" :type="showP ? 'text' : 'password'" placeholder="至少 6 位" autocomplete="current-password" required @focus="onPasswordFocus" @blur="onBlur"/><button type="button" class="eye-btn" @click="showP = !showP"><svg v-if="showP" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="1" y1="1" x2="23" y2="23"/></svg><svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
 
           <template v-if="isEnroll">
-            <div class="form-group"><label>确认密码</label><div class="password-wrap"><input v-model="f.cp" :type="showP ? 'text' : 'password'" placeholder="再次输入密码" required @focus="onPasswordFocus" @blur="onBlur"/></div></div>
-            <div class="form-group"><label>学号</label><input v-model="f.sid" type="text" placeholder="请输入学号" maxlength="30" required @focus="onTextFocus" @blur="onBlur"/></div>
-            <div class="form-group"><label>电话号码</label><input v-model="f.ph" type="tel" placeholder="请输入 11 位手机号" maxlength="11" pattern="[0-9]*" inputmode="numeric" required @focus="onTextFocus" @blur="onBlur"/></div>
+            <div class="form-row">
+              <div class="form-group"><label>确认密码</label><div class="password-wrap"><input v-model="f.cp" :type="showP ? 'text' : 'password'" placeholder="再次输入密码" required @focus="onPasswordFocus" @blur="onBlur"/></div></div>
+              <div class="form-group"><label>昵称</label><input v-model="f.n" type="text" placeholder="显示名称（可选）" @focus="onTextFocus" @blur="onBlur"/></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>学号</label><input v-model="f.sid" type="text" placeholder="请输入学号" maxlength="30" required @focus="onTextFocus" @blur="onBlur"/></div>
+              <div class="form-group"><label>真实姓名</label><input v-model="f.rn" type="text" placeholder="请输入真实姓名" maxlength="50" required @focus="onTextFocus" @blur="onBlur"/></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>电话号码</label><input v-model="f.ph" type="tel" placeholder="请输入电话号码" maxlength="20" required @focus="onTextFocus" @blur="onBlur"/></div>
+              <div class="form-group"><label>专业</label><input v-model="f.mj" type="text" placeholder="请输入专业名称" maxlength="50" required @focus="onTextFocus" @blur="onBlur"/></div>
+            </div>
           </template>
 
           <div v-if="!isEnroll" class="form-options"><label class="remember"><input type="checkbox" v-model="f.r"/><span>记住我</span></label><a href="#" class="forgot">忘记密码？</a></div>
@@ -110,9 +119,9 @@ import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 
 const R = useRoute(), router = useRouter(), auth = useAuthStore(), ui = useUIStore()
-const isEnroll = ref(R.query.mode === 'register')
+const isEnroll = ref(false)
 const ld = ref(false), err = ref(''), showP = ref(false)
-const f = reactive({ u: '', p: '', cp: '', sid: '', ph: '', r: false })
+const f = reactive({ u: '', p: '', cp: '', n: '', sid: '', rn: '', ph: '', mj: '', r: false })
 
 const focusedType = ref(null)
 const mx = ref(0), my = ref(0)
@@ -217,7 +226,7 @@ function setMode(enroll) {
   isEnroll.value = enroll
   err.value = ''
   if (!enroll) {
-    Object.assign(f, { cp: '', sid: '', ph: '' })
+    Object.assign(f, { cp: '', n: '', sid: '', rn: '', ph: '', mj: '' })
   }
 }
 
@@ -227,11 +236,13 @@ async function onSubmit() {
   const password = pRef.value?.value || f.p
 
   if (isEnroll.value) {
-    if (f.u.trim().length < 2 || f.u.trim().length > 20) { err.value = '真实姓名长度必须为 2-20 位'; return }
+    if (f.u.length < 3 || f.u.length > 20) { err.value = '用户名长度必须为 3-20 位'; return }
     if (f.p.length < 6) { err.value = '密码至少 6 位'; return }
     if (f.p !== f.cp) { err.value = '两次密码输入不一致'; return }
     if (!f.sid.trim()) { err.value = '请填写学号'; return }
-    if (!/^1\d{10}$/.test(f.ph.trim())) { err.value = '请输入正确的 11 位手机号'; return }
+    if (!f.rn.trim()) { err.value = '请填写真实姓名'; return }
+    if (!f.ph.trim()) { err.value = '请填写电话号码'; return }
+    if (!f.mj.trim()) { err.value = '请填写专业'; return }
   }
 
   ld.value = true
@@ -240,10 +251,11 @@ async function onSubmit() {
       const res = await auth.register({
         username: f.u.trim(),
         password: f.p,
-        realName: f.u.trim(),
+        nickname: f.n.trim(),
         studentId: f.sid.trim(),
+        realName: f.rn.trim(),
         phone: f.ph.trim(),
-        major: ''
+        major: f.mj.trim()
       })
       if (res.success) {
         ui.showToast(res.message || '报名成功', 'success')

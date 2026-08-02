@@ -28,7 +28,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: open436-redis
-    ports: ["${REDIS_PORT:-6380}:6379"]
+    ports: ["${REDIS_PORT:-6379}:6379"]
     networks: [open436-net]
 
   consul:
@@ -123,10 +123,7 @@ services:
 
   # ──────────── 文件服务 ────────────
   file-service:
-    build:
-      context: ./Open436-FileService
-      extra_hosts:
-        - "host.docker.internal:host-gateway"
+    build: ./Open436-FileService
     container_name: open436-file
     restart: unless-stopped
     ports: ["${FILE_PORT:-8007}:8007"]

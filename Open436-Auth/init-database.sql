@@ -19,13 +19,13 @@ CREATE TABLE IF NOT EXISTS users_auth (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
-    CONSTRAINT chk_username_length CHECK (LENGTH(username) >= 2),
+    CONSTRAINT chk_username_length CHECK (LENGTH(username) >= 3),
     CONSTRAINT chk_status CHECK (status IN ('active', 'disabled'))
 );
 
 COMMENT ON TABLE users_auth IS '用户认证表';
 COMMENT ON COLUMN users_auth.id IS '用户ID（主键）';
-COMMENT ON COLUMN users_auth.username IS '用户名（唯一，2-20字符）';
+COMMENT ON COLUMN users_auth.username IS '用户名（唯一，3-20字符）';
 COMMENT ON COLUMN users_auth.password_hash IS '密码哈希（BCrypt加密）';
 COMMENT ON COLUMN users_auth.status IS '账号状态：active-正常, disabled-禁用';
 COMMENT ON COLUMN users_auth.last_login_at IS '最后登录时间';

@@ -39,22 +39,19 @@ const About = () => {
   return (
     <>
       <motion.div variants={textVariant()}>
-        <p className={styles.sectionSubText}>实验室介绍</p>
-        <h2 className={styles.sectionHeadText}>关于0436.</h2>
+        <p className={styles.sectionSubText}>平台简介</p>
+        <h2 className={styles.sectionHeadText}>关于 Open436.</h2>
       </motion.div>
 
       <motion.p
         variants={fadeIn("", "", 0.1, 1)}
         className='mt-4 text-secondary text-[17px] max-w-3xl leading-[30px]'
       >
-        0436 系统设计实验室专注前后端开发、智能计算与 AI 创新，为计算机专业学生
-        提供系统化分层编程培训，拥有完善的前端、后端完整学习路线；实验室成员学业
-        成绩优异，在挑战杯、计算机设计大赛、蓝桥杯等国家级赛事斩获多项一二三等奖；
-        团队自主研发 Queue 学习平台、LeSoun AI 音乐创作等实战项目，还有多学科合作
-        研发任务；实验室硬件配置顶配，配有独立服务器、双屏工位、打印机、冰箱与双
-        中央空调，环境舒适；日常会组织聚餐、剧本杀等团建活动，学习氛围轻松互助，
-        零基础同学也能得到学长学姐全程带教，欢迎热爱编程、竞赛、开发的同学加入
-        QQ 群了解纳新详情。
+        Open436 是一个为技术而生的开放协作平台，集在线判题、编程赛事、技术社区与
+        课程作业于一体。我们以 Java / Spring Boot 构建稳健后端，以 Vue 与 React
+        打造现代化前端，借助 Docker、Kong 与 Milvus 编排微服务与 AI 能力。无论
+        你是刚入门的新手，还是经验丰富的开发者，都能在这里刷题、竞技、交流、
+        共同成长。
       </motion.p>
 
       <div className='mt-20 flex flex-wrap gap-10'>

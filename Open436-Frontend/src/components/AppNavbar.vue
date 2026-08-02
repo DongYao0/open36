@@ -101,7 +101,14 @@ function isTabActive(tab) {
 }
 
 async function goToAlgo() {
-  // 游客/待审核用户亦可进入算法平台浏览，提交与交互限制由 HOJ 自身处理
+  if (auth.isVisitor) {
+    ui.showToast('游客模式不可访问算法平台，请先报名注册', 'warning')
+    return
+  }
+  if (auth.isGuest) {
+    ui.showToast('您的报名正在审核中，审核通过后方可进入算法平台', 'warning')
+    return
+  }
   if (auth.isLoggedIn) {
     await auth.syncToHoj()
   }

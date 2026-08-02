@@ -82,4 +82,6 @@ screenshot_*.png
 
 # Misc
 devnull
+*.bak
 提示词.md
+.tools/

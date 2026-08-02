@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:55432/open436
+    url: jdbc:postgresql://localhost:55400/open436
     username: open436
     password: ${DB_PASSWORD:open436}
     driver-class-name: org.postgresql.Driver
@@ -18,7 +18,7 @@ spring:
   data:
     redis:
       host: ${REDIS_HOST:localhost}
-      port: 6379
+      port: ${REDIS_PORT:6380}
       password: ${REDIS_PASSWORD:}
       database: 0
       timeout: 10s
@@ -29,6 +29,8 @@ spring:
           min-idle: 0
 
 logging:
+  file:
+    path: logs
   level:
     com.open436.enrollment: DEBUG
     org.springframework.web: DEBUG

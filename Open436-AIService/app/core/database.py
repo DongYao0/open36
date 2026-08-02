@@ -6,8 +6,8 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
 
-# 将 postgresql:// 替换为 postgresql+psycopg://
-db_url = settings.DATABASE_URL.replace('postgresql://', 'postgresql+psycopg://')
+# 将 postgresql:// 替换为 postgresql+asyncpg://
+db_url = settings.DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://')
 
 engine = create_async_engine(
     db_url,

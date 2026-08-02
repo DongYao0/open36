@@ -23,12 +23,10 @@
           <div class="form-section">
             <div class="section-label">账号信息</div>
             <div class="form-row">
-              <div class="form-group full">
-                <label>真实姓名 <span class="required">*</span></label>
-                <input v-model="form.username" type="text" placeholder="2-20 位字符，将作为登录账号" maxlength="20" required />
+              <div class="form-group">
+                <label>用户名 <span class="required">*</span></label>
+                <input v-model="form.username" type="text" placeholder="3-20 位字符" maxlength="20" required />
               </div>
-            </div>
-            <div class="form-row">
               <div class="form-group">
                 <label>密码 <span class="required">*</span></label>
                 <div class="password-wrap">
@@ -43,9 +41,15 @@
                   </button>
                 </div>
               </div>
+            </div>
+            <div class="form-row">
               <div class="form-group">
                 <label>确认密码 <span class="required">*</span></label>
                 <input v-model="form.confirmPassword" :type="showPwd ? 'text' : 'password'" placeholder="再次输入密码" required />
+              </div>
+              <div class="form-group">
+                <label>昵称</label>
+                <input v-model="form.nickname" type="text" placeholder="显示名称（可选）" />
               </div>
             </div>
           </div>
@@ -60,8 +64,18 @@
                 <input v-model="form.studentId" type="text" placeholder="请输入学号" maxlength="30" required />
               </div>
               <div class="form-group">
+                <label>真实姓名 <span class="required">*</span></label>
+                <input v-model="form.realName" type="text" placeholder="请输入真实姓名" maxlength="50" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
                 <label>电话号码 <span class="required">*</span></label>
-                <input v-model="form.phone" type="tel" placeholder="请输入 11 位手机号" maxlength="11" pattern="[0-9]*" inputmode="numeric" required />
+                <input v-model="form.phone" type="tel" placeholder="请输入电话号码" maxlength="20" required />
+              </div>
+              <div class="form-group">
+                <label>专业 <span class="required">*</span></label>
+                <input v-model="form.major" type="text" placeholder="请输入专业名称" maxlength="50" required />
               </div>
             </div>
           </div>
@@ -102,16 +116,18 @@ const form = reactive({
   username: '',
   password: '',
   confirmPassword: '',
+  nickname: '',
   studentId: '',
-  phone: ''
+  realName: '',
+  phone: '',
+  major: ''
 })
 
 async function onSubmit() {
   error.value = ''
 
-  const username = form.username.trim()
-  if (username.length < 2 || username.length > 20) {
-    error.value = '真实姓名长度必须为 2-20 位'
+  if (form.username.length < 3 || form.username.length > 20) {
+    error.value = '用户名长度必须为 3-20 位'
     return
   }
   if (form.password.length < 6) {
@@ -126,20 +142,28 @@ async function onSubmit() {
     error.value = '请填写学号'
     return
   }
-  if (!/^1\d{10}$/.test(form.phone.trim())) {
-    error.value = '请输入正确的 11 位手机号'
+  if (!form.realName.trim()) {
+    error.value = '请填写真实姓名'
+    return
+  }
+  if (!form.phone.trim()) {
+    error.value = '请填写电话号码'
+    return
+  }
+  if (!form.major.trim()) {
+    error.value = '请填写专业'
     return
   }
 
   loading.value = true
   try {
     const res = await request.post('/api/enrollment/apply', {
-      username: username,
+      username: form.username.trim(),
       password: form.password,
-      realName: username,
+      realName: form.realName.trim(),
       studentId: form.studentId.trim(),
       phone: form.phone.trim(),
-      major: '',
+      major: form.major.trim(),
       selfIntro: '',
       skills: ''
     })
@@ -278,9 +302,6 @@ async function onSubmit() {
   flex-direction: column;
   gap: var(--s-xs);
   min-width: 0;
-}
-.form-group.full {
-  grid-column: 1 / -1;
 }
 .form-group label {
   font-size: 13px;

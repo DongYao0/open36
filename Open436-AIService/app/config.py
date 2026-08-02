@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # 数据库
-    DATABASE_URL: str = 'postgresql://open436:open436@localhost:55432/ai_db'
+    DATABASE_URL: str = 'postgresql://open436:open436@localhost:55400/ai_db'
 
     # Redis（DB 2，避免与Sa-Token默认DB 0冲突）
     REDIS_URL: str = 'redis://localhost:6379/2'

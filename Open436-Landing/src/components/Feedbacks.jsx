@@ -51,12 +51,12 @@ const Feedbacks = () => {
       >
         <motion.div variants={textVariant()}>
           <p className={styles.sectionSubText}>社区声音</p>
-          <h2 className={styles.sectionHeadText}>成员评价.</h2>
+          <h2 className={styles.sectionHeadText}>学长学姐寄语.</h2>
         </motion.div>
       </div>
       <div className={`-mt-20 pb-14 ${styles.paddingX} flex flex-wrap gap-7`}>
         {testimonials.map((testimonial, index) => (
-          <FeedbackCard key={testimonial.name} index={index} {...testimonial} />
+          <FeedbackCard key={index} index={index} {...testimonial} />
         ))}
       </div>
     </div>

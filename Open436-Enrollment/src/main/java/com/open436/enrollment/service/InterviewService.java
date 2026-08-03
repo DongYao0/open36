@@ -385,6 +385,7 @@ public class InterviewService {
                 .strengths(latest != null ? latest.getStrengths() : null)
                 .weaknesses(latest != null ? latest.getWeaknesses() : null)
                 .direction(latest != null ? latest.getDirection() : null)
+                .submittedAt(app.getSubmittedAt())
                 .createdAt(latest != null ? latest.getCreatedAt() : null)
                 .updatedAt(latest != null ? latest.getUpdatedAt() : null)
                 .rounds(roundItems)

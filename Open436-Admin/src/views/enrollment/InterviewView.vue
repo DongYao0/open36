@@ -36,6 +36,7 @@
       <el-table-column prop="username" label="用户名" width="130" />
       <el-table-column prop="studentId" label="学号" width="140" />
       <el-table-column prop="major" label="专业" width="150" />
+      <el-table-column prop="submittedAt" label="提交时间" width="170" :formatter="formatDate" />
       <el-table-column label="面试记录" min-width="200" show-overflow-tooltip>
         <template #default="{ row }">
           <span v-if="row.summary">{{ row.summary }}</span>
@@ -161,6 +162,20 @@ function scoreTagType(score) {
   if (score >= 8) return 'success'
   if (score >= 5) return 'warning'
   return 'danger'
+}
+
+function formatDate(row, column, cellValue) {
+  const val = cellValue !== undefined ? cellValue : row
+  if (!val) return '-'
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return val
+  const y = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  const ss = String(d.getSeconds()).padStart(2, '0')
+  return `${y}-${mm}-${dd} ${hh}:${mi}:${ss}`
 }
 
 async function loadStats() {

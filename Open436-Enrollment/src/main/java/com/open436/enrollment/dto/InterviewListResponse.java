@@ -29,6 +29,8 @@ public class InterviewListResponse {
     private String strengths;
     private String weaknesses;
     private String direction;
+    /** 报名提交时间 */
+    private LocalDateTime submittedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

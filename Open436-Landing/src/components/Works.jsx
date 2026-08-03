@@ -71,8 +71,8 @@ const Works = () => {
   return (
     <>
       <motion.div variants={textVariant()}>
-        <p className={`${styles.sectionSubText} `}>核心模块</p>
-        <h2 className={`${styles.sectionHeadText}`}>功能展示.</h2>
+        <p className={`${styles.sectionSubText} `}>实验室荣誉</p>
+        <h2 className={`${styles.sectionHeadText}`}>竞赛奖项.</h2>
       </motion.div>
 
       <div className='w-full flex'>
@@ -80,9 +80,11 @@ const Works = () => {
           variants={fadeIn("", "", 0.1, 1)}
           className='mt-3 text-secondary text-[17px] max-w-3xl leading-[30px]'
         >
-          Open436 围绕技术学习与竞赛打造了多个核心模块。以下功能从判题、竞技到
-          社区交流，覆盖了成员成长的关键场景，每个模块都经过实际打磨，持续迭代
-          以更好地服务社区。
+          实验室鼓励成员积极参与各类学科竞赛，依托完善的技术指导体系，组织团队
+          参与挑战杯、蓝桥杯、中国大学生计算机设计大赛等高水平学科赛事。历年参赛
+          队伍多次斩获国家级、省级竞赛奖项，竞赛成果可用于综测加分、奖学金评定、
+          考研复试与求职简历背书。众多成员以竞赛为契机夯实专业能力，拓展项目经验，
+          实现综合能力持续提升。
         </motion.p>
       </div>
 

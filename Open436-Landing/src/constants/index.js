@@ -25,6 +25,13 @@ import {
   threejs,
 } from "../assets";
 
+import lanqiao from "../assets/lanqiao.png";
+
+import competition from "../assets/advantages/competition.png";
+import training from "../assets/advantages/training.png";
+import hardware from "../assets/advantages/hardware.png";
+import team from "../assets/advantages/team.png";
+
 export const navLinks = [
   {
     id: "forum",
@@ -124,55 +131,43 @@ const technologies = [
 
 const experiences = [
   {
-    title: "在线判题系统",
-    company_name: "Online Judge",
-    icon: starbucks,
-    iconBg: "#383E56",
-    date: "HOJ 集成 · 多语言编译",
+    title: "竞赛升学优势",
+    company_name: "Advantages in Competition & Further Study",
+    icon: competition,
+    iconBg: "#ffffff",
     points: [
-      "集成 HOJ 在线判题内核，支持 C/C++/Java/Python 等多语言代码提交与自动评测。",
-      "毫秒级沙箱隔离执行，保障判题安全与公平，实时反馈运行结果与通过状态。",
-      "海量题库管理与测试数据导入，支持题目分类、难度标记与标签检索。",
-      "为编程训练与竞赛提供稳定可靠的判题基础设施。",
+      "学业升学成果突出，实验室往届学长学姐连续两年拿下计算机学院专业第一名，多名成员成功上岸985、211 重点院校，为学弟学妹提供成熟升学指导路径。",
+      "国家级赛事奖项丰厚，团队先后斩获挑战杯一等奖、中国大学生计算机设计大赛国三、蓝桥杯省赛一二三等奖及全国总决赛奖项，覆盖 Java、C/C++ 多赛道，赛事成果可直接用于综测加分、奖学金评定、考研复试与校招简历背书。",
     ],
   },
   {
-    title: "编程赛事平台",
-    company_name: "Contest",
-    icon: tesla,
-    iconBg: "#E6DEDD",
-    date: "赛事日历 · 报名排名",
+    title: "培训实战优势",
+    company_name: "Advantages of Training & Practical Development",
+    icon: training,
+    iconBg: "#ffffff",
     points: [
-      "赛事日历集中展示 upcoming 与进行中的编程竞赛，一键查看赛事详情。",
-      "在线报名与参赛管理，赛后实时排名与解题情况统计。",
-      "赛事详情页集成评论区，方便参赛者交流讨论与赛后复盘。",
-      "为成员提供从训练到竞技的完整赛事体验闭环。",
+      "拥有前后端完整分层教学体系，学长学姐一对一全程带教，零基础可循序渐进上手主流开发技术。",
+      "坐拥多款全栈、AI 落地自研项目，可查看完整源码，积累能够直接写入简历的开发实战经历。",
     ],
   },
   {
-    title: "技术交流社区",
-    company_name: "Forum",
-    icon: shopify,
-    iconBg: "#383E56",
-    date: "板块 · 帖子 · 互动",
+    title: "硬件环境优势",
+    company_name: "Advantages of Hardware & Study Environment",
+    icon: hardware,
+    iconBg: "#ffffff",
     points: [
-      "多板块技术论坛，支持发帖、评论、点赞、收藏与转发等完整互动。",
-      "富文本内容编辑与资源分享，构建沉淀式技术知识库。",
-      "全站搜索与个人收藏夹，帮助成员高效定位优质内容。",
-      "营造开放、协作、共同成长的技术交流氛围。",
+      "配备独立服务器、双屏工位、人体工学椅，搭配打印机、冰箱、中央空调，学习生活配套齐全。",
+      "实验室全天开放，空间宽敞整洁，随时可进入开展编程学习与项目研发。",
     ],
   },
   {
-    title: "AI 智能助手",
-    company_name: "AI Service",
-    icon: meta,
-    iconBg: "#E6DEDD",
-    date: "RAG · 向量检索",
+    title: "团队氛围优势",
+    company_name: "Advantages of Team Atmosphere",
+    icon: team,
+    iconBg: "#ffffff",
     points: [
-      "基于 RAG 与向量数据库（Milvus）的智能问答，结合论坛知识库精准响应。",
-      "AI 辅助内容生成与摘要，降低创作门槛、提升社区活跃度。",
-      "学习辅导与错题解析，为成员提供个性化的技术成长建议。",
-      "持续迭代的 AI 能力，让平台随社区一同进化。",
+      "定期组织聚餐、桌游、剧本杀等团建活动，平衡学习与休闲，舒缓日常学习压力。",
+      "团队互助氛围浓厚，学长无偿分享竞赛、考研、求职经验，大家互帮互助共同进步。",
     ],
   },
 ];
@@ -180,25 +175,25 @@ const experiences = [
 const testimonials = [
   {
     testimonial:
-      "在 Open436 刷题备赛的那段时间，我的算法能力提升明显，社区里的讨论也总能给我新的启发。",
-    name: "社区成员",
-    designation: "算法竞赛爱好者",
+      "愿大家在实验室保持热爱，深耕算法、坚持思考，在一次次训练与竞赛中突破自我，奔赴心中目标。",
+    name: "往届学姐",
+    designation: "算法竞赛方向",
     company: "Open436",
     image: "https://randomuser.me/api/portraits/women/4.jpg",
   },
   {
     testimonial:
-      "论坛的氛围很纯粹，提的技术问题总有人认真解答，资源板块也沉淀了大量优质学习资料。",
-    name: "活跃用户",
-    designation: "后端开发",
+      "珍惜并肩学习的时光，大胆提问、动手实践。在这里沉淀的技术与友谊，终将成为前行路上珍贵的财富。",
+    name: "往届学长",
+    designation: "后端开发方向",
     company: "Open436",
     image: "https://randomuser.me/api/portraits/men/5.jpg",
   },
   {
     testimonial:
-      "AI 助手结合社区知识库回答得很到位，赛事报名和排名也一目了然，是一个真正为技术人打造的平台。",
-    name: "参赛选手",
-    designation: "全栈方向",
+      "沉下心打磨项目，积极参与科创竞赛。希望各位脚踏实地，学有所成，在考研与求职赛道收获满意答卷。",
+    name: "往届学长",
+    designation: "全栈开发方向",
     company: "Open436",
     image: "https://randomuser.me/api/portraits/women/6.jpg",
   },
@@ -206,41 +201,41 @@ const testimonials = [
 
 const projects = [
   {
-    name: "在线判题 OJ",
+    name: "蓝桥杯大赛",
     description:
-      "集成 HOJ 判题内核，支持多语言代码提交、沙箱隔离执行与自动评测，为编程训练与竞赛提供稳定的判题基础设施。",
+      "组织实验室成员组队参与蓝桥杯竞赛，覆盖 Java、C/C++ 主流赛道，依托常态化刷题训练与赛前集中辅导，多名成员斩获省级一、二、三等奖及全国总决赛奖项，夯实算法编程核心能力。",
+    image: lanqiao,
     tags: [
       {
-        name: "java",
+        name: "算法竞赛",
         color: "blue-text-gradient",
       },
       {
-        name: "docker",
+        name: "C++",
         color: "green-text-gradient",
       },
       {
-        name: "sandbox",
+        name: "Java",
         color: "pink-text-gradient",
       },
     ],
-    image: carrent,
     source_code_link: "https://github.com/",
   },
   {
-    name: "编程赛事",
+    name: "中国大学生计算机设计大赛",
     description:
-      "赛事日历、在线报名、实时排名与赛后复盘一体的竞赛平台，详情页集成评论区，打造从训练到竞技的完整闭环。",
+      "围绕软件开发、人工智能、大数据等赛道组建参赛队伍，从选题、开发到作品打磨全程指导，往届团队斩获国家级、省级奖项，锻炼完整项目开发与作品答辩能力。",
     tags: [
       {
-        name: "vue",
+        name: "全栈开发",
         color: "blue-text-gradient",
       },
       {
-        name: "ranking",
+        name: "AI 项目",
         color: "green-text-gradient",
       },
       {
-        name: "enroll",
+        name: "作品答辩",
         color: "pink-text-gradient",
       },
     ],
@@ -248,20 +243,20 @@ const projects = [
     source_code_link: "https://github.com/",
   },
   {
-    name: "技术论坛",
+    name: "挑战杯科创竞赛",
     description:
-      "多板块技术社区，支持发帖、评论、点赞、收藏、搜索与资源分享，配合 AI 助手沉淀高质量技术知识库。",
+      "聚焦科创创新课题，支持跨方向组队开展项目研发，配备学长全程指导项目撰写与路演准备，团队多次获得各级赛事荣誉，培养创新思维与团队协作能力。",
     tags: [
       {
-        name: "vue",
+        name: "科创项目",
         color: "blue-text-gradient",
       },
       {
-        name: "ai",
+        name: "创新实践",
         color: "green-text-gradient",
       },
       {
-        name: "rag",
+        name: "路演备赛",
         color: "pink-text-gradient",
       },
     ],

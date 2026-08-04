@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import { styles } from "../styles";
 import { navLinks } from "../constants";
 import { logo, menu, close } from "../assets";
-import ThemeToggle from "./ThemeToggle";
 
 const Navbar = () => {
   const [active, setActive] = useState("");
@@ -113,8 +112,6 @@ const Navbar = () => {
             登录
           </a>
         )}
-
-        <ThemeToggle />
 
         <div className='sm:hidden flex flex-1 justify-end items-center'>
           <img

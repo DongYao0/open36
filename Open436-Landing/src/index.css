@@ -4,17 +4,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---- Theme Tokens（light=白底蓝紫 默认 / dark=深紫黑 cosmic） ---- */
-:root,
-[data-theme="light"] {
-  --lc-primary: 255 255 255;
-  --lc-secondary: 90 84 112;
-  --lc-tertiary: 242 240 250;
-  --lc-white100: 42 36 64;
-  --lc-accent: 145 94 255;
-  color-scheme: light;
-}
-[data-theme="dark"] {
+/* ---- Theme Tokens（固定黑夜模式，无明暗切换） ---- */
+:root {
   --lc-primary: 5 8 22;
   --lc-secondary: 170 166 195;
   --lc-tertiary: 21 16 48;

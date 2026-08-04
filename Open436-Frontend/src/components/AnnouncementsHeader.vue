@@ -18,9 +18,8 @@
       <router-link to="/forum/tech" class="ah-link">返回论坛</router-link>
     </nav>
 
-    <!-- 右：主题切换 + 用户下拉 / 登录 -->
+    <!-- 右：用户下拉 / 登录 -->
     <div class="ah-right">
-      <ThemeToggle class="ah-theme" />
       <div v-if="auth.isLoggedIn" class="ah-user">
         <div class="ah-trigger" @click="dropdownOpen = !dropdownOpen">
           <img :src="auth.isVisitor ? 'https://ui-avatars.com/api/?name=Guest&background=9E9E9E&color=fff&size=40' : auth.avatar" class="avatar avatar-sm" :alt="auth.isVisitor ? '游客' : auth.nickname" />
@@ -50,7 +49,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -105,7 +103,6 @@ function handleLogout() {
 .ah-link:hover { color: var(--primary); background: var(--bg-dark); }
 
 .ah-right { display: flex; align-items: center; gap: var(--s-base); margin-left: auto; }
-.ah-theme { display: inline-flex; align-items: center; justify-content: center; }
 .ah-user { position: relative; }
 .ah-trigger {
   display: flex; align-items: center; gap: var(--s-xs);

@@ -35,9 +35,8 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </router-link>
 
-    <!-- 最右：主题切换 + 用户下拉 / 登录 -->
+    <!-- 最右：用户下拉 / 登录 -->
     <div class="fh-right">
-      <ThemeToggle class="fh-theme" />
       <div v-if="auth.isLoggedIn" class="fh-user">
         <div class="fh-trigger" @click="dropdownOpen = !dropdownOpen">
           <img :src="auth.isVisitor ? 'https://ui-avatars.com/api/?name=Guest&background=9E9E9E&color=fff&size=40' : auth.avatar" class="avatar avatar-sm" :alt="auth.isVisitor ? '游客' : auth.nickname" />
@@ -66,7 +65,6 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const router = useRouter()
 const route = useRoute()

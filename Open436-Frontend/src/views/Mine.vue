@@ -203,6 +203,10 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
           <span>算法平台</span>
         </a>
+        <button @click="handleLogout" class="quick-link-item logout-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>退出登录</span>
+        </button>
       </div>
     </div>
   </div>
@@ -370,6 +374,11 @@ async function goToAlgo() {
     await auth.syncToHoj()
   }
   window.location.href = '/algo/'
+}
+
+function handleLogout() {
+  auth.logout()
+  router.push('/login')
 }
 
 onMounted(() => {
@@ -793,7 +802,7 @@ watch(activeTab, (tab) => {
 /* 快捷入口 */
 .quick-links {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--s-base);
 }
 .quick-link-item {
@@ -809,7 +818,7 @@ watch(activeTab, (tab) => {
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
-  transition: all 200ms;
+  transition: transform 200ms, box-shadow 200ms, background 200ms;
 }
 .quick-link-item:hover {
   transform: translateY(-2px);
@@ -817,6 +826,21 @@ watch(activeTab, (tab) => {
   color: var(--primary);
 }
 .quick-link-item svg { color: var(--primary); opacity: 0.7; }
+.quick-link-item.logout-item {
+  color: var(--error) !important;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+.quick-link-item.logout-item:hover {
+  background: var(--bg);
+  color: var(--error) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--sh-md);
+}
+.quick-link-item.logout-item:hover svg { color: var(--error) !important; }
+.quick-link-item.logout-item svg { color: var(--error) !important; opacity: 0.7; }
+.quick-link-item.logout-item:hover span { color: var(--error) !important; }
 
 /* 响应式 */
 @media (max-width: 600px) {
@@ -830,6 +854,6 @@ watch(activeTab, (tab) => {
   .btn-edit { width: 100%; justify-content: center; }
   .stats-row { flex-wrap: wrap; }
   .stat-item { min-width: 25%; }
-  .quick-links { grid-template-columns: 1fr; }
+  .quick-links { grid-template-columns: repeat(2, 1fr); }
 }
 </style>

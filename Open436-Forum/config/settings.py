@@ -65,10 +65,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-        conn_max_age=600
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'open436',
+        'USER': 'open436',
+        'PASSWORD': 'open436',
+        'HOST': 'localhost',
+        'PORT': '55432',
+    }
 }
 
 REST_FRAMEWORK = {

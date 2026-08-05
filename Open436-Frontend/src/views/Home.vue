@@ -14,7 +14,25 @@
       </div>
       <div class="landing-nav-right">
         <router-link v-if="!auth.isLoggedIn" to="/login" class="nav-login">登录</router-link>
-        <router-link v-else to="/mine" class="nav-login">我的</router-link>
+        <div v-else class="nav-user-menu" @click.stop="menuOpen = !menuOpen">
+          <div class="nav-login nav-user-trigger">
+            {{ auth.isVisitor ? '游客' : auth.nickname }}
+            <svg v-if="auth.isReadOnly" class="guest-badge" width="28" height="16" viewBox="0 0 28 16">
+              <rect width="28" height="16" rx="8" fill="rgba(255,152,0,0.2)"/>
+              <text x="14" y="12" text-anchor="middle" fill="#ff9800" font-size="10" font-weight="500">游客</text>
+            </svg>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="nav-dropdown" :class="{ active: menuOpen }" @click.stop>
+            <router-link to="/mine" class="dropdown-item" @click="menuOpen = false">
+              个人信息
+            </router-link>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" @click="handleLogout">退出登录</button>
+          </div>
+        </div>
       </div>
     </nav>
 
@@ -100,11 +118,29 @@
 </template>
 
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 
+const router = useRouter()
 const auth = useAuthStore()
 const ui = useUIStore()
+
+const menuOpen = ref(false)
+
+function handleLogout() {
+  menuOpen.value = false
+  auth.logout()
+  router.push('/login')
+}
+
+function closeMenu(e) {
+  if (!e.target.closest('.nav-user-menu')) menuOpen.value = false
+}
+
+onMounted(() => { document.addEventListener('click', closeMenu) })
+onUnmounted(() => { document.removeEventListener('click', closeMenu) })
 
 async function goToAlgo() {
   if (auth.isVisitor) {
@@ -168,6 +204,28 @@ async function goToAlgo() {
   transition: all 0.2s;
 }
 .nav-login:hover { border-color: var(--landing-accent); color: var(--landing-accent); }
+.nav-user-menu { position: relative; }
+.nav-user-trigger { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.nav-user-trigger:hover { border-color: var(--landing-accent); color: var(--landing-accent); }
+.chevron { width: 14px; height: 14px; transition: transform 0.2s; }
+.nav-user-menu .nav-dropdown.active + .chevron,
+.nav-user-menu:hover .chevron { transform: rotate(180deg); }
+.nav-dropdown {
+  position: absolute; top: 100%; right: 0; margin-top: 8px;
+  background: #1a1f2e; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  min-width: 160px; padding: 8px; opacity: 0; visibility: hidden;
+  transform: translateY(-8px); transition: all 0.2s; z-index: 200;
+  border: 1px solid var(--landing-border);
+}
+.nav-dropdown.active { opacity: 1; visibility: visible; transform: translateY(0); }
+.nav-dropdown .dropdown-item {
+  display: block; padding: 10px 14px; color: var(--landing-text);
+  text-decoration: none; font-size: 14px; border-radius: 4px;
+  cursor: pointer; width: 100%; text-align: left; border: none; background: none;
+}
+.nav-dropdown .dropdown-item:hover { background: rgba(79,140,255,0.1); color: var(--landing-accent); }
+.nav-dropdown .dropdown-divider { height: 1px; background: var(--landing-border); margin: 6px 0; }
+.guest-badge { margin-left: 4px; }
 
 @media (max-width: 768px) {
   .landing-nav { padding: 0 20px; }

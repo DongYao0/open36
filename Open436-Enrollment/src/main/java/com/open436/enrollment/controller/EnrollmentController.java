@@ -74,12 +74,14 @@ public class EnrollmentController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest request) {
         checkAdmin(request);
         String token = request.getHeader("token");
-        Page<ApplicationListResponse> result = enrollmentService.list(status, keyword, page, size, token);
+        Page<ApplicationListResponse> result = enrollmentService.list(status, keyword, startDate, endDate, page, size, token);
         return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "list", result.getContent(),
                 "total", result.getTotalElements()

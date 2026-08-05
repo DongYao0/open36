@@ -27,16 +27,35 @@
         <el-radio-button value="passed">已通过</el-radio-button>
         <el-radio-button value="failed">未通过</el-radio-button>
       </el-radio-group>
+      <el-date-picker
+        v-model="dateRange"
+        type="daterange"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        value-format="YYYY-MM-DD"
+        style="width:220px"
+        @change="loadList"
+      />
+      <el-button v-if="dateRange" link @click="dateRange = null; loadList()">清除日期</el-button>
+      <el-button type="success" :disabled="!selectedIds.length" @click="handleBatchStatus('passed')">
+        <el-icon><CircleCheck /></el-icon>批量通过 ({{ selectedIds.length }})
+      </el-button>
+      <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchStatus('failed')">
+        <el-icon><CircleClose /></el-icon>批量未通过 ({{ selectedIds.length }})
+      </el-button>
     </div>
 
     <!-- 数据表格 -->
-    <el-table :data="list" stripe v-loading="loading">
+    <el-table :data="list" stripe v-loading="loading" @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="50" />
       <el-table-column prop="enrollmentId" label="报名ID" width="80" />
       <el-table-column prop="realName" label="姓名" width="100" />
       <el-table-column prop="username" label="用户名" width="130" />
       <el-table-column prop="studentId" label="学号" width="140" />
       <el-table-column prop="major" label="专业" width="150" />
       <el-table-column prop="submittedAt" label="提交时间" width="170" :formatter="formatDate" />
+      <el-table-column prop="interviewDate" label="面试时间" width="170" :formatter="formatDate" />
       <el-table-column label="面试记录" min-width="200" show-overflow-tooltip>
         <template #default="{ row }">
           <span v-if="row.summary">{{ row.summary }}</span>
@@ -140,7 +159,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import StatCard from '@/components/StatCard.vue'
-import { getInterviewList, getInterviewDetail, updateInterviewStatus, getInterviewStatistics } from '@/api/interview'
+import { getInterviewList, getInterviewDetail, updateInterviewStatus, batchUpdateInterviewStatus, getInterviewStatistics } from '@/api/interview'
 
 const router = useRouter()
 
@@ -150,6 +169,8 @@ const total = ref(0)
 const page = ref(1)
 const keyword = ref('')
 const statusFilter = ref('')
+const dateRange = ref(null)
+const selectedIds = ref([])
 const stats = ref({ total: 0, pending: 0, passed: 0, failed: 0, passRate: 0 })
 
 const drawerVisible = ref(false)
@@ -192,7 +213,9 @@ async function loadList() {
       page: page.value,
       size: 10,
       status: statusFilter.value,
-      keyword: keyword.value
+      keyword: keyword.value,
+      startDate: dateRange.value?.[0] || '',
+      endDate: dateRange.value?.[1] || ''
     })
     list.value = res.data.list
     total.value = res.data.total
@@ -227,6 +250,24 @@ async function handleStatusUpdate(row, status) {
     })
     await updateInterviewStatus(row.id, status)
     ElMessage.success(`已标记为面试${label}`)
+    loadList()
+    loadStats()
+  } catch {}
+}
+
+function handleSelectionChange(rows) {
+  selectedIds.value = rows.filter(r => r.status === 'pending' && r.id).map(r => r.id)
+}
+
+async function handleBatchStatus(status) {
+  const label = status === 'passed' ? '通过' : '不通过'
+  try {
+    await ElMessageBox.confirm(`确定批量${label} ${selectedIds.value.length} 条面试？`, '确认', {
+      type: status === 'passed' ? 'success' : 'warning'
+    })
+    await batchUpdateInterviewStatus({ ids: selectedIds.value, status })
+    ElMessage.success(`批量${label}成功`)
+    selectedIds.value = []
     loadList()
     loadStats()
   } catch {}

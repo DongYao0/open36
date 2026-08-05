@@ -18,7 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -133,7 +135,7 @@ public class EnrollmentService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ApplicationListResponse> list(String status, String keyword, int page, int size, String token) {
+    public Page<ApplicationListResponse> list(String status, String keyword, String startDate, String endDate, int page, int size, String token) {
         // 1. 先按状态筛选（关键词过滤依赖 Auth 用户信息，需全量拉取后过滤）
         List<EnrollmentApplication> apps;
         if (status != null && !status.isEmpty()) {
@@ -142,10 +144,19 @@ public class EnrollmentService {
             apps = enrollmentRepository.findAll();
         }
 
-        // 2. 批量查询 Auth 服务获取用户详细信息
+        // 2. 按提交时间筛选 submittedAt
+        LocalDate startD = parseDate(startDate);
+        LocalDate endD = parseDate(endDate);
+        if (startD != null || endD != null) {
+            apps = apps.stream()
+                    .filter(app -> inDateRange(app.getSubmittedAt(), startD, endD))
+                    .toList();
+        }
+
+        // 3. 批量查询 Auth 服务获取用户详细信息
         Map<Long, Map<String, Object>> userMap = batchFetchUserInfo(apps, token);
 
-        // 3. 组装响应并处理关键词过滤
+        // 4. 组装响应并处理关键词过滤
         List<ApplicationListResponse> responses = apps.stream()
                 .map(app -> toResponse(app, userMap.get(app.getAuthUserId())))
                 .toList();
@@ -157,7 +168,7 @@ public class EnrollmentService {
                     .toList();
         }
 
-        // 4. 内存分页
+        // 5. 内存分页
         int total = responses.size();
         int start = Math.min((page - 1) * size, total);
         int end = Math.min(start + size, total);
@@ -165,6 +176,24 @@ public class EnrollmentService {
 
         return new org.springframework.data.domain.PageImpl<>(
                 pageContent, PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "submittedAt")), total);
+    }
+
+    private LocalDate parseDate(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) return null;
+        try {
+            return LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        } catch (Exception e) {
+            log.warn("解析日期失败: dateStr={}, error={}", dateStr, e.getMessage());
+            return null;
+        }
+    }
+
+    private boolean inDateRange(LocalDateTime dateTime, LocalDate startD, LocalDate endD) {
+        if (dateTime == null) return false;
+        LocalDate d = dateTime.toLocalDate();
+        if (startD != null && d.isBefore(startD)) return false;
+        if (endD != null && d.isAfter(endD)) return false;
+        return true;
     }
 
     private boolean matchesKeyword(ApplicationListResponse r, String kw) {

@@ -12,6 +12,10 @@ export function updateInterviewStatus(id, status) {
   return request.put(`/api/interview/${id}/status`, { status })
 }
 
+export function batchUpdateInterviewStatus(data) {
+  return request.post('/api/interview/batch-status', data)
+}
+
 export function getInterviewDetail(enrollmentId) {
   return request.get(`/api/interview/${enrollmentId}`)
 }

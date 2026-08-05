@@ -1,6 +1,7 @@
 package com.open436.enrollment.controller;
 
 import com.open436.enrollment.dto.ApiResponse;
+import com.open436.enrollment.dto.BatchInterviewStatusRequest;
 import com.open436.enrollment.dto.InterviewListResponse;
 import com.open436.enrollment.dto.InterviewRecordRequest;
 import com.open436.enrollment.dto.InterviewStatisticsResponse;
@@ -68,12 +69,14 @@ public class InterviewController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest request) {
         checkAdmin(request);
         String token = request.getHeader("token");
-        Page<InterviewListResponse> result = interviewService.list(status, keyword, page, size, token);
+        Page<InterviewListResponse> result = interviewService.list(status, keyword, startDate, endDate, page, size, token);
         return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "list", result.getContent(),
                 "total", result.getTotalElements()
@@ -153,6 +156,34 @@ public class InterviewController {
         String token = request.getHeader("token");
         InterviewListResponse result = interviewService.getDetail(enrollmentId, token);
         return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 批量更新面试状态（通过/不通过）
+     */
+    @PostMapping("/batch-status")
+    public ResponseEntity<ApiResponse<Void>> batchUpdateStatus(
+            @Valid @RequestBody BatchInterviewStatusRequest request,
+            HttpServletRequest httpRequest) {
+        checkAdmin(httpRequest);
+        String token = httpRequest.getHeader("token");
+        String adminName = "admin";
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("token", token);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    authServiceUrl + "/api/auth/current",
+                    HttpMethod.GET, entity, Map.class);
+            if (response.getBody() != null && response.getBody().get("data") != null) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+                adminName = (String) data.getOrDefault("username", "admin");
+            }
+        } catch (Exception ignored) {}
+
+        interviewService.batchUpdateStatus(request, adminName, token);
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
     /**

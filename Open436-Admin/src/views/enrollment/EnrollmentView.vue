@@ -31,6 +31,17 @@
         <el-radio-button value="approved">已通过</el-radio-button>
         <el-radio-button value="rejected">已拒绝</el-radio-button>
       </el-radio-group>
+      <el-date-picker
+        v-model="dateRange"
+        type="daterange"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        value-format="YYYY-MM-DD"
+        style="width:220px"
+        @change="loadList"
+      />
+      <el-button v-if="dateRange" link @click="dateRange = null; loadList()">清除日期</el-button>
       <el-button type="success" :disabled="!selectedIds.length" @click="handleBatchReview('approved')">
         <el-icon><CircleCheck /></el-icon>批量通过 ({{ selectedIds.length }})
       </el-button>
@@ -111,6 +122,7 @@ const total = ref(0)
 const page = ref(1)
 const keyword = ref('')
 const statusFilter = ref('')
+const dateRange = ref(null)
 const selectedIds = ref([])
 const stats = ref({ total: 0, pending: 0, approved: 0, rejected: 0, approvalRate: 0 })
 const dialogVisible = ref(false)
@@ -145,7 +157,15 @@ async function loadStats() {
 async function loadList() {
   loading.value = true
   try {
-    const res = await getApplicationList({ page: page.value, size: 10, status: statusFilter.value, keyword: keyword.value })
+    const params = {
+      page: page.value,
+      size: 10,
+      status: statusFilter.value,
+      keyword: keyword.value,
+      startDate: dateRange.value?.[0] || '',
+      endDate: dateRange.value?.[1] || ''
+    }
+    const res = await getApplicationList(params)
     applications.value = res.data.list
     total.value = res.data.total
   } finally {

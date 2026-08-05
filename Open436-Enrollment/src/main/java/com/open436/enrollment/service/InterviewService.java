@@ -1,5 +1,6 @@
 package com.open436.enrollment.service;
 
+import com.open436.enrollment.dto.BatchInterviewStatusRequest;
 import com.open436.enrollment.dto.InterviewListResponse;
 import com.open436.enrollment.dto.InterviewListResponse.InterviewRoundItem;
 import com.open436.enrollment.dto.InterviewRecordRequest;
@@ -23,7 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,7 +47,7 @@ public class InterviewService {
      * 关联面试记录，展示面试状态
      */
     @Transactional(readOnly = true)
-    public Page<InterviewListResponse> list(String status, String keyword, int page, int size, String token) {
+    public Page<InterviewListResponse> list(String status, String keyword, String startDate, String endDate, int page, int size, String token) {
         // 1. 获取所有待审核的报名申请
         List<EnrollmentApplication> pendingApps = enrollmentRepository.findByStatus("pending");
 
@@ -91,7 +94,16 @@ public class InterviewService {
                     .toList();
         }
 
-        // 6. 关键词过滤
+        // 6. 按面试时间 interviewDate 过滤
+        LocalDate startD = parseDate(startDate);
+        LocalDate endD = parseDate(endDate);
+        if (startD != null || endD != null) {
+            filtered = filtered.stream()
+                    .filter(r -> inDateRange(r.getInterviewDate(), startD, endD))
+                    .toList();
+        }
+
+        // 7. 关键词过滤
         if (keyword != null && !keyword.isEmpty()) {
             String kw = keyword.toLowerCase();
             filtered = filtered.stream()
@@ -99,7 +111,7 @@ public class InterviewService {
                     .toList();
         }
 
-        // 7. 内存分页
+        // 8. 内存分页
         int total = filtered.size();
         int start = Math.min((page - 1) * size, total);
         int end = Math.min(start + size, total);
@@ -108,6 +120,24 @@ public class InterviewService {
 
         return new PageImpl<>(pageContent,
                 PageRequest.of(page - 1, size), total);
+    }
+
+    private LocalDate parseDate(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) return null;
+        try {
+            return LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        } catch (Exception e) {
+            log.warn("解析日期失败: dateStr={}, error={}", dateStr, e.getMessage());
+            return null;
+        }
+    }
+
+    private boolean inDateRange(LocalDateTime dateTime, LocalDate startD, LocalDate endD) {
+        if (dateTime == null) return false;
+        LocalDate d = dateTime.toLocalDate();
+        if (startD != null && d.isBefore(startD)) return false;
+        if (endD != null && d.isAfter(endD)) return false;
+        return true;
     }
 
     private String determineInterviewStatus(List<Interview> interviews, String filterStatus) {
@@ -209,6 +239,16 @@ public class InterviewService {
         List<Interview> allRounds = interviewRepository.findByEnrollmentIdOrderByRoundAsc(interview.getEnrollmentId());
         String displayStatus = determineInterviewStatus(allRounds, null);
         return toListResponse(app, allRounds, userInfo, displayStatus);
+    }
+
+    /**
+     * 批量更新面试状态 (通过/不通过)
+     */
+    @Transactional
+    public void batchUpdateStatus(BatchInterviewStatusRequest request, String adminName, String token) {
+        for (Long id : request.getIds()) {
+            updateInterviewStatus(id, request.getStatus(), adminName, token);
+        }
     }
 
     /**

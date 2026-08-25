@@ -5,7 +5,6 @@ import { Decal, Float, Preload, useTexture } from "@react-three/drei";
 import CanvasLoader from "../Loader";
 
 const Ball = ({ icon, position }) => {
-  const decal = useTexture(icon);
   const dragRef = useRef(null);
   const [rotation, setRotation] = useState([0, 0, 0]);
 
@@ -56,10 +55,16 @@ const Ball = ({ icon, position }) => {
           <Decal
             position={[0, 0, 1]}
             rotation={[2 * Math.PI, 0, 6.25]}
-            scale={0.8}
-            map={decal}
-            flatShading
-          />
+            scale={1.1}
+          >
+            <meshBasicMaterial
+              map={icon}
+              transparent
+              toneMapped={false}
+              polygonOffset
+              polygonOffsetFactor={-10}
+            />
+          </Decal>
         </mesh>
       </Float>
     </group>
@@ -68,6 +73,7 @@ const Ball = ({ icon, position }) => {
 
 const TechBalls = ({ technologies }) => {
   const width = useThree((state) => state.size.width);
+  const decals = useTexture(technologies.map((technology) => technology.icon));
   const columns = width >= 1024 ? 7 : width >= 640 ? 5 : 3;
   const rows = Math.ceil(technologies.length / columns);
   const spacing = 2;
@@ -81,7 +87,7 @@ const TechBalls = ({ technologies }) => {
       0,
     ];
 
-    return <Ball key={technology.name} icon={technology.icon} position={position} />;
+    return <Ball key={technology.name} icon={decals[index]} position={position} />;
   });
 };
 

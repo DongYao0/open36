@@ -55,12 +55,6 @@
         <el-button type="primary" size="large" @click="submitForm" :disabled="submitting">
           <el-icon><Check /></el-icon>保存
         </el-button>
-        <el-button type="success" size="large" @click="submitAndPass" :disabled="submitting" v-if="detail?.status === 'pending'">
-          <el-icon><CircleCheck /></el-icon>保存并通过
-        </el-button>
-        <el-button type="danger" size="large" @click="submitAndFail" :disabled="submitting" v-if="detail?.status === 'pending'">
-          <el-icon><CircleClose /></el-icon>保存并拒绝
-        </el-button>
       </div>
     </el-card>
   </div>
@@ -69,8 +63,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { getInterviewDetail, recordInterview, updateInterviewStatus } from '@/api/interview'
+import { ElMessage } from 'element-plus'
+import { getInterviewDetail, recordInterview } from '@/api/interview'
 
 const route = useRoute()
 const router = useRouter()
@@ -125,29 +119,6 @@ async function submitForm() {
   } finally {
     submitting.value = false
   }
-}
-
-async function submitAndPass() {
-  await submitForm()
-  if (detail.value?.id) {
-    try {
-      await updateInterviewStatus(detail.value.id, 'passed')
-      ElMessage.success('已标记为面试通过')
-    } catch {}
-  }
-  goBack()
-}
-
-async function submitAndFail() {
-  try {
-    await ElMessageBox.confirm('确定标记该候选人面试未通过？', '确认', { type: 'warning' })
-    await submitForm()
-    if (detail.value?.id) {
-      await updateInterviewStatus(detail.value.id, 'failed')
-      ElMessage.success('已标记为面试未通过')
-    }
-    goBack()
-  } catch {}
 }
 
 function goBack() {

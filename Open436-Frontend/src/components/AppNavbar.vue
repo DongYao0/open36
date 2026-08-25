@@ -35,6 +35,23 @@
       <router-link to="/login" class="btn btn-primary btn-sm">登录</router-link>
     </div>
 
+    <div v-else class="navbar-user" @click.stop="dropdownOpen = !dropdownOpen">
+      <img :src="auth.isVisitor ? 'https://ui-avatars.com/api/?name=Guest&background=9E9E9E&color=fff&size=64' : auth.avatar" class="user-avatar" :alt="auth.isVisitor ? '游客' : auth.nickname" />
+      <span class="user-name">{{ auth.isVisitor ? '游客' : auth.nickname }}</span>
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      <div class="navbar-dropdown" :class="{ active: dropdownOpen }">
+        <router-link to="/mine" class="dropdown-item" @click="dropdownOpen = false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          个人信息
+        </router-link>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item danger" @click="handleLogout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          {{ auth.isVisitor ? '退出游客模式' : '退出登录' }}
+        </button>
+      </div>
+    </div>
+
     <button class="mobile-toggle" @click="ui.toggleSidebar()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
@@ -160,7 +177,25 @@ onUnmounted(() => { document.removeEventListener('click', closeDropdowns) })
   position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
   width: 16px; height: 16px; color: rgba(255,255,255,0.6);
 }
-.navbar-user { position: relative; }
+.navbar-user {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 20px;
+  transition: background var(--t-fast);
+  margin-left: auto;
+  margin-right: var(--s-sm);
+}
+.navbar-user:hover { background: rgba(255, 255, 255, 0.1); }
+.user-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+}
 .user-trigger {
   display: flex; align-items: center; gap: 4px; cursor: pointer;
   padding: 6px 16px; border-radius: 20px;

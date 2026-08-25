@@ -1,8 +1,9 @@
 import React, { Suspense, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { Decal, Float, Preload, useTexture } from "@react-three/drei";
+import { Decal, Float, Preload } from "@react-three/drei";
 
 import CanvasLoader from "../Loader";
+import { useIconTextures } from "./useIconTextures";
 
 const Ball = ({ icon, position }) => {
   const dragRef = useRef(null);
@@ -52,18 +53,8 @@ const Ball = ({ icon, position }) => {
             polygonOffset
             polygonOffsetFactor={-5}
           />
-          <Decal
-            position={[0, 0, 1]}
-            rotation={[2 * Math.PI, 0, 6.25]}
-            scale={1.1}
-          >
-            <meshBasicMaterial
-              map={icon}
-              transparent
-              toneMapped={false}
-              polygonOffset
-              polygonOffsetFactor={-10}
-            />
+          <Decal position={[0, 0, 1]} rotation={[2 * Math.PI, 0, 6.25]} scale={1.1}>
+            <meshBasicMaterial map={icon} transparent toneMapped={false} polygonOffset polygonOffsetFactor={-10} />
           </Decal>
         </mesh>
       </Float>
@@ -73,10 +64,12 @@ const Ball = ({ icon, position }) => {
 
 const TechBalls = ({ technologies }) => {
   const width = useThree((state) => state.size.width);
-  const decals = useTexture(technologies.map((technology) => technology.icon));
+  const iconTextures = useIconTextures(technologies.map((technology) => technology.icon));
   const columns = width >= 1024 ? 7 : width >= 640 ? 5 : 3;
   const rows = Math.ceil(technologies.length / columns);
   const spacing = 2;
+
+  if (!iconTextures) return null;
 
   return technologies.map((technology, index) => {
     const column = index % columns;
@@ -87,13 +80,18 @@ const TechBalls = ({ technologies }) => {
       0,
     ];
 
-    return <Ball key={technology.name} icon={decals[index]} position={position} />;
+    return <Ball key={technology.name} icon={iconTextures[index]} position={position} />;
   });
 };
 
 const TechBallsCanvas = ({ technologies }) => {
   return (
-    <Canvas dpr={[1, 1.5]} orthographic camera={{ position: [0, 0, 10], zoom: 60 }}>
+    <Canvas
+      dpr={[1, 1.5]}
+      orthographic
+      camera={{ position: [0, 0, 10], zoom: 60 }}
+      style={{ touchAction: "none" }}
+    >
       <Suspense fallback={<CanvasLoader />}>
         <TechBalls technologies={technologies} />
       </Suspense>

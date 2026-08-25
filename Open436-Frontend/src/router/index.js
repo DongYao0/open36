@@ -45,10 +45,11 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  // 首页由 Vue 应用内的 Home.vue 提供（本仓库无独立 Landing 应用）。
-  // 若未来在网关根路径部署独立 Landing，可在此改为跳转回 '/'。
+  // 首页已迁移至 3D Landing（React，由网关根路径 / 提供）
+  // Vue 应用内任何跳转到根('/')的行为，统一重定向到 Landing
+  // 这样 Login 登录成功、导航"首页"tab、品牌链接、catch-all 等全部回到 Landing
   if (to.path === '/') {
-    next()
+    window.location.href = '/'
     return
   }
 
@@ -70,7 +71,7 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  if (to.name === 'Login' && isLoggedIn) {
+  if (to.name === 'Login' && isLoggedIn && to.query.mode !== 'register') {
     next({ name: 'Home' })
     return
   }

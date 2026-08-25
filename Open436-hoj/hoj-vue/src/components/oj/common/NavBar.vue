@@ -119,7 +119,7 @@
               round
               @click="goToForum"
               icon="el-icon-s-promotion"
-            >返回论坛
+            >返回首页
             </el-button>
           </div>
         </el-menu>
@@ -148,7 +148,7 @@
           flat
           slot="right"
           @click="goToForum"
-        >返回论坛</mu-button>
+        >返回首页</mu-button>
       </mu-appbar>
 
       <mu-appbar style="width: 100%;">
@@ -289,7 +289,7 @@
             <mu-list-item-action>
               <mu-icon value=":el-icon-s-promotion" size="24"></mu-icon>
             </mu-list-item-action>
-            <mu-list-item-title>返回论坛</mu-list-item-title>
+            <mu-list-item-title>返回首页</mu-list-item-title>
           </mu-list-item>
         </mu-list>
       </mu-drawer>

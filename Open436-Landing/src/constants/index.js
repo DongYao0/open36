@@ -23,6 +23,15 @@ import {
   jobit,
   tripguide,
   threejs,
+  java,
+  spring,
+  springboot,
+  python,
+  mysql,
+  redis,
+  postgresql,
+  kubernetes,
+  linux,
 } from "../assets";
 
 import lanqiao from "../assets/lanqiao.png";
@@ -126,6 +135,42 @@ const technologies = [
   {
     name: "docker",
     icon: docker,
+  },
+  {
+    name: "Java",
+    icon: java,
+  },
+  {
+    name: "Spring",
+    icon: spring,
+  },
+  {
+    name: "Spring Boot",
+    icon: springboot,
+  },
+  {
+    name: "Python",
+    icon: python,
+  },
+  {
+    name: "MySQL",
+    icon: mysql,
+  },
+  {
+    name: "Redis",
+    icon: redis,
+  },
+  {
+    name: "PostgreSQL",
+    icon: postgresql,
+  },
+  {
+    name: "Kubernetes",
+    icon: kubernetes,
+  },
+  {
+    name: "Linux",
+    icon: linux,
   },
 ];
 

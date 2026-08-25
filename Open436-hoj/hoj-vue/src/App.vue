@@ -12,7 +12,7 @@
         <div class="mundb-footer" style="padding: 12px 2.5rem; font-size: 13px; color: #888;">
           <span>© Open436 算法系统</span>
           <span style="margin: 0 8px;">·</span>
-          <a href="/" style="color: #409eff; text-decoration: none;">返回论坛首页</a>
+          <a href="/" style="color: #409eff; text-decoration: none;">返回首页</a>
         </div>
       </footer>
     </div>

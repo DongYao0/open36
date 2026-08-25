@@ -71,7 +71,7 @@ DATABASES = {
         'USER': 'open436',
         'PASSWORD': 'open436',
         'HOST': 'localhost',
-        'PORT': '55432',
+        'PORT': '55400',
     }
 }
 

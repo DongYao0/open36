@@ -25,16 +25,12 @@ done
 echo "Kong is ready!"
 echo ""
 
-# 删除已存在的配置（如果有）
-echo "Cleaning up existing configurations..."
-curl -s -X DELETE http://localhost:8001/services/auth-service 2>/dev/null || true
-curl -s -X DELETE http://localhost:8001/services/file-service 2>/dev/null || true
-curl -s -X DELETE http://localhost:8001/services/enrollment-service 2>/dev/null || true
-curl -s -X DELETE http://localhost:8001/services/forum-service 2>/dev/null || true
-curl -s -X DELETE http://localhost:8001/services/user-service 2>/dev/null || true
-curl -s -X DELETE http://localhost:8001/services/content-service 2>/dev/null || true
-curl -s -X DELETE http://localhost:8001/services/comment-service 2>/dev/null || true
-curl -s -X DELETE http://localhost:8001/services/section-service 2>/dev/null || true
+# 显式全量清理（按外键依赖顺序：routes → plugins → services），保证脚本真正幂等
+# 旧版仅按名字 DELETE services，当级联失败时 routes/plugins 残留，重复执行即累积重复路由
+echo "Cleaning up existing configurations (full purge)..."
+for id in $(curl -s $KONG_ADMIN/routes   2>/dev/null | grep -oE '"id":"[^"]*"'   | sed 's/.*"id":"//;s/"//'); do curl -s -o /dev/null -X DELETE $KONG_ADMIN/routes/$id   || true; done
+for id in $(curl -s $KONG_ADMIN/plugins  2>/dev/null | grep -oE '"id":"[^"]*"'   | sed 's/.*"id":"//;s/"//'); do curl -s -o /dev/null -X DELETE $KONG_ADMIN/plugins/$id  || true; done
+for n  in $(curl -s $KONG_ADMIN/services 2>/dev/null | grep -oE '"name":"[^"]*"' | sed 's/.*"name":"//;s/"//'); do curl -s -o /dev/null -X DELETE $KONG_ADMIN/services/$n || true; done
 sleep 1
 
 # 1. 创建 M1 认证服务
@@ -87,6 +83,7 @@ echo ""
 echo "Creating route for enrollment-service..."
 curl -i -X POST $KONG_ADMIN/services/enrollment-service/routes \
   --data "paths[]=/api/enrollment" \
+  --data "paths[]=/api/interview" \
   --data strip_path=false
 
 echo ""

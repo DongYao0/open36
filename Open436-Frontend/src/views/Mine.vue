@@ -31,7 +31,7 @@
           </div>
           <div class="info-section">
             <h1 class="nickname">{{ profile.nickname || auth.user?.username }}</h1>
-                        <p class="bio" v-if="profile.bio">{{ profile.bio }}</p>
+                        <p class="bio" v-if="auth.user?.bio">{{ auth.user.bio }}</p>
             <p class="bio placeholder" v-else>这个人很懒，什么都没有留下...</p>
             <div class="meta-row">
               <span class="meta-item">
@@ -209,7 +209,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const ui = useUIStore()
 
-const defaultAvatar = 'https://ui-avatars.com/api/?name=User&background=1976D2&color=fff&size=120'
+const defaultAvatar = '/app/user.jpg'
 
 const profile = ref({})
 const stats = ref({})

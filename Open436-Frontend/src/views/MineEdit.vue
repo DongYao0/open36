@@ -28,20 +28,20 @@
         </div>
       </div>
 
-      <!-- 基本信息 -->
+      <!-- 基本信息（不可修改） -->
       <div class="form-section">
-        <h2 class="section-title">基本信息</h2>
-        <div class="form-group">
-          <label>昵称</label>
-          <div class="input-wrapper">
-            <input v-model="form.nickname" type="text" placeholder="请输入昵称" maxlength="20" @input="updateCount('nickname')" />
-            <span class="char-count">{{ counts.nickname }}/20</span>
-          </div>
-        </div>
+        <h2 class="section-title">基本信息（不可修改）</h2>
         <div class="form-group">
           <label>用户名</label>
           <input :value="auth.user?.username" type="text" disabled />
-          <p class="form-hint">用户名不可修改</p>
+        </div>
+        <div class="form-group">
+          <label>学号</label>
+          <input :value="auth.user?.studentId" type="text" disabled />
+        </div>
+        <div class="form-group">
+          <label>手机号</label>
+          <input :value="auth.user?.phone" type="text" disabled />
         </div>
       </div>
 
@@ -103,18 +103,16 @@ const router = useRouter()
 const auth = useAuthStore()
 const ui = useUIStore()
 
-const defaultAvatar = 'https://ui-avatars.com/api/?name=User&background=1976D2&color=fff&size=120'
+const defaultAvatar = '/app/user.jpg'
 const fileInput = ref(null)
 const saving = ref(false)
 
 const form = reactive({
-  nickname: '',
   bio: '',
   avatarUrl: ''
 })
 
 const counts = reactive({
-  nickname: 0,
   bio: 0
 })
 
@@ -132,10 +130,8 @@ async function loadProfile() {
   try {
     const res = await getUserProfile(auth.user.id)
     if (res.code === 200 && res.data) {
-      form.nickname = res.data.nickname || ''
       form.bio = res.data.bio || ''
       form.avatarUrl = res.data.avatarUrl || ''
-      updateCount('nickname')
       updateCount('bio')
     }
   } catch (e) {
@@ -173,22 +169,15 @@ async function handleFileChange(e) {
 }
 
 async function saveProfile() {
-  if (!form.nickname.trim()) {
-    ui.showToast('请输入昵称', 'warning')
-    return
-  }
-
   saving.value = true
   try {
     const res = await updateUserProfile(auth.user.id, {
-      nickname: form.nickname.trim(),
       bio: form.bio.trim()
     })
     if (res.code === 200) {
       // 更新本地用户信息
       auth.setUser({
         ...auth.user,
-        nickname: form.nickname.trim(),
         bio: form.bio.trim()
       })
       ui.showToast('资料更新成功', 'success')

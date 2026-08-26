@@ -77,25 +77,18 @@
         </div>
         <div class="form-header"><h1>{{ isEnroll ? '报名加入 Open436' : '欢迎回来！' }}</h1><p>{{ isEnroll ? '填写信息申请成为 0436 正式成员' : '请输入你的账号信息' }}</p></div>
         <form @submit.prevent="onSubmit" class="auth-form">
-          <div class="form-group"><label>用户名</label><input ref="uRef" v-model="f.u" type="text" placeholder="3-20 位" autocomplete="username" required @focus="onTextFocus" @blur="onBlur"/></div>
+          <div class="form-group"><label>{{ isEnroll ? '真实姓名（登录账号）' : '用户名' }}</label><input ref="uRef" v-model="f.u" type="text" :placeholder="isEnroll ? '2-20 位，将作为登录账号' : '请输入用户名'" :maxlength="isEnroll ? 20 : 50" autocomplete="username" required @focus="onTextFocus" @blur="onBlur"/></div>
           <div class="form-group"><label>密码</label><div class="password-wrap"><input ref="pRef" v-model="f.p" :type="showP ? 'text' : 'password'" placeholder="至少 6 位" autocomplete="current-password" required @focus="onPasswordFocus" @blur="onBlur"/><button type="button" class="eye-btn" @click="showP = !showP"><svg v-if="showP" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="1" y1="1" x2="23" y2="23"/></svg><svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
 
           <template v-if="isEnroll">
-            <div class="form-row">
-              <div class="form-group"><label>确认密码</label><div class="password-wrap"><input v-model="f.cp" :type="showP ? 'text' : 'password'" placeholder="再次输入密码" required @focus="onPasswordFocus" @blur="onBlur"/></div></div>
-              <div class="form-group"><label>昵称</label><input v-model="f.n" type="text" placeholder="显示名称（可选）" @focus="onTextFocus" @blur="onBlur"/></div>
-            </div>
+            <div class="form-group"><label>确认密码</label><div class="password-wrap"><input v-model="f.cp" :type="showP ? 'text' : 'password'" placeholder="再次输入密码" required @focus="onPasswordFocus" @blur="onBlur"/></div></div>
             <div class="form-row">
               <div class="form-group"><label>学号</label><input v-model="f.sid" type="text" placeholder="请输入学号" maxlength="30" required @focus="onTextFocus" @blur="onBlur"/></div>
-              <div class="form-group"><label>真实姓名</label><input v-model="f.rn" type="text" placeholder="请输入真实姓名" maxlength="50" required @focus="onTextFocus" @blur="onBlur"/></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label>电话号码</label><input v-model="f.ph" type="tel" placeholder="请输入电话号码" maxlength="20" required @focus="onTextFocus" @blur="onBlur"/></div>
-              <div class="form-group"><label>专业</label><input v-model="f.mj" type="text" placeholder="请输入专业名称" maxlength="50" required @focus="onTextFocus" @blur="onBlur"/></div>
+              <div class="form-group"><label>电话号码</label><input v-model="f.ph" type="tel" placeholder="请输入 11 位手机号" maxlength="11" required @focus="onTextFocus" @blur="onBlur"/></div>
             </div>
           </template>
 
-          <div v-if="!isEnroll" class="form-options"><label class="remember"><input type="checkbox" v-model="f.r"/><span>记住我</span></label><a href="#" class="forgot">忘记密码？</a></div>
+          <div v-if="!isEnroll" class="form-options"><label class="remember"><input type="checkbox" v-model="f.r"/><span>记住我</span></label><a href="javascript:void(0)" class="forgot" @click="showForgot = true">忘记密码？</a></div>
           <div v-if="err" class="error-msg">{{ err }}</div>
           <button type="submit" class="submit-btn" :disabled="ld"><span v-if="ld" class="spinner"/>{{ ld ? (isEnroll ? '提交中...' : '登录中...') : (isEnroll ? '提交报名申请' : '登录') }}</button>
         </form>
@@ -106,6 +99,17 @@
             游客浏览
           </button>
           <p class="guest-tip">不登录，仅浏览内容</p>
+        </div>
+      </div>
+
+      <div v-if="showForgot" class="forgot-mask" @click.self="showForgot = false">
+        <div class="forgot-dialog">
+          <div class="forgot-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <h3>忘记密码</h3>
+          <p>实验室暂不支持自助找回密码，<br/>请联系<strong>学长学姐</strong>帮忙重置。</p>
+          <button class="forgot-close" @click="showForgot = false">我知道了</button>
         </div>
       </div>
     </div>
@@ -120,7 +124,7 @@ import { useUIStore } from '@/stores/ui'
 
 const R = useRoute(), router = useRouter(), auth = useAuthStore(), ui = useUIStore()
 const isEnroll = ref(false)
-const ld = ref(false), err = ref(''), showP = ref(false)
+const ld = ref(false), err = ref(''), showP = ref(false), showForgot = ref(false)
 const f = reactive({ u: '', p: '', cp: '', n: '', sid: '', rn: '', ph: '', mj: '', r: false })
 
 const focusedType = ref(null)
@@ -230,19 +234,20 @@ function setMode(enroll) {
   }
 }
 
+// 忘记密码提示弹窗开关
+
+
 async function onSubmit() {
   err.value = ''
   const username = uRef.value?.value || f.u
   const password = pRef.value?.value || f.p
 
   if (isEnroll.value) {
-    if (f.u.length < 3 || f.u.length > 20) { err.value = '用户名长度必须为 3-20 位'; return }
+    if (f.u.trim().length < 2 || f.u.trim().length > 20) { err.value = '真实姓名长度必须为 2-20 位'; return }
     if (f.p.length < 6) { err.value = '密码至少 6 位'; return }
     if (f.p !== f.cp) { err.value = '两次密码输入不一致'; return }
     if (!f.sid.trim()) { err.value = '请填写学号'; return }
-    if (!f.rn.trim()) { err.value = '请填写真实姓名'; return }
-    if (!f.ph.trim()) { err.value = '请填写电话号码'; return }
-    if (!f.mj.trim()) { err.value = '请填写专业'; return }
+    if (!/^1\d{10}$/.test(f.ph.trim())) { err.value = '请输入正确的 11 位手机号'; return }
   }
 
   ld.value = true
@@ -251,11 +256,10 @@ async function onSubmit() {
       const res = await auth.register({
         username: f.u.trim(),
         password: f.p,
-        nickname: f.n.trim(),
         studentId: f.sid.trim(),
-        realName: f.rn.trim(),
+        realName: f.u.trim(),
         phone: f.ph.trim(),
-        major: f.mj.trim()
+        major: ''
       })
       if (res.success) {
         ui.showToast(res.message || '报名成功', 'success')
@@ -376,4 +380,61 @@ function enterAsGuest() {
   color: var(--text-secondary);
   opacity: 0.7;
 }
+
+/* 忘记密码提示弹窗 */
+.forgot-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+.forgot-dialog {
+  width: min(360px, calc(100vw - 48px));
+  padding: 32px 28px 24px;
+  border-radius: 16px;
+  background: var(--bg, #1c1f26);
+  border: 1px solid var(--divider, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+.forgot-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  background: rgba(79, 140, 255, 0.12);
+  color: var(--primary, #4f8cff);
+}
+.forgot-dialog h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  color: var(--text-primary, #fff);
+}
+.forgot-dialog p {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary, #9aa3b2);
+}
+.forgot-dialog strong { color: var(--primary, #4f8cff); }
+.forgot-close {
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary, #4f8cff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+.forgot-close:hover { filter: brightness(1.1); }
 </style>

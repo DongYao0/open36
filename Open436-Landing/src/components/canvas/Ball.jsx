@@ -1,57 +1,103 @@
-import React, { Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
-import {
-  Decal,
-  Float,
-  OrbitControls,
-  Preload,
-  useTexture,
-} from "@react-three/drei";
+import React, { Suspense, useRef, useState } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
+import { Decal, Float, Preload } from "@react-three/drei";
 
 import CanvasLoader from "../Loader";
+import { useIconTextures } from "./useIconTextures";
 
-const Ball = (props) => {
-  const [decal] = useTexture([props.imgUrl]);
+const Ball = ({ icon, position }) => {
+  const dragRef = useRef(null);
+  const [rotation, setRotation] = useState([0, 0, 0]);
+
+  const startDrag = (event) => {
+    event.stopPropagation();
+    dragRef.current = { x: event.clientX, y: event.clientY };
+    event.target.setPointerCapture(event.pointerId);
+  };
+
+  const rotateBall = (event) => {
+    if (!dragRef.current) return;
+
+    event.stopPropagation();
+    const deltaX = event.clientX - dragRef.current.x;
+    const deltaY = event.clientY - dragRef.current.y;
+    dragRef.current = { x: event.clientX, y: event.clientY };
+    setRotation(([x, y, z]) => [x + deltaY * 0.01, y + deltaX * 0.01, z]);
+  };
+
+  const endDrag = (event) => {
+    if (!dragRef.current) return;
+
+    event.stopPropagation();
+    dragRef.current = null;
+    event.target.releasePointerCapture(event.pointerId);
+  };
 
   return (
-    <Float speed={1.75} rotationIntensity={1} floatIntensity={2}>
-      <ambientLight intensity={0.25} />
-      <directionalLight position={[0, 0, 0.05]} />
-      <mesh castShadow receiveShadow scale={2.75}>
-        <icosahedronGeometry args={[1, 1]} />
-        <meshStandardMaterial
-          color='#fff8eb'
-          polygonOffset
-          polygonOffsetFactor={-5}
-          flatShading
-        />
-        <Decal
-          position={[0, 0, 1]}
-          rotation={[2 * Math.PI, 0, 6.25]}
-          scale={1}
-          map={decal}
-          flatShading
-        />
-      </mesh>
-    </Float>
+    <group position={position}>
+      <Float speed={1.75} rotationIntensity={0} floatIntensity={0.4}>
+        <ambientLight intensity={0.25} />
+        <directionalLight position={[0, 0, 0.05]} />
+        <mesh
+          scale={0.72}
+          rotation={rotation}
+          onPointerDown={startDrag}
+          onPointerMove={rotateBall}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+        >
+          <icosahedronGeometry args={[1, 1]} />
+          <meshStandardMaterial
+            color='#fff8eb'
+            flatShading
+            polygonOffset
+            polygonOffsetFactor={-5}
+          />
+          <Decal position={[0, 0, 1]} rotation={[2 * Math.PI, 0, 6.25]} scale={1.1}>
+            <meshBasicMaterial map={icon} transparent toneMapped={false} polygonOffset polygonOffsetFactor={-10} />
+          </Decal>
+        </mesh>
+      </Float>
+    </group>
   );
 };
 
-const BallCanvas = ({ icon }) => {
+const TechBalls = ({ technologies }) => {
+  const width = useThree((state) => state.size.width);
+  const iconTextures = useIconTextures(technologies.map((technology) => technology.icon));
+  const columns = width >= 1024 ? 7 : width >= 640 ? 5 : 3;
+  const rows = Math.ceil(technologies.length / columns);
+  const spacing = 2;
+
+  if (!iconTextures) return null;
+
+  return technologies.map((technology, index) => {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const position = [
+      (column - (columns - 1) / 2) * spacing,
+      ((rows - 1) / 2 - row) * spacing,
+      0,
+    ];
+
+    return <Ball key={technology.name} icon={iconTextures[index]} position={position} />;
+  });
+};
+
+const TechBallsCanvas = ({ technologies }) => {
   return (
     <Canvas
-      frameloop='demand'
-      dpr={[1, 2]}
-      gl={{ preserveDrawingBuffer: true }}
+      dpr={[1, 1.5]}
+      orthographic
+      camera={{ position: [0, 0, 10], zoom: 60 }}
+      style={{ touchAction: "none" }}
     >
       <Suspense fallback={<CanvasLoader />}>
-        <OrbitControls enableZoom={false} />
-        <Ball imgUrl={icon} />
+        <TechBalls technologies={technologies} />
       </Suspense>
-
       <Preload all />
     </Canvas>
   );
 };
 
-export default BallCanvas;
+export default TechBallsCanvas;

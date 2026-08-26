@@ -76,7 +76,6 @@ const showSidebar = ref(true)
 const tabs = [
   { key: 'home', label: '首页', path: '/' },
   { key: 'forum', label: '论坛', path: '/forum' },
-  { key: 'resources', label: '资源', path: '/resources' },
   { key: 'contests', label: '赛事', path: '/contests' },
   { key: 'announcements', label: '公告', path: '/announcements' }
 ]

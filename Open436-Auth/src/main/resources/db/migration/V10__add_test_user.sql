@@ -1,7 +1,7 @@
 -- 添加测试账号
 -- 密码: 111111
 INSERT INTO users_auth (username, password_hash, status, client_permission, created_at, updated_at) VALUES
-('a', '$2a$10$XOw4a2HbXjVnHKtsw4z70uYTRz.5js7o7lelFdgvblds7eoVyEsUC', 'active', 'all', NOW(), NOW())
+('test', '$2a$10$XOw4a2HbXjVnHKtsw4z70uYTRz.5js7o7lelFdgvblds7eoVyEsUC', 'active', 'all', NOW(), NOW())
 ON CONFLICT (username) DO NOTHING;
 
 -- 分配普通用户角色

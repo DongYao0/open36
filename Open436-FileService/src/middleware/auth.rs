@@ -1,13 +1,17 @@
 use actix_web::HttpRequest;
 use crate::utils::error::FileError;
 
-/// 从 Kong 网关传递的请求头中提取用户 ID
-pub fn get_current_user_id(req: &HttpRequest) -> Result<i32, FileError> {
+/// 从 Kong 网关传递的请求头中提取用户 ID（可选）
+pub fn get_current_user_id(req: &HttpRequest) -> Option<i32> {
     req.headers()
         .get("X-User-Id")
         .and_then(|v| v.to_str().ok())
         .and_then(|s| s.parse::<i32>().ok())
-        .ok_or(FileError::Unauthorized)
+}
+
+/// 从 Kong 网关传递的请求头中提取用户 ID（必需）
+pub fn get_required_user_id(req: &HttpRequest) -> Result<i32, FileError> {
+    get_current_user_id(req).ok_or(FileError::Unauthorized)
 }
 
 /// 检查是否为管理员

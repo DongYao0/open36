@@ -23,7 +23,6 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               上传头像
             </button>
-            <button class="btn btn-text btn-sm" @click="removeAvatar">删除</button>
           </div>
           <input ref="fileInput" type="file" accept="image/jpeg,image/png" style="display:none" @change="handleFileChange" />
         </div>
@@ -171,11 +170,6 @@ async function handleFileChange(e) {
 
   // 清空input
   e.target.value = ''
-}
-
-function removeAvatar() {
-  form.avatarUrl = ''
-  ui.showToast('头像已删除', 'success')
 }
 
 async function saveProfile() {

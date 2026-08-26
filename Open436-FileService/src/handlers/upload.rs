@@ -40,8 +40,8 @@ pub async fn upload_handler(
     storage: web::Data<Arc<dyn StorageBackend>>,
     pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, FileError> {
-    // 1. 获取用户 ID
-    let user_id = get_current_user_id(&req)?;
+    // 1. 获取用户 ID（可选，未登录时使用 0 表示系统/内部调用）
+    let user_id = get_current_user_id(&req).unwrap_or(0);
 
     let mut file_data: Vec<u8> = Vec::new();
     let mut file_type_str = String::new();

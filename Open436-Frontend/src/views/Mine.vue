@@ -31,8 +31,7 @@
           </div>
           <div class="info-section">
             <h1 class="nickname">{{ profile.nickname || auth.user?.username }}</h1>
-            <p class="username">@{{ auth.user?.username }}</p>
-            <p class="bio" v-if="profile.bio">{{ profile.bio }}</p>
+                        <p class="bio" v-if="profile.bio">{{ profile.bio }}</p>
             <p class="bio placeholder" v-else>这个人很懒，什么都没有留下...</p>
             <div class="meta-row">
               <span class="meta-item">
@@ -189,25 +188,11 @@
         </div>
       </div>
 
-      <!-- 快捷入口 -->
-      <div class="quick-links">
-        <router-link to="/forum/favorites" class="quick-link-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          <span>我的收藏</span>
-        </router-link>
-        <router-link to="/mine/edit" class="quick-link-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          <span>账号设置</span>
-        </router-link>
-        <a href="javascript:void(0)" @click="goToAlgo" class="quick-link-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          <span>算法平台</span>
-        </a>
-        <button @click="handleLogout" class="quick-link-item logout-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          <span>退出登录</span>
-        </button>
-      </div>
+      <!-- 退出登录 -->
+      <button @click="handleLogout" class="logout-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>退出登录</span>
+      </button>
     </div>
   </div>
 </template>
@@ -359,21 +344,6 @@ async function loadAssignments() {
 function readAssignment(item) {
   // 跳转到作业提交页面
   router.push(`/assignment/${item.assignmentId}`)
-}
-
-async function goToAlgo() {
-  if (auth.isVisitor) {
-    ui.showToast('游客模式不可访问算法平台，请先报名注册', 'warning')
-    return
-  }
-  if (auth.isGuest) {
-    ui.showToast('审核通过后方可进入算法平台', 'warning')
-    return
-  }
-  if (auth.isLoggedIn) {
-    await auth.syncToHoj()
-  }
-  window.location.href = '/algo/'
 }
 
 function handleLogout() {
@@ -799,48 +769,30 @@ watch(activeTab, (tab) => {
 }
 .link-btn:hover { text-decoration: underline; }
 
-/* 快捷入口 */
-.quick-links {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--s-base);
-}
-.quick-link-item {
+/* 退出登录按钮 */
+.logout-btn {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: var(--s-lg);
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px;
   background: var(--bg);
+  border: none;
   border-radius: var(--r-lg);
   box-shadow: var(--sh-sm);
-  color: var(--text-primary);
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 500;
-  transition: transform 200ms, box-shadow 200ms, background 200ms;
-}
-.quick-link-item:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--sh-md);
-  color: var(--primary);
-}
-.quick-link-item svg { color: var(--primary); opacity: 0.7; }
-.quick-link-item.logout-item {
-  color: var(--error) !important;
+  color: var(--error);
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  border: none;
-  font-family: inherit;
+  transition: all 200ms;
 }
-.quick-link-item.logout-item:hover {
-  background: var(--bg);
-  color: var(--error) !important;
+.logout-btn:hover {
+  background: var(--error-bg, #ffebee);
   transform: translateY(-2px);
   box-shadow: var(--sh-md);
 }
-.quick-link-item.logout-item:hover svg { color: var(--error) !important; }
-.quick-link-item.logout-item svg { color: var(--error) !important; opacity: 0.7; }
-.quick-link-item.logout-item:hover span { color: var(--error) !important; }
+.logout-btn svg { opacity: 0.8; }
 
 /* 响应式 */
 @media (max-width: 600px) {

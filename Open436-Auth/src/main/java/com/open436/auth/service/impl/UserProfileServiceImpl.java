@@ -4,6 +4,7 @@ import com.open436.auth.dto.UpdateProfileRequest;
 import com.open436.auth.dto.UserProfileResponse;
 import com.open436.auth.entity.UserProfile;
 import com.open436.auth.entity.UserStatistics;
+import com.open436.auth.file.FileServiceClient;
 import com.open436.auth.repository.UserProfileRepository;
 import com.open436.auth.repository.UserStatisticsRepository;
 import com.open436.auth.service.UserProfileService;
@@ -24,6 +25,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     private final UserProfileRepository profileRepository;
     private final UserStatisticsRepository statisticsRepository;
+    private final FileServiceClient fileServiceClient;
 
     @Override
     public UserProfileResponse getProfile(Long userId) {
@@ -61,16 +63,20 @@ public class UserProfileServiceImpl implements UserProfileService {
     @Override
     @Transactional
     public String uploadAvatar(Long userId, MultipartFile file) {
-        // TODO: 调用 M7 文件服务上传文件，返回 URL
-        // 目前直接返回一个占位实现
         UserProfile profile = profileRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("用户资料不存在"));
 
-        // 实际实现应调用 FileServiceClient
-        String avatarUrl = "avatar/" + userId + "/" + file.getOriginalFilename();
-        profile.setAvatarUrl(avatarUrl);
-        profileRepository.save(profile);
-        return avatarUrl;
+        try {
+            // 调用文件服务上传头像
+            String avatarUrl = fileServiceClient.uploadFile(file, "avatar");
+            profile.setAvatarUrl(avatarUrl);
+            profileRepository.save(profile);
+            log.info("头像上传成功: userId={}, url={}", userId, avatarUrl);
+            return avatarUrl;
+        } catch (Exception e) {
+            log.error("头像上传失败: userId={}, error={}", userId, e.getMessage());
+            throw new RuntimeException("头像上传失败: " + e.getMessage());
+        }
     }
 
     @Override

@@ -1,5 +1,9 @@
 -- 添加测试账号
 -- 密码: 111111
+-- 注意：测试账号用户名 'a' 仅 1 字符，先放宽 V9 设立的长度约束(>=2 -> >=1)
+ALTER TABLE users_auth DROP CONSTRAINT IF EXISTS chk_username_length;
+ALTER TABLE users_auth ADD CONSTRAINT chk_username_length CHECK (LENGTH(username) >= 1);
+
 INSERT INTO users_auth (username, password_hash, status, client_permission, created_at, updated_at) VALUES
 ('test', '$2a$10$XOw4a2HbXjVnHKtsw4z70uYTRz.5js7o7lelFdgvblds7eoVyEsUC', 'active', 'all', NOW(), NOW())
 ON CONFLICT (username) DO NOTHING;

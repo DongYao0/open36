@@ -14,6 +14,7 @@ import com.open436.auth.exception.BusinessException;
 import com.open436.auth.repository.UserAuthRepository;
 import com.open436.auth.service.AuthService;
 import com.open436.auth.service.RoleService;
+import com.open436.auth.service.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,11 +31,12 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
-    
+
     private final UserAuthRepository userAuthRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleService roleService;
     private final TokenProperties tokenProperties;
+    private final UserProfileService profileService;
     
     /**
      * 用户登录
@@ -49,14 +51,25 @@ public class AuthServiceImpl implements AuthService {
         
         // 2. 创建会话（外部状态操作，不在事务中）
         String token = createSession(user.getId(), user.getUsername(), role);
-        
+
+        // 3. 获取用户资料（头像、简介等）
+        UserInfoResponse userInfo = UserInfoResponse.from(user, role);
+        try {
+            var profile = profileService.getProfile(user.getId());
+            userInfo.setNickname(profile.getNickname());
+            userInfo.setAvatarUrl(profile.getAvatarUrl());
+            userInfo.setBio(profile.getBio());
+        } catch (Exception e) {
+            log.warn("获取用户资料失败: userId={}, error={}", user.getId(), e.getMessage());
+        }
+
         log.info("登录成功: username={}, userId={}", request.getUsername(), user.getId());
-        
-        // 3. 返回结果
+
+        // 4. 返回结果
         return LoginResponse.builder()
             .token(token)
             .expiresIn(tokenProperties.getTimeout())
-            .user(UserInfoResponse.from(user, role))
+            .user(userInfo)
             .build();
     }
     

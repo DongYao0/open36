@@ -52,6 +52,7 @@ const Navbar = () => {
 
   // 头像：有真实头像用之，游客/无头像用昵称首字母占位
   const avatar =
+    user?.avatarUrl ||
     user?.avatar ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(
       user?.nickname || user?.username || "Guest"

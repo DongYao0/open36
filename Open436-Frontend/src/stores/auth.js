@@ -14,7 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isVisitor = computed(() => guestMode.value)
   const isReadOnly = computed(() => user.value?.status === 'pending' || guestMode.value || !user.value)
   const canPost = computed(() => !!user.value && user.value.status === 'active')
-  const avatar = computed(() => user.value?.avatar || '')
+  const avatar = computed(() => user.value?.avatarUrl || user.value?.avatar || '/app/user.jpg')
   const nickname = computed(() => user.value?.nickname || '')
 
   function setUser(u) {

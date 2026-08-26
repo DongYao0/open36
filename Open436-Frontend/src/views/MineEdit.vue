@@ -57,29 +57,6 @@
         </div>
       </div>
 
-      <!-- 报名信息（只读） -->
-      <div class="form-section" v-if="hasEnrollInfo">
-        <h2 class="section-title">报名信息</h2>
-        <div class="readonly-grid">
-          <div class="readonly-item" v-if="auth.user?.realName">
-            <label>姓名</label>
-            <span>{{ auth.user.realName }}</span>
-          </div>
-          <div class="readonly-item" v-if="auth.user?.studentId">
-            <label>学号</label>
-            <span>{{ auth.user.studentId }}</span>
-          </div>
-          <div class="readonly-item" v-if="auth.user?.major">
-            <label>专业</label>
-            <span>{{ auth.user.major }}</span>
-          </div>
-          <div class="readonly-item" v-if="auth.user?.phone">
-            <label>电话</label>
-            <span>{{ auth.user.phone }}</span>
-          </div>
-        </div>
-      </div>
-
       <!-- 操作按钮 -->
       <div class="form-actions">
         <router-link to="/mine" class="btn btn-secondary">取消</router-link>
@@ -114,11 +91,6 @@ const form = reactive({
 
 const counts = reactive({
   bio: 0
-})
-
-const hasEnrollInfo = computed(() => {
-  const u = auth.user
-  return u?.realName || u?.studentId || u?.major || u?.phone
 })
 
 function updateCount(field) {

@@ -80,7 +80,10 @@ const ProjectCard = ({
 const Works = () => {
   const { get } = useHomepage();
   const works = get("works", defaultWorks);
-  const items = Array.isArray(works.items) ? works.items : defaultProjects;
+  const items = (Array.isArray(works.items) ? works.items : defaultProjects).map((project, index) => ({
+    ...project,
+    image: project.image || defaultProjects[index]?.image || "",
+  }));
 
   return (
     <>

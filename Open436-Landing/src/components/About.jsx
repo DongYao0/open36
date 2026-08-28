@@ -3,7 +3,7 @@ import Tilt from "react-tilt";
 import { motion } from "framer-motion";
 
 import { styles } from "../styles";
-import { defaultAbout } from "../constants";
+import { defaultAbout, services as defaultServices } from "../constants";
 import { useHomepage } from "../context/HomepageContext";
 import { SectionWrapper } from "../hoc";
 import { fadeIn, textVariant } from "../utils/motion";
@@ -40,6 +40,10 @@ const ServiceCard = ({ index, title, icon }) => (
 const About = () => {
   const { get } = useHomepage();
   const about = get("about", defaultAbout);
+  const services = (Array.isArray(about.services) ? about.services : []).map((service, index) => ({
+    ...service,
+    icon: service.icon || defaultServices[index]?.icon || "",
+  }));
 
   return (
     <>
@@ -56,7 +60,7 @@ const About = () => {
       </motion.p>
 
       <div className='mt-20 flex flex-wrap gap-10'>
-        {(about.services || []).map((service, index) => (
+        {services.map((service, index) => (
           <ServiceCard key={(service.title || '') + index} index={index} {...service} />
         ))}
       </div>

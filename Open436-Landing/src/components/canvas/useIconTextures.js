@@ -28,8 +28,9 @@ export const useIconTextures = (icons) => {
   useEffect(() => {
     let cancelled = false;
     setAtlas(null);
+    if (!icons.length) return () => { cancelled = true; };
 
-    Promise.all(icons.map(loadImage)).then((images) => {
+    Promise.all(icons.map((src) => loadImage(src).catch(() => null))).then((images) => {
       const rows = Math.ceil(images.length / COLUMNS);
       const canvas = document.createElement("canvas");
       canvas.width = COLUMNS * TILE_SIZE;
@@ -37,7 +38,7 @@ export const useIconTextures = (icons) => {
       const context = canvas.getContext("2d");
 
       images.forEach((image, index) => {
-        drawIcon(context, image, (index % COLUMNS) * TILE_SIZE, Math.floor(index / COLUMNS) * TILE_SIZE);
+        if (image) drawIcon(context, image, (index % COLUMNS) * TILE_SIZE, Math.floor(index / COLUMNS) * TILE_SIZE);
       });
 
       const texture = new CanvasTexture(canvas);

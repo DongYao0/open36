@@ -17,10 +17,17 @@
         <el-icon><Odometer /></el-icon>
         <template #title>仪表盘</template>
       </el-menu-item>
-      <el-menu-item index="/homepage">
-        <el-icon><Monitor /></el-icon>
-        <template #title>首页管理</template>
-      </el-menu-item>
+      <el-sub-menu index="homepage">
+        <template #title>
+          <el-icon><Monitor /></el-icon>
+          <span>首页管理</span>
+        </template>
+        <el-menu-item index="/homepage/about">实验室介绍</el-menu-item>
+        <el-menu-item index="/homepage/experiences">实验室功能</el-menu-item>
+        <el-menu-item index="/homepage/technologies">技术栈小球</el-menu-item>
+        <el-menu-item index="/homepage/works">获奖荣誉</el-menu-item>
+        <el-menu-item index="/homepage/feedbacks">社区声音</el-menu-item>
+      </el-sub-menu>
       <el-menu-item index="/users">
         <el-icon><User /></el-icon>
         <template #title>用户管理</template>

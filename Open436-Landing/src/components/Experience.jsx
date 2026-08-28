@@ -84,22 +84,29 @@ const ExperienceCard = ({ experience }) => {
 
 const Experience = () => {
   const { get } = useHomepage();
-  const list = get("experiences", defaultExperiences);
+  const content = get("experiences", defaultExperiences);
+  const list = Array.isArray(content) ? content : content.items;
+  const items = (Array.isArray(list) ? list : []).map((item, index) => ({
+    ...item,
+    icon: item.icon || defaultExperiences[index]?.icon || "",
+  }));
+  const subText = Array.isArray(content) ? "核心优势" : (content.subText || "核心优势");
+  const headText = Array.isArray(content) ? "实验室功能." : (content.headText || "实验室功能.");
 
   return (
     <>
       <motion.div variants={textVariant()}>
         <p className={`${styles.sectionSubText} text-center`}>
-          核心优势
+          {subText}
         </p>
         <h2 className={`${styles.sectionHeadText} text-center`}>
-          实验室功能.
+          {headText}
         </h2>
       </motion.div>
 
       <div className='mt-20 flex flex-col'>
         <VerticalTimeline>
-          {(Array.isArray(list) ? list : []).map((experience, index) => (
+          {items.map((experience, index) => (
             <ExperienceCard
               key={`experience-${(experience.title || '') + index}`}
               experience={experience}

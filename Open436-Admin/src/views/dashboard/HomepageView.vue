@@ -2,12 +2,19 @@
   <div class="homepage-view">
     <div class="page-header">
       <h2>首页管理</h2>
-      <p class="sub">维护 3D 首页（:5173）全部展示内容，保存后前台刷新即生效</p>
+      <p class="sub">当前管理：{{ moduleLabels[activeTab] }}。可查看已有内容、增删改并保存。</p>
     </div>
 
-    <el-tabs v-model="activeTab" v-loading="loading">
+    <div v-if="!loading" class="module-overview">
+      <router-link v-for="item in moduleSummary" :key="item.name" class="overview-card"
+        :class="{ active: activeTab === item.name }" :to="`/homepage/${item.name}`">
+        <span>{{ item.label }}</span><strong>{{ item.count }}</strong><small>{{ item.detail }}</small>
+      </router-link>
+    </div>
+
+    <div v-loading="loading">
       <!-- ══════════ 1. 实验室介绍 ══════════ -->
-      <el-tab-pane label="实验室介绍" name="about">
+      <section v-if="activeTab === 'about'">
         <el-card shadow="never" v-if="about">
           <el-form label-width="90px">
             <el-form-item label="小标题"><el-input v-model="about.subText" placeholder="如：实验室介绍" /></el-form-item>
@@ -28,11 +35,17 @@
           </div>
           <el-button class="mt8" @click="aboutServices.push({ title: '', icon: '' })">+ 新增卡片</el-button>
         </el-card>
-      </el-tab-pane>
+      </section>
 
       <!-- ══════════ 2. 功能卡片（四大优势） ══════════ -->
-      <el-tab-pane label="实验室功能" name="experiences">
-        <div v-if="experiences.length">
+      <section v-if="activeTab === 'experiences'">
+        <div v-if="experiences">
+          <el-card shadow="never" class="mb12">
+            <el-form label-width="90px" inline>
+              <el-form-item label="小标题"><el-input v-model="experiencesMeta.subText" placeholder="如：核心优势" /></el-form-item>
+              <el-form-item label="主标题"><el-input v-model="experiencesMeta.headText" placeholder="如：实验室功能." /></el-form-item>
+            </el-form>
+          </el-card>
           <el-card v-for="(exp, i) in experiences" :key="i" shadow="never" class="mb12">
             <div class="card-toolbar">
               <b>卡片 {{ i + 1 }}</b>
@@ -57,15 +70,15 @@
           </el-card>
           <el-button @click="experiences.push({ title: '', company_name: '', icon: '', iconBg: '#ffffff', points: [], _points: '' })">+ 新增功能卡片</el-button>
         </div>
-      </el-tab-pane>
+      </section>
 
       <!-- ══════════ 3. 技术栈小球 ══════════ -->
-      <el-tab-pane label="技术栈小球" name="technologies">
+      <section v-if="activeTab === 'technologies'">
         <el-alert type="info" :closable="false" class="mb12"
           title="小球按列表顺序网格排列（大屏每行7个），新增/删除后前台自动适配数量" />
         <div v-if="technologies.length" class="tech-grid">
           <div v-for="(t, i) in technologies" :key="i" class="tech-item">
-            <ImageBox v-model="t.icon" tip="小球图标" />
+            <ImageBox v-model="t.icon" :fallback="defaultTechIcons[t.name]" tip="小球图标" />
             <el-input v-model="t.name" placeholder="名称" size="small" class="mt4" />
             <div class="tech-ops">
               <el-button circle size="small" :disabled="i === 0" @click="moveItem(technologies, i, -1)">↑</el-button>
@@ -77,10 +90,10 @@
           </div>
         </div>
         <el-button class="mt8" @click="technologies.push({ name: '', icon: '' })">+ 新增小球</el-button>
-      </el-tab-pane>
+      </section>
 
       <!-- ══════════ 4. 获奖荣誉 ══════════ -->
-      <el-tab-pane label="获奖荣誉" name="works">
+      <section v-if="activeTab === 'works'">
         <el-card shadow="never" class="mb12" v-if="works">
           <el-form label-width="90px">
             <el-form-item label="小标题"><el-input v-model="works.subText" placeholder="如：实验室荣誉" /></el-form-item>
@@ -117,10 +130,10 @@
           </el-form>
         </el-card>
         <el-button @click="worksItems.push({ name: '', description: '', image: '', tags: [], source_code_link: '' })">+ 新增奖项卡片</el-button>
-      </el-tab-pane>
+      </section>
 
       <!-- ══════════ 5. 社区声音 ══════════ -->
-      <el-tab-pane label="社区声音" name="feedbacks">
+      <section v-if="activeTab === 'feedbacks'">
         <el-card shadow="never" class="mb12" v-if="feedbacks">
           <el-form label-width="90px" inline>
             <el-form-item label="小标题"><el-input v-model="feedbacks.subText" placeholder="如：社区声音" /></el-form-item>
@@ -148,8 +161,8 @@
           </el-form>
         </el-card>
         <el-button @click="feedbackItems.push({ testimonial: '', name: '', designation: '', company: '', image: '' })">+ 新增寄语</el-button>
-      </el-tab-pane>
-    </el-tabs>
+      </section>
+    </div>
 
     <!-- 底部操作条 -->
     <div class="action-bar" v-if="!loading">
@@ -184,10 +197,15 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import { getHomepageModule, saveHomepageModule, resetHomepageModule } from '@/api/homepage'
 import { uploadFile } from '@/api/files'
+import * as landingAssets from '../../../../Open436-Landing/src/assets/index.js'
+
+const props = defineProps({
+  module: { type: String, default: 'about' }
+})
 
 /* ─────────── 图片上传框（内部小组件） ─────────── */
 const ImageBox = defineComponent({
-  props: ['modelValue', 'tip'],
+  props: ['modelValue', 'fallback', 'tip'],
   emits: ['update:modelValue'],
   setup(props, { emit }) {
     const uploading = ref(false)
@@ -212,8 +230,8 @@ const ImageBox = defineComponent({
       }
     }
     return () => h('div', { class: 'img-box' }, [
-      props.modelValue
-        ? h('img', { src: props.modelValue, class: 'img-preview' })
+      (props.modelValue || props.fallback)
+        ? h('img', { src: props.modelValue || props.fallback, class: 'img-preview', alt: props.tip || '图片预览' })
         : h('div', { class: 'img-empty' }, props.tip || '未设置'),
       h('div', { class: 'img-ops' }, [
         h('label', { class: 'el-button el-button--small' }, [
@@ -238,10 +256,26 @@ const ImageBox = defineComponent({
 /* ─────────── 模块数据 ─────────── */
 const loading = ref(false)
 const saving = ref(false)
-const activeTab = ref('about')
+const activeTab = computed(() => props.module)
+const moduleLabels = {
+  about: '实验室介绍', experiences: '实验室功能', technologies: '技术栈小球',
+  works: '获奖荣誉', feedbacks: '社区声音'
+}
+const defaultTechIcons = {
+  'HTML 5': landingAssets.html, 'CSS 3': landingAssets.css,
+  JavaScript: landingAssets.javascript, TypeScript: landingAssets.typescript,
+  'React JS': landingAssets.reactjs, 'Redux Toolkit': landingAssets.redux,
+  'Tailwind CSS': landingAssets.tailwind, 'Node JS': landingAssets.nodejs,
+  MongoDB: landingAssets.mongodb, 'Three JS': landingAssets.threejs,
+  git: landingAssets.git, figma: landingAssets.figma, docker: landingAssets.docker,
+  Java: landingAssets.java, Spring: landingAssets.spring, 'Spring Boot': landingAssets.springboot,
+  Python: landingAssets.python, MySQL: landingAssets.mysql, Redis: landingAssets.redis,
+  PostgreSQL: landingAssets.postgresql, Kubernetes: landingAssets.kubernetes, Linux: landingAssets.linux
+}
 
 const about = ref(null)
 const experiences = ref([])
+const experiencesMeta = ref({ subText: '核心优势', headText: '实验室功能.' })
 const technologies = ref([])
 const works = ref(null)
 const feedbacks = ref(null)
@@ -249,6 +283,13 @@ const feedbacks = ref(null)
 const aboutServices = computed(() => about.value?.services || [])
 const worksItems = computed(() => works.value?.items || [])
 const feedbackItems = computed(() => feedbacks.value?.items || [])
+const moduleSummary = computed(() => [
+  { name: 'about', label: '实验室介绍', count: aboutServices.value.length, detail: '4 个功能卡片' },
+  { name: 'experiences', label: '实验室功能', count: experiences.value.length, detail: '左右交错卡片' },
+  { name: 'technologies', label: '技术栈小球', count: technologies.value.length, detail: '可继续新增' },
+  { name: 'works', label: '获奖荣誉', count: worksItems.value.length, detail: '竞赛奖项卡片' },
+  { name: 'feedbacks', label: '社区声音', count: feedbackItems.value.length, detail: '学长学姐寄语' }
+])
 
 const tagDialog = ref({ visible: false, target: null, name: '', color: 'blue-text-gradient' })
 function openTagDialog(project) {
@@ -291,7 +332,13 @@ async function loadAll() {
     ])
     about.value = aboutRes.data || { subText: '', headText: '', description: '', services: [] }
     if (!Array.isArray(about.value.services)) about.value.services = []
-    experiences.value = (expRes.data || []).map(e => ({ ...e, _points: pointsToText(e.points) }))
+    const experienceContent = expRes.data || { subText: '核心优势', headText: '实验室功能.', items: [] }
+    experiencesMeta.value = {
+      subText: experienceContent.subText || '核心优势',
+      headText: experienceContent.headText || '实验室功能.'
+    }
+    const experienceItems = Array.isArray(experienceContent) ? experienceContent : experienceContent.items
+    experiences.value = (Array.isArray(experienceItems) ? experienceItems : []).map(e => ({ ...e, _points: pointsToText(e.points) }))
     technologies.value = techRes.data || []
     works.value = worksRes.data || { subText: '', headText: '', description: '', items: [] }
     if (!Array.isArray(works.value.items)) works.value.items = []
@@ -311,8 +358,8 @@ async function save() {
     if (activeTab.value === 'about') {
       await saveHomepageModule('about', about.value)
     } else if (activeTab.value === 'experiences') {
-      const payload = experiences.value.map(({ _points, ...rest }) => ({ ...rest, points: textToPoints(_points) }))
-      await saveHomepageModule('experiences', payload)
+      const items = experiences.value.map(({ _points, ...rest }) => ({ ...rest, points: textToPoints(_points) }))
+      await saveHomepageModule('experiences', { ...experiencesMeta.value, items })
     } else if (activeTab.value === 'technologies') {
       await saveHomepageModule('technologies', technologies.value)
     } else if (activeTab.value === 'works') {
@@ -354,6 +401,12 @@ onMounted(loadAll)
 .page-header { margin-bottom: 16px; }
 .page-header h2 { margin: 0 0 4px; }
 .page-header .sub { color: #909399; font-size: 13px; margin: 0; }
+.module-overview { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+.overview-card { display: block; min-height: 92px; padding: 12px; color: #606266; text-align: left; text-decoration: none; border: 1px solid #ebeef5; border-radius: 8px; background: #fff; transition: .2s; }
+.overview-card:hover, .overview-card.active { border-color: #409eff; box-shadow: 0 4px 12px rgba(64,158,255,.12); }
+.overview-card span, .overview-card small { display: block; font-size: 12px; }
+.overview-card strong { display: block; margin: 5px 0; color: #303133; font-size: 24px; }
+.overview-card small { color: #909399; }
 .row-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .flex-1 { flex: 1; }
 .mt8 { margin-top: 8px; }
@@ -366,6 +419,7 @@ onMounted(loadAll)
 .tech-ops { display: flex; gap: 6px; }
 .action-bar { position: sticky; bottom: 0; background: #fff; padding: 12px 0; border-top: 1px solid #ebeef5; display: flex; align-items: center; gap: 8px; }
 .action-bar .hint { color: #909399; font-size: 12px; }
+@media (max-width: 900px) { .module-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 
 <style>

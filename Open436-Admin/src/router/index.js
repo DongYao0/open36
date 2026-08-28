@@ -21,10 +21,15 @@ const routes = [
       },
       {
         path: 'homepage',
-        name: 'Homepage',
-        component: () => import('@/views/dashboard/HomepageView.vue'),
-        meta: { title: '首页管理', icon: 'Monitor' }
+        redirect: '/homepage/about'
       },
+      ...['about', 'experiences', 'technologies', 'works', 'feedbacks'].map(module => ({
+        path: `homepage/${module}`,
+        name: `Homepage${module}`,
+        component: () => import('@/views/dashboard/HomepageView.vue'),
+        props: { module },
+        meta: { title: '首页管理', icon: 'Monitor' }
+      })),
       {
         path: 'users',
         name: 'Users',

@@ -4,13 +4,15 @@ import { TechBallsCanvas } from "./canvas";
 import { SectionWrapper } from "../hoc";
 import { technologies as defaultTechnologies } from "../constants";
 import { useHomepage } from "../context/HomepageContext";
+import noimg from "../assets/noimg.svg";
 
 const Tech = () => {
   const { get } = useHomepage();
   const list = get("technologies", defaultTechnologies);
+  const defaultIcons = new Map(defaultTechnologies.map((t) => [t.name, t.icon]));
   const items = (Array.isArray(list) ? list : []).map((t, i) => ({
     name: t?.name || `tech-${i}`,
-    icon: t?.icon || "",
+    icon: t?.icon || defaultIcons.get(t?.name) || noimg,
   }));
 
   return (

@@ -119,22 +119,23 @@ onUnmounted(() => { observer?.disconnect() })
 </script>
 
 <style scoped>
-.tf-banner { display: flex; align-items: center; gap: var(--s-sm); margin-bottom: var(--s-lg); }
+.tf-banner { display: flex; align-items: center; gap: var(--s-sm); margin: 8px 0 22px; }
 .tf-banner-dot { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, var(--cosmic-violet), var(--cosmic-cyan)); box-shadow: 0 0 12px rgba(145,94,255,0.6); }
-.tf-banner-title { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text-primary); }
-.tf-banner-count { font-size: 13px; color: var(--text-disabled); margin-left: auto; font-variant-numeric: tabular-nums; }
-.fm-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s-base); }
-@media (max-width: 768px) { .fm-grid { grid-template-columns: 1fr; } }
-.fm-card { background: var(--bg); border: 1px solid var(--divider); border-radius: var(--r-md); padding: var(--s-lg); cursor: pointer; overflow: hidden; transition: all var(--t-fast); animation: fmFadeUp 350ms ease-out both; display: flex; flex-direction: column; }
-.fm-card:hover { border-color: var(--cosmic-violet); box-shadow: 0 6px 24px rgba(145,94,255,0.14); transform: translateY(-2px); }
+.tf-banner-title { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: #f5f7ff; }
+.tf-banner-count { font-size: 13px; color: rgba(226,233,255,.72); margin-left: auto; font-variant-numeric: tabular-nums; }
+.fm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 1100px) { .fm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) { .fm-grid { grid-template-columns: 1fr; } }
+.fm-card { min-height: 220px; background: linear-gradient(145deg, rgba(13,20,52,.90), rgba(23,22,67,.84)); border: 1px solid rgba(172,195,255,.24); border-radius: 18px; padding: 22px; box-shadow: 0 18px 42px rgba(0,0,0,.25); backdrop-filter: blur(10px); cursor: pointer; overflow: hidden; transition: all var(--t-fast); animation: fmFadeUp 350ms ease-out both; display: flex; flex-direction: column; }
+.fm-card:hover { border-color: rgba(123,215,255,.9); box-shadow: 0 22px 48px rgba(48,105,255,.28); transform: translateY(-4px); }
 .fm-card-pinned { border-top: 3px solid var(--warning); }
 .fm-card-top { display: flex; align-items: center; gap: var(--s-sm); margin-bottom: var(--s-sm); }
 .fm-card-section { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
 .fm-card-pin { font-size: 11px; font-weight: 600; color: var(--warning); background: rgba(255,152,0,0.08); padding: 2px 8px; border-radius: 999px; }
-.fm-card-title { font-size: 15px; font-weight: 600; line-height: 1.5; margin-bottom: var(--s-xs); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.fm-card-preview { font-size: 13px; color: var(--text-secondary); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: var(--s-base); flex: 1; }
-.fm-card-footer { display: flex; align-items: center; gap: var(--s-sm); font-size: 12px; color: var(--text-disabled); margin-top: auto; padding-top: var(--s-sm); border-top: 1px solid var(--divider); }
-.fm-card-author { font-weight: 500; color: var(--text-secondary); }
+.fm-card-title { font-size: 16px; font-weight: 600; line-height: 1.5; color: #f6f8ff; margin-bottom: var(--s-xs); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fm-card-preview { font-size: 13px; color: rgba(224,232,255,.73); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: var(--s-base); flex: 1; }
+.fm-card-footer { display: flex; align-items: center; gap: var(--s-sm); font-size: 12px; color: rgba(213,225,255,.62); margin-top: auto; padding-top: var(--s-sm); border-top: 1px solid rgba(172,195,255,.18); }
+.fm-card-author { font-weight: 500; color: rgba(235,241,255,.9); }
 .fm-card-stats { margin-left: auto; display: flex; gap: var(--s-sm); }
 .fm-card-stat { display: flex; align-items: center; gap: 3px; }
 .fm-loading { display: flex; justify-content: center; padding: var(--s-xl); }

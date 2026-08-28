@@ -20,22 +20,22 @@
     </div>
   </div>
   <template v-if="post">
-    <div class="pd-accent"></div>
-    <PostDetailContent :post="post">
-      <template #actions>
+    <ForumResourceDetail v-if="post.sectionKey === 'share'" :post="post" />
+    <ForumTechDetail v-else :post="post" />
+    <div class="pd-discussion">
+      <div class="pd-actions">
         <InteractionBar
           :post-id="post.id"
           :votes="post.votes"
           :can-post="auth.canPost"
           @update:votes="post.votes = $event"
         />
-      </template>
-    </PostDetailContent>
-    <CommentSection
-      :post-id="post.id"
-      :can-post="auth.canPost"
-      style="margin-top: var(--s-base)"
-    />
+      </div>
+      <CommentSection
+        :post-id="post.id"
+        :can-post="auth.canPost"
+      />
+    </div>
   </template>
 </template>
 
@@ -45,7 +45,8 @@ import { useRoute } from 'vue-router'
 import { useSectionStore } from '@/stores/section'
 import { useAuthStore } from '@/stores/auth'
 import { getPost } from '@/api/post'
-import PostDetailContent from '@/components/PostDetailContent.vue'
+import ForumResourceDetail from '@/components/ForumResourceDetail.vue'
+import ForumTechDetail from '@/components/ForumTechDetail.vue'
 import CommentSection from '@/components/forum/CommentSection.vue'
 import InteractionBar from '@/components/forum/InteractionBar.vue'
 
@@ -90,10 +91,9 @@ watch(() => route.params.id, (newId) => { if (newId) fetchPost(newId) })
   padding: 6px 12px; border-radius: var(--r-sm); transition: all var(--t-fast);
 }
 .pd-back:hover { color: var(--primary); background: var(--primary-bg); }
-.pd-accent {
-  height: 3px; border-radius: 2px; margin-bottom: var(--s-base);
-  background: linear-gradient(90deg, var(--primary), var(--primary-light), #64B5F6);
-}
+.pd-discussion { width: min(916px, calc(100% - 230px)); margin: var(--s-base) 0 0 max(0px, calc((100% - 1180px) / 2)); }
+.pd-actions { padding: 0 var(--s-sm); }
+@media (max-width: 840px) { .pd-discussion { width: 100%; } }
 .pd-empty { text-align: center; padding: var(--s-3xl); color: var(--text-secondary); }
 .pd-empty-icon { color: var(--text-disabled); margin-bottom: var(--s-base); opacity: 0.4; }
 </style>

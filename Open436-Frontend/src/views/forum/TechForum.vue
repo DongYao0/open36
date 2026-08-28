@@ -17,11 +17,13 @@
       @click="goPost(post)"
     >
       <div class="fm-card-top">
+        <span class="fm-card-index">{{ String(i + 1).padStart(2, '0') }}</span>
         <span class="fm-card-section" :style="{ color: getSectionColor(post.section), background: getSectionBg(post.section) }">{{ getSectionName(post.section) }}</span>
         <span v-if="post.pinned" class="fm-card-pin">置顶</span>
       </div>
       <h3 class="fm-card-title">{{ post.title }}</h3>
       <p class="fm-card-preview">{{ post.content }}</p>
+      <span class="fm-card-read">阅读工程笔记 <b>→</b></span>
       <div class="fm-card-footer">
         <span class="fm-card-author">{{ post.author }}</span>
         <span class="fm-card-time">{{ formatDate(post.createdAt) }}</span>
@@ -126,7 +128,9 @@ onUnmounted(() => { observer?.disconnect() })
 .fm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 @media (max-width: 1100px) { .fm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 720px) { .fm-grid { grid-template-columns: 1fr; } }
-.fm-card { min-height: 220px; background: linear-gradient(145deg, rgba(13,20,52,.90), rgba(23,22,67,.84)); border: 1px solid rgba(172,195,255,.24); border-radius: 18px; padding: 22px; box-shadow: 0 18px 42px rgba(0,0,0,.25); backdrop-filter: blur(10px); cursor: pointer; overflow: hidden; transition: all var(--t-fast); animation: fmFadeUp 350ms ease-out both; display: flex; flex-direction: column; }
+.fm-card { position: relative; min-height: 220px; background: linear-gradient(145deg, rgba(11,25,60,.93), rgba(30,17,74,.88)); border: 1px solid rgba(172,195,255,.24); border-radius: 18px; padding: 22px; box-shadow: 0 18px 42px rgba(0,0,0,.25); backdrop-filter: blur(10px); cursor: pointer; overflow: hidden; transition: all var(--t-fast); animation: fmFadeUp 350ms ease-out both; display: flex; flex-direction: column; }
+.fm-card::before { position: absolute; top: -52px; right: -38px; width: 132px; height: 132px; border: 1px solid rgba(112,222,255,.24); border-radius: 50%; box-shadow: inset 0 0 35px rgba(109,90,255,.18); content: ''; }
+.fm-card > * { position: relative; z-index: 1; }
 .fm-card:hover { border-color: rgba(123,215,255,.9); box-shadow: 0 22px 48px rgba(48,105,255,.28); transform: translateY(-4px); }
 .fm-card-pinned { border-top: 3px solid var(--warning); }
 .fm-card-top { display: flex; align-items: center; gap: var(--s-sm); margin-bottom: var(--s-sm); }
@@ -138,6 +142,10 @@ onUnmounted(() => { observer?.disconnect() })
 .fm-card-author { font-weight: 500; color: rgba(235,241,255,.9); }
 .fm-card-stats { margin-left: auto; display: flex; gap: var(--s-sm); }
 .fm-card-stat { display: flex; align-items: center; gap: 3px; }
+.fm-card-index { color: rgba(149,203,255,.48); font: 700 12px/1 var(--mono); letter-spacing: .12em; }
+.fm-card-read { margin: 3px 0 15px; color: #8ce6ff; font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+.fm-card-read b { margin-left: 4px; transition: transform var(--t-fast); display: inline-block; }
+.fm-card:hover .fm-card-read b { transform: translateX(5px); }
 .fm-loading { display: flex; justify-content: center; padding: var(--s-xl); }
 .fm-empty { text-align: center; padding: var(--s-3xl) var(--s-lg); color: var(--text-disabled); }
 .fm-empty svg { opacity: 0.3; margin-bottom: var(--s-base); }

@@ -35,6 +35,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 "/api/auth/register",   // 注册接口
                 "/api/auth/login",      // 登录接口
                 "/api/auth/admin/login",// 管理端登录接口
+                "/api/users/homepage/public", // 首页内容前台聚合读取（匿名）
                 "/error"                // 错误页面
             );
     }

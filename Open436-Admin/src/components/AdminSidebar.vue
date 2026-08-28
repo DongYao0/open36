@@ -17,6 +17,10 @@
         <el-icon><Odometer /></el-icon>
         <template #title>仪表盘</template>
       </el-menu-item>
+      <el-menu-item index="/homepage">
+        <el-icon><Monitor /></el-icon>
+        <template #title>首页管理</template>
+      </el-menu-item>
       <el-menu-item index="/users">
         <el-icon><User /></el-icon>
         <template #title>用户管理</template>

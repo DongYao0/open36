@@ -38,6 +38,10 @@ export default defineConfig({
         target: 'http://localhost:8008',
         changeOrigin: true
       },
+      '/api/files': {
+        target: 'http://localhost:8000',
+        changeOrigin: true
+      },
       '/api/posts': {
         target: 'http://localhost:8003',
         changeOrigin: true

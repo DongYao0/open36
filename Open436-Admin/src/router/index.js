@@ -20,6 +20,12 @@ const routes = [
         meta: { title: '仪表盘', icon: 'Odometer' }
       },
       {
+        path: 'homepage',
+        name: 'Homepage',
+        component: () => import('@/views/dashboard/HomepageView.vue'),
+        meta: { title: '首页管理', icon: 'Monitor' }
+      },
+      {
         path: 'users',
         name: 'Users',
         component: () => import('@/views/users/UserView.vue'),

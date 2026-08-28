@@ -8,9 +8,11 @@ import { motion } from "framer-motion";
 import "react-vertical-timeline-component/style.min.css";
 
 import { styles } from "../styles";
-import { experiences } from "../constants";
+import { experiences as defaultExperiences } from "../constants";
+import { useHomepage } from "../context/HomepageContext";
 import { SectionWrapper } from "../hoc";
 import { textVariant } from "../utils/motion";
+import noimg from "../assets/noimg.svg";
 
 const ExperienceCard = ({ experience }) => {
   return (
@@ -25,8 +27,8 @@ const ExperienceCard = ({ experience }) => {
       icon={
         <div className='flex justify-center items-center w-full h-full'>
           <img
-            src={experience.icon}
-            alt={experience.company_name}
+            src={experience.icon || noimg}
+            alt={experience.company_name || experience.title || 'card'}
             className='w-[60%] h-[60%] object-contain'
           />
         </div>
@@ -81,6 +83,9 @@ const ExperienceCard = ({ experience }) => {
 };
 
 const Experience = () => {
+  const { get } = useHomepage();
+  const list = get("experiences", defaultExperiences);
+
   return (
     <>
       <motion.div variants={textVariant()}>
@@ -94,9 +99,9 @@ const Experience = () => {
 
       <div className='mt-20 flex flex-col'>
         <VerticalTimeline>
-          {experiences.map((experience, index) => (
+          {(Array.isArray(list) ? list : []).map((experience, index) => (
             <ExperienceCard
-              key={`experience-${index}`}
+              key={`experience-${(experience.title || '') + index}`}
               experience={experience}
             />
           ))}

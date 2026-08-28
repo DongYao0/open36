@@ -4,7 +4,15 @@ import { motion } from "framer-motion";
 import { styles } from "../styles";
 import { SectionWrapper } from "../hoc";
 import { fadeIn, textVariant } from "../utils/motion";
-import { testimonials } from "../constants";
+import { testimonials as defaultTestimonials } from "../constants";
+import { useHomepage } from "../context/HomepageContext";
+import noimg from "../assets/noimg.svg";
+
+const defaultFeedbacks = {
+  subText: "社区声音",
+  headText: "学长学姐寄语.",
+  items: defaultTestimonials,
+};
 
 const FeedbackCard = ({
   index,
@@ -21,7 +29,7 @@ const FeedbackCard = ({
     <p className='text-white-100 font-black text-[48px]'>"</p>
 
     <div className='mt-1'>
-      <p className='text-white-100 tracking-wider text-[18px]'>{testimonial}</p>
+      <p className='text-white-100 tracking-wider text-[18px] whitespace-pre-line'>{testimonial}</p>
 
       <div className='mt-7 flex justify-between items-center gap-1'>
         <div className='flex-1 flex flex-col'>
@@ -29,13 +37,13 @@ const FeedbackCard = ({
             <span className='blue-text-gradient'>@</span> {name}
           </p>
           <p className='mt-1 text-secondary text-[12px]'>
-            {designation} of {company}
+            {[designation, company].filter(Boolean).join(' · ')}
           </p>
         </div>
 
         <img
-          src={image}
-          alt={`feedback_by-${name}`}
+          src={image || noimg}
+          alt={`feedback_by-${name || 'user'}`}
           className='w-10 h-10 rounded-full object-cover'
         />
       </div>
@@ -44,18 +52,22 @@ const FeedbackCard = ({
 );
 
 const Feedbacks = () => {
+  const { get } = useHomepage();
+  const feedbacks = get("feedbacks", defaultFeedbacks);
+  const items = Array.isArray(feedbacks.items) ? feedbacks.items : defaultTestimonials;
+
   return (
     <div className={`mt-12 bg-black-100 rounded-[20px]`}>
       <div
         className={`bg-tertiary rounded-2xl ${styles.padding} min-h-[300px]`}
       >
         <motion.div variants={textVariant()}>
-          <p className={styles.sectionSubText}>社区声音</p>
-          <h2 className={styles.sectionHeadText}>学长学姐寄语.</h2>
+          <p className={styles.sectionSubText}>{feedbacks.subText}</p>
+          <h2 className={styles.sectionHeadText}>{feedbacks.headText}</h2>
         </motion.div>
       </div>
       <div className={`-mt-20 pb-14 ${styles.paddingX} flex flex-wrap gap-7`}>
-        {testimonials.map((testimonial, index) => (
+        {items.map((testimonial, index) => (
           <FeedbackCard key={index} index={index} {...testimonial} />
         ))}
       </div>

@@ -83,6 +83,15 @@ const services = [
   },
 ];
 
+// 实验室介绍默认内容（About 区块 fallback，与 About.jsx 原硬编码一致）
+const defaultAbout = {
+  subText: "实验室介绍",
+  headText: "关于0436.",
+  description:
+    "0436 系统设计实验室专注前后端开发、智能计算与 AI 创新，为计算机专业学生提供系统化分层编程培训，拥有完善的前端、后端完整学习路线；实验室成员学业成绩优异，在挑战杯、计算机设计大赛、蓝桥杯等国家级赛事斩获多项一二三等奖；团队自主研发 Queue 学习平台、LeSoun AI 音乐创作等实战项目，还有多学科合作研发任务；实验室硬件配置顶配，配有独立服务器、双屏工位、打印机、冰箱与双中央空调，环境舒适；日常会组织聚餐、剧本杀等团建活动，学习氛围轻松互助，零基础同学也能得到学长学姐全程带教，欢迎热爱编程、竞赛、开发的同学加入 QQ 群了解纳新详情。",
+  services,
+};
+
 const technologies = [
   {
     name: "HTML 5",
@@ -310,4 +319,4 @@ const projects = [
   },
 ];
 
-export { services, technologies, experiences, testimonials, projects };
+export { services, technologies, experiences, testimonials, projects, defaultAbout };

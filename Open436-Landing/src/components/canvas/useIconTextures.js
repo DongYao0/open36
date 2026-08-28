@@ -7,6 +7,8 @@ const TILE_SIZE = 128;
 const loadImage = (src) =>
   new Promise((resolve, reject) => {
     const image = new Image();
+    // 外链图（后台上传的 FileService URL）绘制到 canvas 需要 CORS 凭证模式
+    image.crossOrigin = "anonymous";
     image.onload = () => resolve(image);
     image.onerror = reject;
     image.src = src;

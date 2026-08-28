@@ -6,6 +6,7 @@
     :error="fetchError"
     @open="goPost"
   />
+  <router-link v-if="auth.canPost" to="/forum/post/new?type=share" class="sf-fab" title="收录资源">＋</router-link>
   <div ref="sentinel" class="scroll-sentinel"></div>
 </template>
 
@@ -15,11 +16,13 @@ import { useRouter } from 'vue-router'
 import { getPosts } from '@/api/post'
 import ResourceShareLanding from '@/components/ResourceShareLanding.vue'
 import { useSectionStore } from '@/stores/section'
+import { useAuthStore } from '@/stores/auth'
 
 const SECTION = 'share'
 const PAGE_SIZE = 12
 const router = useRouter()
 const sectionStore = useSectionStore()
+const auth = useAuthStore()
 const fetchError = ref('')
 const loading = ref(false)
 const posts = ref([])
@@ -72,4 +75,6 @@ onUnmounted(() => observer?.disconnect())
 
 <style scoped>
 .scroll-sentinel { height: 1px; }
+.sf-fab { position: fixed; right: var(--s-xl); bottom: var(--s-xl); z-index: 40; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #f6a34d, #e55b39); box-shadow: 0 12px 28px rgba(95,25,61,.42); color: #fffaf0; font-size: 32px; line-height: 1; text-decoration: none; transition: transform var(--t-fast); }
+.sf-fab:hover { transform: scale(1.08) rotate(90deg); }
 </style>

@@ -42,7 +42,7 @@
   </div>
   <div ref="sentinel" class="scroll-sentinel"></div>
 
-  <router-link v-if="auth.canPost" to="/forum/post/new" class="fm-fab" title="发帖">
+  <router-link v-if="auth.canPost" to="/forum/post/new?type=tech" class="fm-fab" title="写技术文章">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </router-link>
 </template>

@@ -1,7 +1,7 @@
 <template>
   <ForumHeader />
   <div class="forum-layout">
-    <div class="forum-main" :style="{ '--tech-forum-universe': `url(${techForumUniverse})`, '--tech-detail-blueprint': `url(${techDetailBlueprint})` }" :class="{ 'forum-main--resource': route.meta.forumSection === 'share', 'forum-main--tech': route.meta.forumSection === 'tech', 'forum-main--detail': route.name === 'PostDetail' }">
+    <div class="forum-main" :style="{ '--tech-forum-universe': `url(${techForumUniverse})`, '--tech-detail-blueprint': `url(${techDetailBlueprint})` }" :class="{ 'forum-main--resource': route.meta.forumSection === 'share', 'forum-main--tech': route.meta.forumSection === 'tech', 'forum-main--detail': route.name === 'PostDetail', 'forum-main--composer': route.name === 'PostNew' }">
       <router-view />
     </div>
   </div>
@@ -34,4 +34,7 @@ const route = useRoute()
 .forum-main--detail { position: relative; isolation: isolate; max-width: none; min-height: calc(100vh - var(--navbar-h, 56px)); padding: 34px clamp(18px, 5vw, 84px) 88px; background: #071224; }
 .forum-main--detail::before { position: fixed; z-index: -2; inset: var(--navbar-h, 56px) 0 0; background: var(--tech-detail-blueprint) center top / cover fixed; content: ''; }
 .forum-main--detail::after { position: fixed; z-index: -1; inset: var(--navbar-h, 56px) 0 0; background: linear-gradient(180deg, rgba(3,11,27,.46), rgba(7,16,39,.76)); content: ''; }
+.forum-main--composer { position: relative; isolation: isolate; max-width: none; min-height: calc(100vh - var(--navbar-h, 56px)); padding: 34px clamp(18px, 5vw, 84px) 88px; background: #071224; }
+.forum-main--composer::before { position: fixed; z-index: -2; inset: var(--navbar-h, 56px) 0 0; background: var(--tech-detail-blueprint) center / cover fixed; content: ''; }
+.forum-main--composer::after { position: fixed; z-index: -1; inset: var(--navbar-h, 56px) 0 0; background: rgba(4,12,31,.68); content: ''; }
 </style>

@@ -1,9 +1,10 @@
 <template>
   <!-- Back nav -->
+  <div class="pn-shell" :class="isResource ? 'pn-shell--resource' : 'pn-shell--tech'">
   <div class="pn-nav">
-    <router-link to="/forum/tech" class="pn-back">
+    <router-link :to="targetPath" class="pn-back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
-      返回论坛
+      返回{{ isResource ? '资源分享' : '技术交流' }}
     </router-link>
   </div>
 
@@ -16,42 +17,37 @@
         </svg>
       </div>
       <div>
-        <h2 class="pn-title">发布新帖</h2>
-        <p class="pn-desc">分享你的想法与经验</p>
+        <h2 class="pn-title">{{ isResource ? '收录一份可用资源' : '写一篇工程笔记' }}</h2>
+        <p class="pn-desc">{{ isResource ? '把链接、用途和上手方法交给下一位使用者' : '记录问题、方案、代码与可复现的实践结论' }}</p>
       </div>
     </div>
 
     <div class="pn-body">
       <div class="pn-field">
-        <label class="pn-label">标题</label>
-        <input v-model="form.title" class="pn-input" placeholder="请输入帖子标题" maxlength="100" />
+        <label class="pn-label">{{ isResource ? '资源名称' : '文章标题' }}</label>
+        <input v-model="form.title" class="pn-input" :placeholder="isResource ? '例如：一个值得收藏的 Agent 上下文压缩项目' : '例如：如何为 Agent 设计可靠的 Memory'" maxlength="100" />
         <div class="pn-counter">{{ form.title.length }}/100</div>
       </div>
 
       <div class="pn-field">
-        <label class="pn-label">摘要</label>
-        <textarea v-model="form.summary" class="pn-textarea-simple" placeholder="简要描述内容要点（卡片预览展示）" rows="3" maxlength="300"></textarea>
+        <label class="pn-label">{{ isResource ? '推荐理由' : '文章摘要' }}</label>
+        <textarea v-model="form.summary" class="pn-textarea-simple" :placeholder="isResource ? '它能解决什么问题、适合谁使用、为什么值得收藏' : '用两三句话说清问题、结论与读者能获得什么'" rows="3" maxlength="300"></textarea>
         <div class="pn-counter">{{ form.summary.length }}/300</div>
       </div>
 
-      <div class="pn-field">
-        <label class="pn-label">板块</label>
-        <div class="pn-sections">
-          <button
-            v-for="s in sectionStore.forumSections.filter(s => s.key !== 'all')"
-            :key="s.key"
-            class="pn-section-btn"
-            :class="{ active: form.section === s.key }"
-            :style="form.section === s.key ? { background: s.color, borderColor: s.color } : {}"
-            @click="form.section = s.key"
-          >
-            {{ s.name }}
-          </button>
-        </div>
+      <div v-if="isResource" class="pn-field">
+        <label class="pn-label">资源链接</label>
+        <input v-model="form.resourceUrl" class="pn-input" placeholder="官网、GitHub 仓库、下载地址或网盘链接" inputmode="url" />
+        <p class="pn-field-hint">该链接会成为资源详情页顶部的“获取资源”入口。</p>
+      </div>
+
+      <div class="pn-mode-note">
+        <b>{{ isResource ? 'RESOURCE DIRECTORY' : 'ENGINEERING NOTE' }}</b>
+        <span>{{ isResource ? '将发布到资源分享，详情页会展示获取入口和资源信息。' : '将发布到技术交流，详情页会生成摘要和文章目录。' }}</span>
       </div>
 
       <div class="pn-field">
-        <label class="pn-label">内容</label>
+        <label class="pn-label">{{ isResource ? '使用说明与补充信息' : '技术正文' }}</label>
         <div class="pn-editor">
           <div class="pn-toolbar">
             <button v-for="t in toolbar" :key="t.label" class="pn-tool" @click="t.action ? t.action() : insertMarkdown(t.syntax)" :title="t.label" :disabled="imageUploading" v-html="t.icon"></button>
@@ -59,7 +55,7 @@
           </div>
           <input ref="imageFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/svg+xml" style="display:none" @change="handleImageUpload" />
           <div class="pn-split">
-            <textarea v-model="form.content" class="pn-textarea" placeholder="支持 Markdown 语法..." rows="16"></textarea>
+            <textarea v-model="form.content" class="pn-textarea" :placeholder="isResource ? '建议写明：适用场景、使用步骤、注意事项与替代方案。支持 Markdown。' : '建议写明：问题背景、方案取舍、关键实现、踩坑和结论。支持 Markdown。'" rows="16"></textarea>
             <div class="pn-preview">
               <div v-if="previewHtml" v-html="previewHtml"></div>
               <span v-else class="pn-preview-placeholder">预览区域...</span>
@@ -74,16 +70,17 @@
           <svg v-if="!submitting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
             <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
           </svg>
-          {{ submitting ? '发布中...' : '发布帖子' }}
+          {{ submitting ? '发布中...' : (isResource ? '发布资源' : '发布文章') }}
         </button>
       </div>
     </div>
+  </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useSectionStore } from '@/stores/section'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
@@ -92,13 +89,16 @@ import { createPost } from '@/api/post'
 import { uploadFile } from '@/api/file'
 
 const router = useRouter()
+const route = useRoute()
 const sectionStore = useSectionStore()
 const ui = useUIStore()
 const auth = useAuthStore()
 const submitting = ref(false)
 const imageUploading = ref(false)
 const imageFileInput = ref(null)
-const form = ref({ title: '', summary: '', section: 'tech', content: '' })
+const form = ref({ title: '', summary: '', section: 'tech', resourceUrl: '', content: '' })
+const isResource = computed(() => route.query.type === 'share')
+const targetPath = computed(() => isResource.value ? '/forum/share' : '/forum/tech')
 
 const toolbar = [
   { label: '加粗', syntax: '**粗体文本**', icon: '<b>B</b>' },
@@ -112,10 +112,11 @@ const toolbar = [
 ]
 
 const previewHtml = computed(() => markdownToHtml(form.value.content))
-const canSubmit = computed(() => form.value.title.trim() && form.value.content.trim() && form.value.section)
+const canSubmit = computed(() => form.value.title.trim() && form.value.content.trim() && form.value.section && (!isResource.value || form.value.resourceUrl.trim()))
 
 onMounted(() => {
   if (!auth.canPost) { ui.showToast('请先登录后再发帖', 'warning'); router.push('/login'); return }
+  form.value.section = isResource.value ? 'share' : 'tech'
   sectionStore.fetchSections()
 })
 
@@ -153,12 +154,22 @@ async function handleImageUpload(e) {
 async function submitPost() {
   if (!canSubmit.value) { ui.showToast('请填写完整内容', 'warning'); return }
   if (submitting.value) return
+  if (isResource.value) {
+    try {
+      const url = new URL(form.value.resourceUrl.trim())
+      if (!['http:', 'https:'].includes(url.protocol)) throw new Error('unsupported protocol')
+    }
+    catch { ui.showToast('请填写有效的资源链接（需以 http:// 或 https:// 开头）', 'warning'); return }
+  }
   submitting.value = true
   try {
     let sectionId = sectionStore.getSectionId(form.value.section)
     if (!sectionId) { await sectionStore.fetchSections(); sectionId = sectionStore.getSectionId(form.value.section) }
     if (!sectionId) { ui.showToast('板块信息异常，请刷新重试', 'error'); return }
-    await createPost({ title: form.value.title.trim(), summary: form.value.summary.trim(), content: form.value.content.trim(), section_id: sectionId })
+    const content = isResource.value
+      ? `## 获取资源\n\n[访问资源](${form.value.resourceUrl.trim()})\n\n${form.value.content.trim()}`
+      : form.value.content.trim()
+    await createPost({ title: form.value.title.trim(), summary: form.value.summary.trim(), content, section_id: sectionId })
     ui.showToast('发布成功！', 'success')
     router.push('/forum/' + (form.value.section || 'tech'))
   } catch (e) {
@@ -171,6 +182,9 @@ async function submitPost() {
 </script>
 
 <style scoped>
+.pn-shell{--pn-panel:rgba(8,17,47,.88);--pn-panel-soft:rgba(16,26,67,.72);--pn-line:rgba(146,186,255,.24);--pn-text:#edf3ff;--pn-muted:#aab8dc;--pn-accent:#71ddff;max-width:1180px;margin:0 auto;color:var(--pn-text)}.pn-shell--resource{--pn-panel:rgba(39,25,60,.88);--pn-panel-soft:rgba(78,40,70,.76);--pn-line:rgba(246,203,137,.31);--pn-text:#fff5e8;--pn-muted:#e8cfc2;--pn-accent:#f5ae5d}
+.pn-nav{margin-bottom:16px}.pn-back{color:var(--pn-muted)}.pn-back:hover{color:var(--pn-accent);background:rgba(255,255,255,.06)}.pn-card{border-color:var(--pn-line);border-radius:22px;background:var(--pn-panel);box-shadow:0 24px 70px rgba(0,0,0,.28);backdrop-filter:blur(14px)}.pn-header{padding:30px 34px;border-color:var(--pn-line);background:linear-gradient(130deg,rgba(91,74,191,.25),transparent 62%)}.pn-shell--resource .pn-header{background:linear-gradient(130deg,rgba(228,111,52,.28),transparent 62%)}.pn-header-icon{border-color:var(--pn-line);background:rgba(112,221,255,.13);color:var(--pn-accent)}.pn-title,.pn-label{color:var(--pn-text)}.pn-desc,.pn-counter,.pn-field-hint{color:var(--pn-muted)}.pn-body{padding:32px 34px}.pn-input,.pn-textarea-simple,.pn-textarea{box-sizing:border-box;border-color:var(--pn-line);background:rgba(3,10,31,.36);color:var(--pn-text)}.pn-input:focus,.pn-textarea-simple:focus{border-color:var(--pn-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--pn-accent) 15%,transparent)}.pn-field-hint{margin:7px 0 0;font-size:12px}.pn-mode-note{display:grid;grid-template-columns:170px 1fr;gap:16px;margin:0 0 var(--s-lg);padding:15px 17px;border:1px solid var(--pn-line);border-radius:12px;background:var(--pn-panel-soft);font-size:13px;line-height:1.65}.pn-mode-note b{color:var(--pn-accent);font-size:11px;letter-spacing:.11em}.pn-mode-note span{color:var(--pn-muted)}
+.pn-editor{border-color:var(--pn-line)}.pn-toolbar{background:rgba(2,8,25,.6);border-color:var(--pn-line)}.pn-tool{color:var(--pn-muted)}.pn-tool:hover{background:rgba(255,255,255,.08);color:var(--pn-text)}.pn-preview{border-color:var(--pn-line);background:rgba(3,10,31,.28);color:var(--pn-text)}.pn-actions{border-color:var(--pn-line)}.pn-actions .btn-primary{background:var(--pn-accent);color:#071225}.pn-actions .btn-text{color:var(--pn-muted)}
 .pn-nav { margin-bottom: var(--s-base); }
 .pn-back {
   display: inline-flex; align-items: center; gap: 6px;
@@ -249,4 +263,5 @@ async function submitPost() {
 .pn-actions { display: flex; justify-content: flex-end; gap: var(--s-sm); padding-top: var(--s-lg); border-top: 1px solid var(--divider); }
 
 @media (max-width: 959px) { .pn-split { flex-direction: column; } }
+.pn-shell .pn-card{border-color:var(--pn-line);background:var(--pn-panel)}.pn-shell .pn-header{border-color:var(--pn-line);background:linear-gradient(130deg,rgba(91,74,191,.25),transparent 62%)}.pn-shell--resource .pn-header{background:linear-gradient(130deg,rgba(228,111,52,.28),transparent 62%)}.pn-shell .pn-title,.pn-shell .pn-label{color:var(--pn-text)}.pn-shell .pn-desc,.pn-shell .pn-counter,.pn-shell .pn-field-hint{color:var(--pn-muted)}.pn-shell .pn-input,.pn-shell .pn-textarea-simple,.pn-shell .pn-textarea{border-color:var(--pn-line);background:rgba(3,10,31,.36);color:var(--pn-text)}.pn-shell .pn-editor,.pn-shell .pn-toolbar,.pn-shell .pn-preview,.pn-shell .pn-actions{border-color:var(--pn-line)}.pn-shell .pn-toolbar{background:rgba(2,8,25,.6)}.pn-shell .pn-preview{background:rgba(3,10,31,.28);color:var(--pn-text)}.pn-shell .pn-tool{color:var(--pn-muted)}.pn-shell .pn-actions .btn-primary{background:var(--pn-accent);color:#071225}.pn-shell .pn-actions .btn-text{color:var(--pn-muted)}
 </style>

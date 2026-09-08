@@ -192,6 +192,9 @@ class PostViewSet(viewsets.GenericViewSet):
             resp, code = error_response('帖子不存在', code=40401, status_code=404)
             return Response(resp, status=code)
 
+        # 显式对象级权限校验（get_object 被重写后 DRF 不再自动调用）
+        self.check_object_permissions(request, post)
+
         if post.status == Post.STATUS_DELETED:
             resp, code = error_response('帖子已删除，无法编辑', code=400, status_code=400)
             return Response(resp, status=code)
@@ -234,6 +237,9 @@ class PostViewSet(viewsets.GenericViewSet):
         if not post:
             resp, code = error_response('帖子不存在', code=40401, status_code=404)
             return Response(resp, status=code)
+
+        # 显式对象级权限校验（get_object 被重写后 DRF 不再自动调用）
+        self.check_object_permissions(request, post)
 
         post.soft_delete()
         _update_user_stats(post.author_id, 'posts_count', -1)

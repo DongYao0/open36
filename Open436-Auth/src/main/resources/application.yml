@@ -27,7 +27,7 @@ management:
         include: health
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
 
 # Sa-Token 配置（所有环境共用）
 sa-token:
@@ -60,6 +60,10 @@ kong:
 security:
   max-login-attempts: 5
   account-lock-duration: 3600
+
+# 内部服务间调用密钥（生产环境必须通过环境变量覆盖）
+internal:
+  api-key: ${INTERNAL_API_KEY:open436-internal-dev-key-2026}
 
 # CORS 配置
 cors:

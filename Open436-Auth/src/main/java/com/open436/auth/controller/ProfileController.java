@@ -1,5 +1,7 @@
 package com.open436.auth.controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.stp.StpUtil;
 import com.open436.auth.dto.UpdateProfileRequest;
 import com.open436.auth.dto.UserProfileResponse;
 import com.open436.auth.service.UserProfileService;
@@ -39,11 +41,12 @@ public class ProfileController {
     /**
      * 更新用户资料（需登录，本人或管理员）
      */
+    @SaCheckLogin
     @PutMapping("/{id}/profile")
     public ResponseEntity<Map<String, Object>> updateProfile(
             @PathVariable Long id,
             @Valid @RequestBody UpdateProfileRequest request) {
-        // TODO: 验证是否是本人或管理员
+        requireSelfOrAdmin(id);
         UserProfileResponse profile = profileService.updateProfile(id, request);
         Map<String, Object> response = new HashMap<>();
         response.put("code", 200);
@@ -53,13 +56,14 @@ public class ProfileController {
     }
 
     /**
-     * 上传头像
+     * 上传头像（需登录，本人或管理员）
      */
+    @SaCheckLogin
     @PostMapping("/{id}/avatar")
     public ResponseEntity<Map<String, Object>> uploadAvatar(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file) {
-        // TODO: 验证是否是本人或管理员
+        requireSelfOrAdmin(id);
         String avatarUrl = profileService.uploadAvatar(id, file);
         Map<String, Object> response = new HashMap<>();
         response.put("code", 200);
@@ -81,5 +85,19 @@ public class ProfileController {
         response.put("message", "success");
         response.put("data", profile.getStatistics());
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 校验当前登录用户是本人或管理员
+     */
+    private void requireSelfOrAdmin(Long targetUserId) {
+        Long currentUserId = Long.parseLong(StpUtil.getLoginId().toString());
+        if (currentUserId.equals(targetUserId)) {
+            return;
+        }
+        if (StpUtil.hasRole("admin")) {
+            return;
+        }
+        throw new SecurityException("无权操作他人资料");
     }
 }

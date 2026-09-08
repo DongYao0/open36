@@ -32,7 +32,6 @@ public class EnrollmentController {
 
     private String checkAdmin(HttpServletRequest request) {
         String token = request.getHeader("token");
-        log.info("[DEBUG] checkAdmin received token: {}", token);
         if (token == null || token.isEmpty()) {
             throw new RuntimeException("未登录");
         }

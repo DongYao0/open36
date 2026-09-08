@@ -7,13 +7,21 @@ local SaTokenAuthHandler = {
 }
 
 function SaTokenAuthHandler:access(conf)
+  -- 0. 安全加固（2026-09-07）：无论后续验证成败，先剥离客户端可能伪造的
+  --    X-User-* 头，确保上游服务只能看到本插件注入的可信身份。
+  --    若无 token（如公开接口误挂插件），也必须剥离，防止伪造直传。
+  kong.service.request.clear_header("X-User-Id")
+  kong.service.request.clear_header("X-Username")
+  kong.service.request.clear_header("X-User-Role")
+  kong.service.request.clear_header("X-User-Status")
+
   -- 1. 获取 Token
   local token = kong.request.get_header(conf.token_header_name)
-  
+
   if not token then
     return kong.response.exit(401, { message = "No token provided" })
   end
-  
+
   -- 移除 "Bearer " 前缀
   token = token:gsub("Bearer ", "")
   

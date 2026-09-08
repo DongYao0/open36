@@ -124,13 +124,29 @@ public class GlobalExceptionHandler {
     }
     
     /**
+     * 安全拒绝异常（越权访问/内部Key校验失败）
+     */
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSecurityException(SecurityException e) {
+        log.warn("安全拦截: {}", e.getMessage());
+        ErrorCode errorCode = ErrorCode.INSUFFICIENT_PERMISSION;
+
+        return ResponseEntity.status(errorCode.getHttpStatus())
+            .body(ApiResponse.<Void>builder()
+                .code(errorCode.getCode())
+                .message(e.getMessage() != null ? e.getMessage() : "无权限访问")
+                .timestamp(System.currentTimeMillis())
+                .build());
+    }
+
+    /**
      * 其他未知异常
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         log.error("系统异常: ", e);
         ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
-        
+
         return ResponseEntity.status(errorCode.getHttpStatus())
             .body(ApiResponse.<Void>builder()
                 .code(errorCode.getCode())

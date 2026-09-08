@@ -45,10 +45,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS
+# CORS（白名单，从配置读取）
+_cors_origins = [o.strip() for o in settings.CORS_ORIGINS.split(',') if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['*'],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],

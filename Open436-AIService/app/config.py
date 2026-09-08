@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     # 内部API密钥
     INTERNAL_API_KEY: str = 'open436-internal-secret'
 
+    # Auth服务地址（token二次校验用）
+    AUTH_SERVICE_URL: str = 'http://localhost:8081'
+
+    # CORS白名单（逗号分隔）
+    CORS_ORIGINS: str = 'http://localhost:3000,http://localhost:3001,http://localhost:5173'
+
     # Consul
     CONSUL_URL: str = 'http://localhost:8500'
     CONSUL_SERVICE_NAME: str = 'ai-service'

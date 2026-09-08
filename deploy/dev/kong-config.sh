@@ -109,15 +109,31 @@ curl -i -X POST $KONG_ADMIN/services/forum-service/routes \
 
 echo ""
 echo ""
+
+# 6. 创建 AI 服务（2026-09-07 新增注册；应用层已做token校验，Kong层为纵深防御）
+echo "Step 6: Creating ai-service..."
+curl -i -X POST $KONG_ADMIN/services \
+  --data name=ai-service \
+  --data url=http://${HOST_ADDR}:8008
+
+echo ""
+echo "Creating route for ai-service..."
+curl -i -X POST $KONG_ADMIN/services/ai-service/routes \
+  --data "paths[]=/api/ai" \
+  --data strip_path=false
+
+echo ""
+echo ""
 echo "========================================="
 echo "Kong Configuration Complete!"
 echo "========================================="
 echo ""
 echo "Services registered:"
 echo "  - auth-service:       http://${HOST_ADDR}:8081 → /api/auth/*, /api/users/*"
-echo "  - file-service:       http://${HOST_ADDR}:8007 → /api/files/*"
+echo "  - file-service:       http://${HOST_ADDR}:8007 → /api/files/* (satoken-auth)"
 echo "  - enrollment-service: http://${HOST_ADDR}:8084 → /api/enrollment/*"
 echo "  - forum-service:      http://${HOST_ADDR}:8003 → /api/posts/*, /api/comments/*, /api/sections/*, /api/replies/*, /api/topics/*"
+echo "  - ai-service:         http://${HOST_ADDR}:8008 → /api/ai/*"
 echo ""
 echo "Verification:"
 echo "  - Kong Admin API: curl http://localhost:8001/services"

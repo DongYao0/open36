@@ -216,6 +216,10 @@ class ReplyViewSet(viewsets.GenericViewSet):
         if not reply:
             resp, code = error_response('回复不存在', code=40401, status_code=404)
             return Response(resp, status=code)
+
+        # 显式对象级权限校验（get_object 被重写后 DRF 不再自动调用）
+        self.check_object_permissions(request, reply)
+
         if reply.is_deleted:
             resp, code = error_response('回复已删除', code=400, status_code=400)
             return Response(resp, status=code)
@@ -241,6 +245,10 @@ class ReplyViewSet(viewsets.GenericViewSet):
         if not reply:
             resp, code = error_response('回复不存在', code=40401, status_code=404)
             return Response(resp, status=code)
+
+        # 显式对象级权限校验（get_object 被重写后 DRF 不再自动调用）
+        self.check_object_permissions(request, reply)
+
         reply.soft_delete()
         _update_user_stats(reply.author_id, 'replies_count', -1)
         _update_post_count(reply.post_id, 'increment-replies', -1)

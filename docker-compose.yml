@@ -34,7 +34,7 @@ services:
   consul:
     image: hashicorp/consul:1.17
     container_name: open436-consul
-    ports: ["${CONSUL_PORT:-8500}:8500"]
+    ports: ["127.0.0.1:${CONSUL_PORT:-8500}:8500"]
     command: agent -server -ui -bootstrap-expect=1 -client=0.0.0.0
     volumes: [consul-data:/consul/data]
     networks: [open436-net]
@@ -42,7 +42,7 @@ services:
   minio:
     image: minio/minio:latest
     container_name: open436-minio
-    ports: ["${MINIO_API:-9000}:9000", "${MINIO_CONSOLE:-9001}:9001"]
+    ports: ["${MINIO_API:-9000}:9000", "127.0.0.1:${MINIO_CONSOLE:-9001}:9001"]
     environment:
       MINIO_ROOT_USER: ${MINIO_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_PASS:-minioadmin}
@@ -114,7 +114,7 @@ services:
       <<: *kong-db-env
       KONG_PLUGINS: bundled,satoken-auth
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
-    ports: ["${KONG_PROXY:-8000}:8000", "${KONG_ADMIN:-8001}:8001"]
+    ports: ["${KONG_PROXY:-8000}:8000", "127.0.0.1:${KONG_ADMIN:-8001}:8001"]
     depends_on: [kong-migration, consul]
     networks: [open436-net]
     extra_hosts: ["host.docker.internal:host-gateway"]

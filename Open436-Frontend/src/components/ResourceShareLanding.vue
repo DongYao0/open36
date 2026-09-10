@@ -7,7 +7,7 @@
     </div>
 
     <section id="resource-list" class="resource-stage">
-      <div v-if="posts.length" class="resource-grid">
+      <div v-if="posts.length" class="resource-grid" :class="{ 'resource-grid--sparse': posts.length < 5 }">
         <button v-for="(post, index) in posts" :key="post.id" class="resource-card" @click="$emit('open', post)">
           <div class="resource-visual" aria-hidden="true"><span>{{ post.pinned ? '★' : '↗' }}</span><i></i><i></i></div>
           <div class="resource-copy">
@@ -63,6 +63,9 @@ const totalPages = computed(() => Math.max(1, Math.ceil(props.totalCount / props
 .resource-stage{min-height:calc(100vh - 360px);margin-top:0;padding-top:clamp(42px,8vh,88px);background:linear-gradient(180deg,rgba(25,27,103,0) 0%,rgba(22,24,80,.34) 40%,#12142f 100%)}.resource-grid{position:relative;z-index:1;gap:20px;margin-top:clamp(220px,24vh,320px)}.resource-card{min-height:214px;border-color:rgba(246,230,188,.42);background:#111941;box-shadow:0 22px 45px rgba(10,14,60,.32)}
 .resource-visual{display:grid;place-items:center;min-height:214px;background:radial-gradient(circle at 25% 22%,#f7c86b 0 3%,transparent 3.5%),radial-gradient(circle at 67% 58%,rgba(102,227,230,.8) 0 4%,transparent 4.5%),linear-gradient(135deg,#fa9e47,#de5837 51%,#713273);isolation:isolate}.resource-visual:before{position:absolute;inset:12%;border:1px solid rgba(255,242,211,.52);border-radius:50%;content:""}.resource-visual span{position:relative;z-index:2;color:#fff7e7;font:700 62px/1 Georgia,serif;text-shadow:0 8px 17px rgba(75,15,41,.35)}.resource-visual i{position:absolute;width:12px;height:12px;border:2px solid rgba(255,245,220,.72);transform:rotate(45deg)}.resource-visual i:first-of-type{top:23px;right:29px}.resource-visual i:last-of-type{bottom:28px;left:30px;width:20px;height:20px}
 .resource-copy{background:linear-gradient(145deg,#101a43,#22205c)}.resource-copy p{display:-webkit-box;overflow:hidden;margin:0;color:#bac6e8;font-size:13px;line-height:1.65;-webkit-line-clamp:3;-webkit-box-orient:vertical}.resource-copy footer{align-items:center}.resource-copy footer b{color:#f7c86b;font-size:11px;white-space:nowrap}.resource-card:hover{border-color:#f7c86b;background:#111941;box-shadow:0 25px 52px rgba(24,16,82,.48)}
+.resource-grid--sparse{min-height:clamp(468px,52vh,600px);align-content:start}
+.resource-pagination{position:relative;margin-top:58px}.resource-pagination::before{position:absolute;top:-30px;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(247,200,107,.38),transparent);content:""}
 @media(max-width:680px){.resource-stage{margin-top:0;padding-top:42px}.resource-grid{margin-top:140px}.resource-visual{min-height:150px}}
+@media(max-width:680px){.resource-grid--sparse{min-height:420px}.resource-pagination{margin-top:46px}}
 @media(max-width:720px){.resource-pagination{grid-template-columns:1fr auto}.resource-pagination :deep(.pagination){grid-column:1/-1;justify-self:center}.page-summary{text-align:right}}
 </style>

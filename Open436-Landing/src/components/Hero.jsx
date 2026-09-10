@@ -20,7 +20,7 @@ const Hero = () => {
           </h1>
           <p className={`${styles.heroSubText} mt-2 text-white-100`}>
             为技术而生的开放协作平台 <br className='sm:block hidden' />
-            在线判题 · 编程赛事 · 技术社区 · 课程作业
+            在线判题 · 编程赛事 · 技术社区 · 资源分享
           </p>
         </div>
       </div>

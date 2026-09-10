@@ -11,7 +11,7 @@
       <div class="resource-actions">
         <a v-for="link in links" :key="link.url" :href="link.url" target="_blank" rel="noopener">{{ link.label }} <b>↗</b></a>
         <a v-if="!links.length" href="#resource-guide">阅读使用说明 <b>↓</b></a>
-        <small>发布者 · {{ post.author }}<br>更新于 {{ formatDate(post.createdAt) }}</small>
+        <small>发布者 · {{ post.author }}<br>更新于 {{ formatPostTime(post.createdAt) }}</small>
       </div>
     </header>
 
@@ -30,7 +30,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { formatDate, markdownToHtml } from '@/utils/format'
+import { formatPostTime, markdownToHtml } from '@/utils/format'
 
 const props = defineProps({ post: { type: Object, required: true } })
 const plain = computed(() => (props.post.content || '').replace(/!?(\[[^\]]*\]\([^)]*\)|[`#*_>-])/g, '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim())

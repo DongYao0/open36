@@ -17,7 +17,7 @@
       @click="goPost(post)"
     >
       <div class="fm-card-top">
-        <span class="fm-card-index">{{ String(i + 1).padStart(2, '0') }}</span>
+        <span class="fm-card-index">{{ String((currentPage - 1) * pageSize + i + 1).padStart(2, '0') }}</span>
         <span class="fm-card-section" :style="{ color: getSectionColor(post.section), background: getSectionBg(post.section) }">{{ getSectionName(post.section) }}</span>
         <span v-if="post.pinned" class="fm-card-pin">置顶</span>
       </div>
@@ -26,7 +26,7 @@
       <span class="fm-card-read">阅读工程笔记 <b>→</b></span>
       <div class="fm-card-footer">
         <span class="fm-card-author">{{ post.author }}</span>
-        <span class="fm-card-time">{{ formatDate(post.createdAt) }}</span>
+        <span class="fm-card-time">{{ formatPostTime(post.createdAt) }}</span>
         <span class="fm-card-stats">
           <span class="fm-card-stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M12 19V5M5 12l7-7 7 7"/></svg>{{ post.votes }}</span>
           <span class="fm-card-stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>{{ post.replyCount }}</span>
@@ -40,7 +40,16 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     <p>{{ fetchError || '暂无帖子，快来发布第一篇吧' }}</p>
   </div>
-  <div ref="sentinel" class="scroll-sentinel"></div>
+  <div v-if="totalCount > 0" class="fm-pagination-bar">
+    <label class="fm-page-size">
+      <span>每页</span>
+      <select :value="pageSize" :disabled="loading" @change="changePageSize">
+        <option v-for="size in PAGE_SIZES" :key="size" :value="size">{{ size }} 条</option>
+      </select>
+    </label>
+    <span class="fm-page-summary">第 {{ currentPage }} / {{ totalPages }} 页</span>
+    <Pagination :model-value="currentPage" :total-pages="totalPages" @update:model-value="changePage" />
+  </div>
 
   <router-link v-if="auth.canPost" to="/forum/post/new?type=tech" class="fm-fab" title="写技术文章">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -48,12 +57,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSectionStore } from '@/stores/section'
 import { useAuthStore } from '@/stores/auth'
 import { getPosts } from '@/api/post'
-import { formatDate } from '@/utils/format'
+import { formatPostTime, resolvePostAuthor } from '@/utils/format'
+import Pagination from '@/components/Pagination.vue'
 
 const SECTION = 'tech'
 const router = useRouter()
@@ -65,12 +75,11 @@ const loading = ref(false)
 const posts = ref([])
 const currentPage = ref(1)
 const totalCount = ref(0)
-const sentinel = ref(null)
-let observer = null
-const PAGE_SIZE = 10
+const PAGE_SIZES = [15, 30, 45]
+const pageSize = ref(PAGE_SIZES[0])
 
 const activeSectionId = computed(() => sectionStore.getSectionId(SECTION))
-const hasMore = computed(() => posts.value.length < totalCount.value)
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / pageSize.value)))
 
 function getSectionName(key) { return sectionStore.getSection(key)?.name || '' }
 function getSectionColor(key) { return sectionStore.getSection(key)?.color || '#1976D2' }
@@ -82,7 +91,7 @@ async function fetchPosts(page = 1) {
   try {
     let sectionId = activeSectionId.value
     if (!sectionId) { await sectionStore.fetchSections(); sectionId = activeSectionId.value }
-    const params = { page, page_size: PAGE_SIZE }
+    const params = { page, page_size: pageSize.value }
     if (sectionId) params.section_id = sectionId
     const res = await getPosts(params)
     const data = res?.data || {}
@@ -92,14 +101,13 @@ async function fetchPosts(page = 1) {
       return {
         id: p.id, title: p.title,
         content: p.content_preview || p.content || '',
-        author: p.author?.nickname || `用户${p.author?.user_id || ''}`,
+        author: resolvePostAuthor(p),
         section: sec?.key || SECTION,
         votes: p.likes_count || 0, replyCount: p.replies_count || 0,
         pinned: p.is_pinned, createdAt: p.created_at
       }
     })
-    if (page === 1) posts.value = results
-    else posts.value.push(...results)
+    posts.value = results
     currentPage.value = page
   } catch (e) {
     fetchError.value = e?.response?.data?.message || e?.message || '加载失败'
@@ -108,16 +116,22 @@ async function fetchPosts(page = 1) {
   }
 }
 
-function loadMore() { if (loading.value || !hasMore.value) return; fetchPosts(currentPage.value + 1) }
+function changePage(page) {
+  if (loading.value || page === currentPage.value || page < 1 || page > totalPages.value) return
+  fetchPosts(page)
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function changePageSize(event) {
+  pageSize.value = Number(event.target.value)
+  fetchPosts(1)
+}
 function goPost(post) { router.push(`/forum/post/${post.id}`) }
 
 onMounted(async () => {
   await sectionStore.fetchSections()
   await fetchPosts(1)
-  observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) loadMore() }, { rootMargin: '200px' })
-  if (sentinel.value) observer.observe(sentinel.value)
 })
-onUnmounted(() => { observer?.disconnect() })
 </script>
 
 <style scoped>
@@ -149,8 +163,15 @@ onUnmounted(() => { observer?.disconnect() })
 .fm-loading { display: flex; justify-content: center; padding: var(--s-xl); }
 .fm-empty { text-align: center; padding: var(--s-3xl) var(--s-lg); color: var(--text-disabled); }
 .fm-empty svg { opacity: 0.3; margin-bottom: var(--s-base); }
-.scroll-sentinel { height: 1px; }
+.fm-pagination-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 18px; margin-top: 28px; padding: 12px 18px; border: 1px solid rgba(172,195,255,.2); border-radius: 16px; background: rgba(10,20,55,.72); backdrop-filter: blur(12px); }
+.fm-pagination-bar :deep(.pagination) { justify-self: end; padding: 0; }
+.fm-pagination-bar :deep(.page-btn) { border-color: rgba(172,195,255,.25); background: rgba(16,29,70,.9); color: rgba(231,238,255,.82); }
+.fm-pagination-bar :deep(.page-btn.active) { border-color: #78d9ff; background: linear-gradient(135deg, #7557df, #218ecc); color: #fff; }
+.fm-page-size { display: flex; align-items: center; gap: 9px; color: rgba(222,231,255,.72); font-size: 13px; }
+.fm-page-size select { min-width: 82px; padding: 8px 10px; border: 1px solid rgba(172,195,255,.25); border-radius: 9px; background: #111d47; color: #f3f6ff; outline: none; }
+.fm-page-summary { color: rgba(213,225,255,.66); font-size: 12px; font-variant-numeric: tabular-nums; }
 .fm-fab { position: fixed; bottom: var(--s-xl); right: var(--s-xl); width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--cosmic-violet), var(--cosmic-cyan)); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(145,94,255,0.35); transition: all var(--t-fast); z-index: 40; }
 .fm-fab:hover { transform: scale(1.1) rotate(90deg); }
 @keyframes fmFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 720px) { .fm-pagination-bar { grid-template-columns: 1fr auto; } .fm-pagination-bar :deep(.pagination) { grid-column: 1 / -1; justify-self: center; } }
 </style>

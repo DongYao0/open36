@@ -1,7 +1,7 @@
 <template>
   <AppNavbar />
   <div class="forum-layout">
-    <div class="forum-main" :style="{ '--tech-forum-universe': `url(${techForumUniverse})`, '--tech-detail-blueprint': `url(${techDetailBlueprint})` }" :class="{ 'forum-main--resource': route.meta.forumSection === 'share', 'forum-main--tech': route.meta.forumSection === 'tech', 'forum-main--detail': route.name === 'PostDetail', 'forum-main--composer': route.name === 'PostNew' }">
+    <div class="forum-main" :style="{ '--tech-forum-universe': `url(${techForumUniverse})`, '--tech-detail-blueprint': `url(${techDetailBlueprint})` }" :class="{ 'forum-main--resource': route.meta.forumSection === 'share', 'forum-main--tech': route.meta.forumSection === 'tech', 'forum-main--detail': route.name === 'PostDetail', 'forum-main--composer': route.name === 'PostNew', 'forum-main--search': route.name === 'ForumSearch' }">
       <div v-if="isForumIndex" class="forum-toolbar">
         <nav class="forum-switcher" aria-label="论坛分区">
           <router-link to="/forum/tech" :class="{ active: route.meta.forumSection === 'tech' }">技术交流</router-link>
@@ -56,6 +56,7 @@ function doSearch() {
 .forum-main--composer { position: relative; isolation: isolate; max-width: none; min-height: calc(100vh - var(--navbar-h, 56px)); padding: 34px clamp(18px, 5vw, 84px) 88px; background: #071224; }
 .forum-main--composer::before { position: fixed; z-index: -2; inset: var(--navbar-h, 56px) 0 0; background: var(--tech-detail-blueprint) center / cover fixed; content: ''; }
 .forum-main--composer::after { position: fixed; z-index: -1; inset: var(--navbar-h, 56px) 0 0; background: rgba(4,12,31,.68); content: ''; }
+.forum-main--search { max-width: none; min-height: calc(100vh - var(--navbar-h, 56px)); padding: 0; background: #071126; }
 .forum-toolbar { position: relative; z-index: 2; display: flex; align-items: center; gap: 22px; max-width: 1364px; margin: 0 auto 22px; }
 .forum-switcher { display: flex; gap: 4px; flex: 0 0 auto; padding: 4px; border: 1px solid rgba(173,197,255,.18); border-radius: 12px; background: rgba(4,13,42,.62); backdrop-filter: blur(12px); }
 .forum-switcher a { padding: 9px 14px; border-radius: 8px; color: rgba(225,233,255,.72); font-size: 14px; font-weight: 700; text-decoration: none; transition: .2s; white-space: nowrap; }

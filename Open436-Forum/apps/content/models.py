@@ -32,6 +32,7 @@ class Post(models.Model):
     summary = models.CharField(max_length=300, blank=True, null=True, help_text='资源简介（卡片展示用，最多300字）')
     content = models.TextField(help_text='帖子内容（支持富文本）')
     author_id = models.IntegerField(help_text='作者ID（关联M1 users_auth.id）')
+    is_ai_generated = models.BooleanField(default=False, db_index=True, help_text='是否由AI助手生成')
     section_id = models.IntegerField(help_text='板块ID（关联M5 sections.id）')
     is_pinned = models.BooleanField(default=False, db_index=True, help_text='是否置顶')
     pin_type = models.CharField(max_length=20, choices=PIN_CHOICES, default=PIN_NONE, db_index=True, help_text='置顶类型')

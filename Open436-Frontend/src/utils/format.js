@@ -13,6 +13,30 @@ export function formatDate(dateStr) {
 }
 
 /**
+ * Forum post time: minutes within one hour, day + hour within ten days,
+ * and full days afterwards.
+ */
+export function formatPostTime(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const elapsedMs = Date.now() - date.getTime()
+  if (!Number.isFinite(elapsedMs)) return ''
+
+  const totalMinutes = Math.max(0, Math.floor(elapsedMs / 60000))
+  if (totalMinutes < 60) return `${totalMinutes}分钟前`
+
+  const totalHours = Math.floor(totalMinutes / 60)
+  const totalDays = Math.floor(totalHours / 24)
+  if (totalDays < 10) return `${totalDays}天${totalHours % 24}小时前`
+  return `${totalDays}天前`
+}
+
+/** Resolve the display name already supplied by the forum API. */
+export function resolvePostAuthor(post) {
+  return post?.author?.nickname || post?.author?.username || `用户${post?.author?.user_id || ''}`
+}
+
+/**
  * Abbreviate numbers: 10000+ → "1.0万", 1000+ → "1.0k"
  */
 export function formatNumber(num) {

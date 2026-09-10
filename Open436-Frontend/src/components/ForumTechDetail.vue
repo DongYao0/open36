@@ -3,7 +3,7 @@
     <header class="tech-head">
       <p>ENGINEERING NOTE / {{ post.section || '技术交流' }}</p>
       <h1>{{ post.title }}</h1>
-      <div class="tech-meta"><span>u/{{ post.author }}</span><span>{{ formatDate(post.createdAt) }}</span><span>{{ headings.length }} 个章节</span></div>
+      <div class="tech-meta"><span>u/{{ post.author }}</span><span>{{ formatPostTime(post.createdAt) }}</span><span>{{ headings.length }} 个章节</span></div>
       <div class="tech-abstract"><b>摘要</b><span>{{ summary }}</span></div>
     </header>
     <div class="tech-layout">
@@ -19,7 +19,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { formatDate, markdownToHtml } from '@/utils/format'
+import { formatPostTime, markdownToHtml } from '@/utils/format'
 
 const props = defineProps({ post: { type: Object, required: true } })
 const headings = computed(() => [...(props.post.content || '').matchAll(/^#{2,3}\s+(.+)$/gm)].map(match => match[1].trim()).slice(0, 8))

@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.posts (
     summary VARCHAR(300),
     content TEXT NOT NULL,
     author_id INTEGER NOT NULL,
+    is_ai_generated BOOLEAN NOT NULL DEFAULT FALSE,
     section_id INTEGER NOT NULL,
     is_pinned BOOLEAN NOT NULL DEFAULT FALSE,
     pin_type VARCHAR(20) NOT NULL DEFAULT 'none',
@@ -29,6 +30,7 @@ CREATE TABLE IF NOT EXISTS public.posts (
 );
 CREATE INDEX IF NOT EXISTS idx_posts_section_id ON public.posts (section_id);
 CREATE INDEX IF NOT EXISTS idx_posts_author_id ON public.posts (author_id);
+CREATE INDEX IF NOT EXISTS idx_posts_is_ai_generated ON public.posts (is_ai_generated);
 CREATE INDEX IF NOT EXISTS idx_posts_is_pinned ON public.posts (is_pinned);
 CREATE INDEX IF NOT EXISTS idx_posts_pin_type ON public.posts (pin_type);
 CREATE INDEX IF NOT EXISTS idx_posts_status ON public.posts (status);

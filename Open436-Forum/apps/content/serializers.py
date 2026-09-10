@@ -32,7 +32,14 @@ class PostListSerializer(serializers.ModelSerializer):
         ]
 
     def get_author(self, obj):
-        return {'user_id': obj.author_id, 'nickname': None, 'avatar_url': None}
+        if obj.is_ai_generated:
+            return {'user_id': obj.author_id, 'nickname': '0436', 'avatar_url': None}
+        profile = self.context.get('author_profiles', {}).get(obj.author_id, {})
+        return {
+            'user_id': obj.author_id,
+            'nickname': profile.get('nickname'),
+            'avatar_url': profile.get('avatar_url'),
+        }
 
     def get_section(self, obj):
         info = _get_section_info(obj.section_id)
@@ -67,7 +74,14 @@ class PostDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_author(self, obj):
-        return {'user_id': obj.author_id, 'nickname': None, 'avatar_url': None}
+        if obj.is_ai_generated:
+            return {'user_id': obj.author_id, 'nickname': '0436', 'avatar_url': None}
+        profile = self.context.get('author_profiles', {}).get(obj.author_id, {})
+        return {
+            'user_id': obj.author_id,
+            'nickname': profile.get('nickname'),
+            'avatar_url': profile.get('avatar_url'),
+        }
 
     def get_section(self, obj):
         info = _get_section_info(obj.section_id)

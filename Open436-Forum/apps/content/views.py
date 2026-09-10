@@ -4,7 +4,7 @@ Post views — 合并后 HTTP 内部调用改为 ORM 直查
 import logging
 import requests
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import viewsets, status
@@ -16,12 +16,17 @@ from apps.core.responses import success_response, error_response
 from django.conf import settings
 
 from .models import Post, PostEditHistory
+from .author_service import get_author_profiles
 from .serializers import (
     PostListSerializer, PostDetailSerializer, PostCreateSerializer,
     PostUpdateSerializer, PostEditHistorySerializer
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _serializer_context(request, posts):
+    return {'request': request, 'author_profiles': get_author_profiles(posts)}
 
 
 def _validate_section(section_id):
@@ -99,13 +104,26 @@ class PostViewSet(viewsets.GenericViewSet):
             status_filter = request.query_params.get('status')
             if status_filter:
                 queryset = queryset.filter(status=status_filter)
-            search = request.query_params.get('search')
-            if search:
-                queryset = queryset.filter(title__icontains=search)
+
+        search = request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search)
+                | Q(summary__icontains=search)
+                | Q(content__icontains=search)
+            )
 
         section_id = request.query_params.get('section_id')
         if section_id:
             queryset = queryset.filter(section_id=int(section_id))
+        section_ids = request.query_params.get('section_ids', '')
+        if section_ids:
+            try:
+                allowed_section_ids = [int(value) for value in section_ids.split(',') if value]
+            except ValueError:
+                allowed_section_ids = []
+            if allowed_section_ids:
+                queryset = queryset.filter(section_id__in=allowed_section_ids)
 
         ordering = request.query_params.get('ordering', '-created_at')
         allowed_ordering = ['-created_at', 'created_at', '-views_count', 'views_count']
@@ -119,9 +137,11 @@ class PostViewSet(viewsets.GenericViewSet):
         start = (page - 1) * page_size
         end = start + page_size
         total = queryset.count()
-        posts = queryset[start:end]
+        posts = list(queryset[start:end])
 
-        serializer = PostListSerializer(posts, many=True)
+        serializer = PostListSerializer(
+            posts, many=True, context=_serializer_context(request, posts)
+        )
         return Response(success_response(data={
             'count': total,
             'next': f'/api/posts/?page={page + 1}' if end < total else None,
@@ -158,7 +178,7 @@ class PostViewSet(viewsets.GenericViewSet):
         _update_section_posts(section_id, 1)
 
         return Response(success_response(
-            data=PostDetailSerializer(post, context={'request': request}).data,
+            data=PostDetailSerializer(post, context=_serializer_context(request, [post])).data,
             message='帖子发布成功'
         ), status=status.HTTP_201_CREATED)
 
@@ -181,7 +201,7 @@ class PostViewSet(viewsets.GenericViewSet):
             cache.set(cache_key, True, 600)
 
         return Response(success_response(
-            data=PostDetailSerializer(post, context={'request': request}).data
+            data=PostDetailSerializer(post, context=_serializer_context(request, [post])).data
         ))
 
     @transaction.atomic
@@ -226,7 +246,7 @@ class PostViewSet(viewsets.GenericViewSet):
         post.record_edit(user_id)
 
         return Response(success_response(
-            data=PostDetailSerializer(post, context={'request': request}).data,
+            data=PostDetailSerializer(post, context=_serializer_context(request, [post])).data,
             message='帖子已更新'
         ))
 

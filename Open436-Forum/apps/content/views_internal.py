@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from apps.core.responses import success_response, error_response
 from .models import Post, PostEditHistory
 from .serializers import PostListSerializer, PostCreateSerializer, PostUpdateSerializer
+from .author_service import get_author_profiles
 
 logger = logging.getLogger(__name__)
 
@@ -107,8 +108,11 @@ class InternalPostViewSet(viewsets.GenericViewSet):
         start = (page - 1) * page_size
         end = start + page_size
         total = queryset.count()
-        posts = queryset[start:end]
-        serializer = PostListSerializer(posts, many=True)
+        posts = list(queryset[start:end])
+        serializer = PostListSerializer(
+            posts, many=True,
+            context={'author_profiles': get_author_profiles(posts)},
+        )
         return Response(success_response(data={
             'count': total,
             'next': f'/internal/posts/by-user/{user_id}/?page={page + 1}' if end < total else None,
@@ -126,7 +130,7 @@ class InternalPostViewSet(viewsets.GenericViewSet):
         if not author_id:
             resp, code = error_response('缺少 author_id 参数', code=400, status_code=400)
             return Response(resp, status=code)
-        post = serializer.save(author_id=int(author_id))
+        post = serializer.save(author_id=int(author_id), is_ai_generated=True)
         # 直接更新板块帖子计数
         from apps.section.models import Section
         from django.db.models import F as DjangoF
@@ -172,8 +176,11 @@ class InternalPostViewSet(viewsets.GenericViewSet):
         start = (page - 1) * page_size
         end = start + page_size
         total = queryset.count()
-        posts = queryset.order_by('-created_at')[start:end]
-        serializer = PostListSerializer(posts, many=True)
+        posts = list(queryset.order_by('-created_at')[start:end])
+        serializer = PostListSerializer(
+            posts, many=True,
+            context={'author_profiles': get_author_profiles(posts)},
+        )
         return Response(success_response(data={
             'count': total, 'page': page, 'page_size': page_size,
             'results': serializer.data,

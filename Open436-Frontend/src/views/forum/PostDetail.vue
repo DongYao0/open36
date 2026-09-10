@@ -45,6 +45,7 @@ import { useRoute } from 'vue-router'
 import { useSectionStore } from '@/stores/section'
 import { useAuthStore } from '@/stores/auth'
 import { getPost } from '@/api/post'
+import { resolvePostAuthor } from '@/utils/format'
 import ForumResourceDetail from '@/components/ForumResourceDetail.vue'
 import ForumTechDetail from '@/components/ForumTechDetail.vue'
 import CommentSection from '@/components/forum/CommentSection.vue'
@@ -67,7 +68,7 @@ async function fetchPost(id) {
       const sec = sectionStore.getSectionById(raw.section?.section_id)
       post.value = {
         id: raw.id, title: raw.title || '', content: raw.content || '',
-        author: raw.author?.nickname || `用户${raw.author?.user_id || ''}`,
+        author: resolvePostAuthor(raw),
         section: sec?.name || '未知板块',
         sectionKey: sec?.key || '',
         votes: raw.likes_count || 0, createdAt: raw.created_at
@@ -79,7 +80,11 @@ async function fetchPost(id) {
   } finally { loading.value = false }
 }
 
-onMounted(() => { sectionStore.fetchSections(); const id = route.params.id; if (id) fetchPost(id) })
+onMounted(async () => {
+  await sectionStore.fetchSections()
+  const id = route.params.id
+  if (id) fetchPost(id)
+})
 watch(() => route.params.id, (newId) => { if (newId) fetchPost(newId) })
 </script>
 

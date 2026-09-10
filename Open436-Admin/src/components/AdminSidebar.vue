@@ -25,7 +25,8 @@
         <el-menu-item index="/homepage/about">实验室介绍</el-menu-item>
         <el-menu-item index="/homepage/experiences">实验室功能</el-menu-item>
         <el-menu-item index="/homepage/technologies">技术栈小球</el-menu-item>
-        <el-menu-item index="/homepage/works">获奖荣誉</el-menu-item>
+        <el-menu-item index="/homepage/works">奖项卡片</el-menu-item>
+        <el-menu-item index="/homepage/honors">荣誉相册</el-menu-item>
         <el-menu-item index="/homepage/feedbacks">社区声音</el-menu-item>
       </el-sub-menu>
       <el-menu-item index="/users">

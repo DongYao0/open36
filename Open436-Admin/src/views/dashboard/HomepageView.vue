@@ -129,10 +129,44 @@
             </el-form-item>
           </el-form>
         </el-card>
-        <el-button @click="worksItems.push({ name: '', description: '', image: '', tags: [], source_code_link: '' })">+ 新增奖项卡片</el-button>
+        <el-button @click="addWorkItem">+ 新增奖项卡片</el-button>
       </section>
 
-      <!-- ══════════ 5. 社区声音 ══════════ -->
+      <!-- ══════════ 5. 荣誉相册 ══════════ -->
+      <section v-if="activeTab === 'honors'">
+        <el-alert type="info" :closable="false" class="mb12"
+          title="每张奖项卡片对应一个独立相册；前台按年份从新到旧、同年按国家级到省级排序，上下移动用于调整同年份同级别照片。" />
+        <el-card v-for="(album, albumIndex) in worksItems" :key="`${album.name}-${albumIndex}`"
+          shadow="never" class="album-card mb12">
+          <div class="album-heading">
+            <div><small>奖项卡片 {{ albumIndex + 1 }}</small><h3>{{ album.name || '未命名奖项' }}</h3></div>
+            <el-tag effect="plain">{{ album.gallery.length }} 张照片</el-tag>
+          </div>
+          <el-empty v-if="!album.gallery.length" description="这个相册还没有照片" :image-size="72" />
+          <el-card v-for="(photo, photoIndex) in album.gallery" :key="photoIndex" shadow="never" class="photo-card mb12">
+            <div class="card-toolbar">
+              <b>照片 {{ photoIndex + 1 }} · {{ photo.recipient || '未填写姓名' }}</b>
+              <span>
+                <el-button circle size="small" :disabled="photoIndex === 0" @click="moveItem(album.gallery, photoIndex, -1)">↑</el-button>
+                <el-button circle size="small" :disabled="photoIndex === album.gallery.length - 1" @click="moveItem(album.gallery, photoIndex, 1)">↓</el-button>
+                <el-button size="small" type="danger" @click="confirmRemove(album.gallery, photoIndex, '相册图片')"><el-icon><Delete /></el-icon>删除</el-button>
+              </span>
+            </div>
+            <el-form label-width="90px">
+              <el-form-item label="获奖人"><el-input v-model="photo.recipient" placeholder="姓名或团队名称" /></el-form-item>
+              <el-form-item label="奖项名称"><el-input v-model="photo.title" placeholder="如：蓝桥杯省级二等奖" /></el-form-item>
+              <el-form-item label="奖项级别"><el-input v-model="photo.level" placeholder="如：省级二等奖" /></el-form-item>
+              <el-form-item label="获奖年份"><el-input v-model="photo.year" placeholder="如：2026" /></el-form-item>
+              <el-form-item label="补充说明"><el-input v-model="photo.description" type="textarea" :rows="2" /></el-form-item>
+              <el-form-item label="奖项图片"><ImageBox :model-value="photo.image" tip="证书或赛事照片" @update:model-value="value => updatePhotoImage(photo, value)" /></el-form-item>
+            </el-form>
+          </el-card>
+          <el-button type="primary" plain @click="addHonorPhoto(album)">+ 添加照片到“{{ album.name || '未命名奖项' }}”</el-button>
+        </el-card>
+        <el-empty v-if="!worksItems.length" description="请先在“奖项卡片”中新增卡片" />
+      </section>
+
+      <!-- ══════════ 6. 社区声音 ══════════ -->
       <section v-if="activeTab === 'feedbacks'">
         <el-card shadow="never" class="mb12" v-if="feedbacks">
           <el-form label-width="90px" inline>
@@ -198,6 +232,7 @@ import { Delete } from '@element-plus/icons-vue'
 import { getHomepageModule, saveHomepageModule, resetHomepageModule } from '@/api/homepage'
 import { uploadFile } from '@/api/files'
 import * as landingAssets from '../../../../Open436-Landing/src/assets/index.js'
+import { defaultHonorProjects, honorGallery, sortHonorGallery } from '../../../../Open436-Landing/src/data/honorGallery.js'
 
 const props = defineProps({
   module: { type: String, default: 'about' }
@@ -259,7 +294,7 @@ const saving = ref(false)
 const activeTab = computed(() => props.module)
 const moduleLabels = {
   about: '实验室介绍', experiences: '实验室功能', technologies: '技术栈小球',
-  works: '获奖荣誉', feedbacks: '社区声音'
+  works: '奖项卡片', honors: '荣誉相册', feedbacks: '社区声音'
 }
 const defaultTechIcons = {
   'HTML 5': landingAssets.html, 'CSS 3': landingAssets.css,
@@ -282,12 +317,14 @@ const feedbacks = ref(null)
 
 const aboutServices = computed(() => about.value?.services || [])
 const worksItems = computed(() => works.value?.items || [])
+const honorPhotoCount = computed(() => worksItems.value.reduce((sum, item) => sum + item.gallery.length, 0))
 const feedbackItems = computed(() => feedbacks.value?.items || [])
 const moduleSummary = computed(() => [
   { name: 'about', label: '实验室介绍', count: aboutServices.value.length, detail: '4 个功能卡片' },
   { name: 'experiences', label: '实验室功能', count: experiences.value.length, detail: '左右交错卡片' },
   { name: 'technologies', label: '技术栈小球', count: technologies.value.length, detail: '可继续新增' },
-  { name: 'works', label: '获奖荣誉', count: worksItems.value.length, detail: '竞赛奖项卡片' },
+  { name: 'works', label: '奖项卡片', count: worksItems.value.length, detail: '竞赛分类与首页内容' },
+  { name: 'honors', label: '荣誉相册', count: honorPhotoCount.value, detail: `${worksItems.value.length} 个独立相册` },
   { name: 'feedbacks', label: '社区声音', count: feedbackItems.value.length, detail: '学长学姐寄语' }
 ])
 
@@ -315,9 +352,59 @@ function confirmRemove(list, i, label) {
     .catch(() => {})
 }
 
+function addWorkItem() {
+  works.value.items.push({ name: '', description: '', image: '', tags: [], source_code_link: '', gallery: [] })
+}
+function addHonorPhoto(album) {
+  album.gallery.push({ recipient: '', title: '', description: '', year: '', level: '', image: '' })
+}
+function updatePhotoImage(photo, value) {
+  photo.image = value
+  photo.thumbnail = ''
+}
+
 /* points[] <-> 多行文本 */
 const pointsToText = (pts) => (pts || []).join('\n')
 const textToPoints = (text) => String(text || '').split('\n').map(s => s.trim()).filter(Boolean)
+
+function honorKind(value) {
+  const text = String(value || '')
+  if (text.includes('个人荣誉') || /奖学金|三好学生|共青团员/.test(text)) return 'personal'
+  if (text.includes('蓝桥')) return 'lanqiao'
+  if (/[马码]蹄/.test(text)) return 'mati'
+  if (text.includes('百度之星')) return 'baidu'
+  if (text.includes('计算机设计')) return 'design'
+  if (text.includes('挑战杯')) return 'challenge'
+  if (/团队|机器人/.test(text)) return 'team'
+  return ''
+}
+
+function photoBelongsTo(photo, projectName) {
+  const projectKind = honorKind(projectName)
+  const photoText = `${photo.category || ''}${photo.title || ''}`
+  const photoKind = honorKind(photoText)
+  if (projectKind === 'team') return ['team', 'design', 'challenge'].includes(photoKind)
+  return Boolean(projectKind) && projectKind === photoKind
+}
+
+function migrateWorkGalleries(content) {
+  const legacy = Array.isArray(content.gallery) ? content.gallery : honorGallery
+  const items = Array.isArray(content.items) ? content.items.map(item => ({ ...item })) : []
+  const personalPhotos = legacy.filter(photo => honorKind(`${photo.category || ''}${photo.title || ''}`) === 'personal')
+  if (personalPhotos.length && !items.some(item => honorKind(item.name) === 'personal')) {
+    items.push({
+      name: '个人荣誉', description: '国家奖学金、三好学生等个人荣誉记录。',
+      image: personalPhotos[0].image || '', tags: [], source_code_link: ''
+    })
+  }
+  content.items = items.map(item => {
+    if (Array.isArray(item.gallery)) return { ...item, gallery: sortHonorGallery(item.gallery.map(photo => ({ ...photo }))) }
+    const gallery = legacy.filter(photo => photoBelongsTo(photo, item.name)).map(photo => ({ ...photo }))
+    return { ...item, gallery: sortHonorGallery(gallery) }
+  })
+  delete content.gallery
+  return content
+}
 
 /* ─────────── 加载 ─────────── */
 async function loadAll() {
@@ -340,8 +427,14 @@ async function loadAll() {
     const experienceItems = Array.isArray(experienceContent) ? experienceContent : experienceContent.items
     experiences.value = (Array.isArray(experienceItems) ? experienceItems : []).map(e => ({ ...e, _points: pointsToText(e.points) }))
     technologies.value = techRes.data || []
-    works.value = worksRes.data || { subText: '', headText: '', description: '', items: [] }
-    if (!Array.isArray(works.value.items)) works.value.items = []
+    const worksContent = worksRes.data || {
+      subText: '', headText: '', description: '', items: [],
+      gallery: honorGallery.map(photo => ({ ...photo }))
+    }
+    if (!Array.isArray(worksContent.items) || !worksContent.items.length) {
+      worksContent.items = defaultHonorProjects.map(item => ({ ...item }))
+    }
+    works.value = migrateWorkGalleries(worksContent)
     feedbacks.value = fbRes.data || { subText: '', headText: '', items: [] }
     if (!Array.isArray(feedbacks.value.items)) feedbacks.value.items = []
   } catch (e) {
@@ -362,7 +455,7 @@ async function save() {
       await saveHomepageModule('experiences', { ...experiencesMeta.value, items })
     } else if (activeTab.value === 'technologies') {
       await saveHomepageModule('technologies', technologies.value)
-    } else if (activeTab.value === 'works') {
+    } else if (activeTab.value === 'works' || activeTab.value === 'honors') {
       await saveHomepageModule('works', { ...works.value, items: worksItems.value })
     } else if (activeTab.value === 'feedbacks') {
       await saveHomepageModule('feedbacks', { ...feedbacks.value, items: feedbackItems.value })
@@ -377,7 +470,7 @@ async function save() {
 }
 
 async function reset() {
-  const module = activeTab.value
+  const module = activeTab.value === 'honors' ? 'works' : activeTab.value
   try {
     await ElMessageBox.confirm(
       '重置后该模块数据将被删除，前台回退为代码内置默认内容，确定继续吗？',
@@ -401,7 +494,7 @@ onMounted(loadAll)
 .page-header { margin-bottom: 16px; }
 .page-header h2 { margin: 0 0 4px; }
 .page-header .sub { color: #909399; font-size: 13px; margin: 0; }
-.module-overview { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+.module-overview { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
 .overview-card { display: block; min-height: 92px; padding: 12px; color: #606266; text-align: left; text-decoration: none; border: 1px solid #ebeef5; border-radius: 8px; background: #fff; transition: .2s; }
 .overview-card:hover, .overview-card.active { border-color: #409eff; box-shadow: 0 4px 12px rgba(64,158,255,.12); }
 .overview-card span, .overview-card small { display: block; font-size: 12px; }
@@ -414,6 +507,11 @@ onMounted(loadAll)
 .mb12 { margin-bottom: 12px; }
 .mr4 { margin-right: 4px; }
 .card-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.album-card { border-top: 3px solid #409eff; }
+.album-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.album-heading small { color: #909399; }
+.album-heading h3 { margin: 4px 0 0; color: #303133; font-size: 20px; }
+.photo-card { background: #fafcff; }
 .tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
 .tech-item { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid #ebeef5; border-radius: 6px; }
 .tech-ops { display: flex; gap: 6px; }

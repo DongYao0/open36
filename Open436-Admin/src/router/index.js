@@ -23,7 +23,7 @@ const routes = [
         path: 'homepage',
         redirect: '/homepage/about'
       },
-      ...['about', 'experiences', 'technologies', 'works', 'feedbacks'].map(module => ({
+      ...['about', 'experiences', 'technologies', 'works', 'honors', 'feedbacks'].map(module => ({
         path: `homepage/${module}`,
         name: `Homepage${module}`,
         component: () => import('@/views/dashboard/HomepageView.vue'),

@@ -1,7 +1,7 @@
 <template>
   <AppNavbar />
-  <div class="forum-layout">
-    <div class="forum-main" :style="{ '--tech-forum-universe': `url(${techForumUniverse})`, '--tech-detail-blueprint': `url(${techDetailBlueprint})` }" :class="{ 'forum-main--resource': route.meta.forumSection === 'share', 'forum-main--tech': route.meta.forumSection === 'tech', 'forum-main--detail': route.name === 'PostDetail', 'forum-main--composer': route.name === 'PostNew', 'forum-main--search': route.name === 'ForumSearch' }">
+  <div class="forum-layout" :class="{ 'forum-layout--search': route.name === 'Search' }">
+    <div class="forum-main" :style="{ '--tech-forum-universe': `url(${techForumUniverse})`, '--tech-detail-blueprint': `url(${techDetailBlueprint})` }" :class="{ 'forum-main--resource': route.meta.forumSection === 'share', 'forum-main--tech': route.meta.forumSection === 'tech', 'forum-main--detail': route.name === 'PostDetail', 'forum-main--composer': route.name === 'PostNew', 'forum-main--search': route.name === 'Search' }">
       <div v-if="isForumIndex" class="forum-toolbar">
         <nav class="forum-switcher" aria-label="论坛分区">
           <router-link to="/forum/tech" :class="{ active: route.meta.forumSection === 'tech' }">技术交流</router-link>
@@ -41,6 +41,7 @@ function doSearch() {
   padding-top: var(--navbar-h, 56px);
   background: var(--bg-page, #f5f7fa);
 }
+.forum-layout--search { background: #071126; }
 .forum-main {
   max-width: 1400px;
   margin: 0 auto;

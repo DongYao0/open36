@@ -168,7 +168,9 @@ watch([query, activeSection, page, pageSize], () => { if (ready.value) doSearch(
 </script>
 
 <style scoped>
-.search-page { min-height: calc(100vh - var(--navbar-h, 56px)); padding: clamp(34px, 6vw, 84px) clamp(18px, 7vw, 110px) 90px; color: #eef4ff; background: radial-gradient(circle at 12% 8%, rgba(38, 198, 218, .18), transparent 28%), radial-gradient(circle at 86% 4%, rgba(139, 92, 246, .22), transparent 32%), linear-gradient(145deg, #071126 0%, #0a1733 48%, #100d32 100%); }
+.search-page { position: relative; isolation: isolate; min-height: calc(100vh - var(--navbar-h, 56px)); padding: clamp(34px, 6vw, 84px) clamp(18px, 7vw, 110px) 90px; color: #eef4ff; background: #071126; }
+.search-page::before { position: fixed; z-index: 0; inset: var(--navbar-h, 56px) 0 0; pointer-events: none; background: radial-gradient(circle at 12% 8%, rgba(38,198,218,.2), transparent 30%), radial-gradient(circle at 88% 6%, rgba(139,92,246,.24), transparent 34%), linear-gradient(145deg, #071126 0%, #0a1733 48%, #100d32 100%); content: ''; }
+.search-page > * { position: relative; z-index: 1; }
 .sr-header {
   display: flex; align-items: center; gap: var(--s-base);
   max-width: 1040px; padding: 0; margin: 0 auto 22px;

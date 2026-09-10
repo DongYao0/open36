@@ -4,7 +4,7 @@ Post views — 合并后 HTTP 内部调用改为 ORM 直查
 import logging
 import requests
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import Case, F, IntegerField, Q, Value, When
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import viewsets, status
@@ -111,6 +111,15 @@ class PostViewSet(viewsets.GenericViewSet):
                 Q(title__icontains=search)
                 | Q(summary__icontains=search)
                 | Q(content__icontains=search)
+            ).annotate(
+                search_rank=Case(
+                    When(title__iexact=search, then=Value(0)),
+                    When(title__istartswith=search, then=Value(1)),
+                    When(title__icontains=search, then=Value(2)),
+                    When(summary__icontains=search, then=Value(3)),
+                    default=Value(4),
+                    output_field=IntegerField(),
+                )
             )
 
         section_id = request.query_params.get('section_id')
@@ -125,12 +134,15 @@ class PostViewSet(viewsets.GenericViewSet):
             if allowed_section_ids:
                 queryset = queryset.filter(section_id__in=allowed_section_ids)
 
-        ordering = request.query_params.get('ordering', '-created_at')
-        allowed_ordering = ['-created_at', 'created_at', '-views_count', 'views_count']
-        if ordering in allowed_ordering:
-            queryset = queryset.order_by('-is_pinned', ordering)
+        if search:
+            queryset = queryset.order_by('search_rank', '-created_at')
         else:
-            queryset = queryset.order_by('-is_pinned', '-created_at')
+            ordering = request.query_params.get('ordering', '-created_at')
+            allowed_ordering = ['-created_at', 'created_at', '-views_count', 'views_count']
+            if ordering in allowed_ordering:
+                queryset = queryset.order_by('-is_pinned', ordering)
+            else:
+                queryset = queryset.order_by('-is_pinned', '-created_at')
 
         page = int(request.query_params.get('page', 1))
         page_size = min(int(request.query_params.get('page_size', 20)), 50)

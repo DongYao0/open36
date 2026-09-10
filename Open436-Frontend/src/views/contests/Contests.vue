@@ -1,6 +1,6 @@
 <template>
   <main class="contest-atlas">
-    <nav class="atlas-nav"><router-link to="/" class="brand"><b>O</b> OPEN436</router-link><div><router-link to="/">首页</router-link><router-link to="/forum">论坛</router-link><router-link to="/contests" class="active">赛事</router-link><router-link to="/announcements">公告</router-link><router-link to="/quiz">算法</router-link></div><router-link v-if="!auth.isLoggedIn" to="/login" class="login">登录</router-link><router-link v-else to="/mine" class="atlas-user"><img v-if="auth.avatar" :src="auth.avatar" :alt="auth.nickname"><b v-else>{{ (auth.nickname || '我').slice(0, 1) }}</b><span>{{ auth.isVisitor ? '游客' : auth.nickname }}</span></router-link></nav>
+    <AppNavbar />
     <section class="hero"><div class="hero-copy"><h1>把热爱，写进<br>下一场竞赛。</h1></div><div class="hero-orbit" aria-hidden="true"><i></i><i></i><span v-for="(mark, index) in heroMarks" :key="index"><img :src="mark" alt=""></span></div></section>
     <section id="events">
       <article v-for="(item, i) in contests" :key="item.name" :class="['event', { flip: i % 2 }]">
@@ -12,13 +12,13 @@
 </template>
 
 <script setup>
-import { useAuthStore } from '@/stores/auth'
+import AppNavbar from '@/components/AppNavbar.vue'
 import { contestCatalog } from '@/data/contestCatalog'
 import { getContestArt } from '@/data/contestArt'
 
-const auth = useAuthStore()
 const heroMarks = ['robot-ai', 'math-modeling', 'icpc'].map(getContestArt)
 const contests = [
+  ['ACM-ICPC 国际大学生程序设计竞赛','05 月起','团队算法','待校内通知','05 月','区域赛 10–11 月','ICPC','teal','三人一机、五小时高强度协作，面向希望深耕算法竞赛的团队。'],
   ['中国大学生服务外包创新创业大赛','02 月启动','项目开发','待校内通知','区域赛 05–06 月','08 月','S','coral','围绕企业真实命题完成解决方案，适合想把开发能力做成项目作品的团队。'],
   ['挑战杯 · 创业计划竞赛','02 月启动','创新创业','02–04 月','05–06 月','待通知','C','amber','把创意、调研、产品与路演放进同一支队伍，完成从问题到方案的闭环。'],
   ['中国国际大学生创新大赛','03 月启动','创新创业','项目选拔','待通知','报名 07–09 月','I','violet','面向跨学科项目的创新舞台，适合已有原型、研究成果或创业构想的团队。'],
@@ -30,7 +30,6 @@ const contests = [
   ['蓝桥杯','04 月','算法编程','待校内通知','04 月','06 月','L','gold','从基础算法到软件开发的经典赛事，是建立竞赛节奏的好起点。'],
   ['中国机器人及人工智能大赛','04 月','AI 应用','04 月','05 月','07 月','AI','lime','以智能系统、机器人与应用创新为核心，把算法、工程与展示结合起来。'],
   ['全球校园人工智能算法精英大赛','04 月起','AI 算法','至 10 月','10 月','11 月','AIC','plum','覆盖算法模型、AI+软件与场景创新，适合把 AI 能力落进具体问题。'],
-  ['ACM-ICPC 国际大学生程序设计竞赛','05 月起','团队算法','待校内通知','05 月','区域赛 10–11 月','ICPC','teal','三人一机、五小时高强度协作，面向希望深耕算法竞赛的团队。'],
   ['全国大学生计算机系统能力大赛','05 月起','系统软件','待校内通知','无独立省赛','06–08 月','OS','steel','聚焦操作系统、编译系统等底层能力，为系统软件方向提供实战舞台。'],
   ['百度之星程序设计大赛','07 月','算法编程','如组织则 07 月','08–09 月','待公布','★','azure','在线算法竞赛，以代码、速度与问题拆解能力直面高难度挑战。'],
   ['挑战杯 · 课外学术科技作品竞赛','07 月备赛','科研创新','2026–2027 培育','2027 年 03–06 月','2027 年 06–11 月','T','rose','以论文、调研报告和科技发明作品呈现研究成果，适合长期打磨的科创项目。'],

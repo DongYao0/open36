@@ -125,10 +125,10 @@ onUnmounted(() => { observer?.disconnect() })
 .tf-banner-dot { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, var(--cosmic-violet), var(--cosmic-cyan)); box-shadow: 0 0 12px rgba(145,94,255,0.6); }
 .tf-banner-title { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: #f5f7ff; }
 .tf-banner-count { font-size: 13px; color: rgba(226,233,255,.72); margin-left: auto; font-variant-numeric: tabular-nums; }
-.fm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.fm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row; align-items: stretch; gap: 18px; }
 @media (max-width: 1100px) { .fm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 720px) { .fm-grid { grid-template-columns: 1fr; } }
-.fm-card { position: relative; min-height: 220px; background: linear-gradient(145deg, rgba(11,25,60,.93), rgba(30,17,74,.88)); border: 1px solid rgba(172,195,255,.24); border-radius: 18px; padding: 22px; box-shadow: 0 18px 42px rgba(0,0,0,.25); backdrop-filter: blur(10px); cursor: pointer; overflow: hidden; transition: all var(--t-fast); animation: fmFadeUp 350ms ease-out both; display: flex; flex-direction: column; }
+.fm-card { position: relative; min-width: 0; min-height: 220px; background: linear-gradient(145deg, rgba(11,25,60,.93), rgba(30,17,74,.88)); border: 1px solid rgba(172,195,255,.24); border-radius: 18px; padding: 22px; box-shadow: 0 18px 42px rgba(0,0,0,.25); backdrop-filter: blur(10px); cursor: pointer; overflow: hidden; transition: all var(--t-fast); animation: fmFadeUp 350ms ease-out both; display: flex; flex-direction: column; }
 .fm-card::before { position: absolute; top: -52px; right: -38px; width: 132px; height: 132px; border: 1px solid rgba(112,222,255,.24); border-radius: 50%; box-shadow: inset 0 0 35px rgba(109,90,255,.18); content: ''; }
 .fm-card > * { position: relative; z-index: 1; }
 .fm-card:hover { border-color: rgba(123,215,255,.9); box-shadow: 0 22px 48px rgba(48,105,255,.28); transform: translateY(-4px); }

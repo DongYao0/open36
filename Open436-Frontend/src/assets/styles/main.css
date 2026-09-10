@@ -77,7 +77,7 @@ img { max-width: 100%; display: block; }
   --t-fast: 200ms cubic-bezier(0.4,0,0.2,1);
   --t-base: 300ms cubic-bezier(0.4,0,0.2,1);
 
-  --navbar-h: 4rem;
+  --navbar-h: 68px;
   --tabbar-h: 3rem;
   --sidebar-w: 16.25rem;
   --mono: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -282,7 +282,7 @@ h6 { font-size: 0.875rem; font-weight: 500; }
   .forum-main { padding: var(--s-base); }
 }
 @media (max-width: 599px) {
-  :root { --navbar-h: 56px; }
+  :root { --navbar-h: 60px; }
   h1 { font-size: 24px; }
   h2 { font-size: 20px; }
 }
@@ -335,4 +335,3 @@ h6 { font-size: 0.875rem; font-weight: 500; }
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
-

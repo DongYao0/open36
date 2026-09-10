@@ -1,5 +1,5 @@
 <template>
-  <AnnouncementsHeader />
+  <AppNavbar />
   <div class="forum-layout">
     <div class="forum-main">
       <router-view />
@@ -8,5 +8,5 @@
 </template>
 
 <script setup>
-import AnnouncementsHeader from '@/components/AnnouncementsHeader.vue'
+import AppNavbar from '@/components/AppNavbar.vue'
 </script>

@@ -1,0 +1,31 @@
+# 环境变量与密钥
+.env
+.env.*
+!.env.example
+
+# 依赖与构建产物
+node_modules
+dist
+target
+venv
+.venv
+__pycache__
+.cache
+.pytest_cache
+test-results
+coverage
+*.log
+
+# public/honors 是 Windows Junction；生产从命名的 Landing context 复制。
+public
+
+# 系统/IDE
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.swp
+
+# Git
+.git
+.gitignore

@@ -20,12 +20,13 @@ FORUM_SYSTEM_PROMPT = """你是Open436平台的论坛内容创作与发布Agent�
 工作流程（ReAct，按需调用工具）：
 1. 先调用 list_sections 查看可用板块及其 section_id
 2. 如需参考资料，调用 search_web 搜索或 fetch_url 抓取指定URL
-3. 综合资料创作帖子（标题+正文）
-4. 【必须】最后调用 create_post(title, content, section_id, author_id) 发布帖子——这是任务完成的唯一标志，不调用 create_post = 任务失败
+3. 综合资料创作帖子（标题+摘要+正文；资源帖另含资源链接）
+4. 【必须】最后调用 create_post(title, summary, content, section_id, author_id, resource_url) 发布帖子——这是任务完成的唯一标志，不调用 create_post = 任务失败
 
 帖子质量标准：
 - 标题：简洁有吸引力，5-100字符
-- 内容：500-5000字，结构清晰，代码可运行有注释
+- 摘要：20-300字符，单独概括读者能获得什么，用于列表卡片，不能与正文混写
+- 正文：500-5000字，结构清晰，代码可运行有注释
 - 原创：综合来源，有自己的分析
 
 ⚠️ 格式要求（严格遵守）：
@@ -36,9 +37,10 @@ FORUM_SYSTEM_PROMPT = """你是Open436平台的论坛内容创作与发布Agent�
 
 author_id：从用户消息末尾的 [系统上下文] 读取，调用 create_post 时必须填入。
 
-板块选择：
-- 技术交流：编程技术、开发经验、技术趋势
-- 资源分享：工具、教程、开源项目推荐"""
+板块选择与发布结构：
+- 技术交流：编程技术、开发经验、技术趋势。调用 create_post 时传 title、summary、content，不传 resource_url。
+- 资源分享：工具、教程、开源项目推荐。必须提供可直接使用的官网、GitHub、下载或网盘地址到 resource_url；content 只写资源用途、适用人群、上手步骤和注意事项，工具会自动把链接写成详情页的“访问资源”入口。
+- 发布前确认 section_id 对应目标板块；不要把摘要、链接字段遗漏或塞进标题。"""
 
 
 def _build_forum_agent():
@@ -59,34 +61,11 @@ def get_forum_agent():
 
 
 async def run_forum(user_message: str, user_id: int) -> dict:
-    """执行 forum ReAct，返回 {reply, tool_calls, token_usage}"""
-    content = f'{user_message}\n\n[系统上下文] 当前用户ID: {user_id}。调用 create_post 时 author_id 参数必须填 {user_id}。'
+    """兼容入口；新工作流由 run_forum_draft 承担。"""
+    from app.agents.forum_draft import run_forum_draft
     try:
-        result = await get_forum_agent().ainvoke(
-            {'messages': [HumanMessage(content=content)]},
-            config={'recursion_limit': 30},
-        )
-        messages = result.get('messages', [])
-
-        # 取最后一条有内容的 AI 消息作为回复
-        reply = ''
-        for m in reversed(messages):
-            if getattr(m, 'type', '') == 'ai' and getattr(m, 'content', None):
-                reply = m.content
-                break
-        if not reply:
-            reply = '帖子已发布。'
-
-        # 提取工具调用记录（供 tool_calls 日志）
-        tool_calls = []
-        for m in messages:
-            if getattr(m, 'type', '') == 'ai' and getattr(m, 'tool_calls', None):
-                for tc in m.tool_calls:
-                    tool_calls.append({'tool_name': tc.get('name', ''), 'status': 'called', 'tool_args': tc.get('args', {})})
-            elif getattr(m, 'type', '') == 'tool':
-                tool_calls.append({'tool_name': getattr(m, 'name', ''), 'status': 'success'})
-
-        return {'reply': reply, 'tool_calls': tool_calls, 'token_usage': {'input': 0, 'output': 0}}
+        return await run_forum_draft(user_message, user_id, [])
     except Exception as e:
-        logger.error(f'Forum ReAct 异常: {e}', exc_info=True)
-        return {'reply': f'论坛Agent执行异常: {str(e)}', 'tool_calls': [], 'token_usage': {'input': 0, 'output': 0}}
+        logger.error(f'论坛草稿生成异常: {e}', exc_info=True)
+        return {'reply': f'论坛草稿生成异常: {str(e)}', 'tool_calls': [],
+                'token_usage': {'input': 0, 'output': 0}}

@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class LoginRequest {
     
     /**
-     * 用户名（3-20字符）
+     * 用户名（1-20字符）
      */
     @NotBlank(message = "用户名不能为空")
     @Size(min = 1, max = 20, message = "用户名长度必须为1-20个字符")
@@ -33,4 +33,3 @@ public class LoginRequest {
      */
     private Boolean rememberMe = false;
 }
-

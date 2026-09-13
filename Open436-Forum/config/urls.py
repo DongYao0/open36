@@ -18,6 +18,8 @@ urlpatterns = [
     # ── 公开 API（保持原有路径） ──
     # ContentService: /api/posts/
     path('api/posts/', include('apps.content.urls')),
+    # ResourceService: /api/resources/（复用 Post 模型，section='share'）
+    path('api/resources/', include('apps.content.urls_resource')),
     # CommentService: /api/comments/ → 包含互动功能和回复功能
     path('api/comments/', include('apps.comment.urls_comment')),
     path('api/comments/', include(comment_router.urls)),

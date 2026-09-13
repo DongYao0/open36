@@ -194,7 +194,9 @@ async def search_node(state: AgentState) -> dict:
     """搜索节点：联网搜索 + LLM 接地回答（强制标注来源），无爬取数据时自动补搜"""
     from app.tools.search_tools import search_web
 
-    crawled = state.get('crawled_data', [])
+    crawled = list(state.get('crawled_data', []))
+    discovered = []
+    search_calls = []
     user_msg = state['user_message']
 
     if not crawled:
@@ -210,9 +212,18 @@ async def search_node(state: AgentState) -> dict:
             if isinstance(result, list):
                 for it in result:
                     if isinstance(it, dict) and it.get('url'):
-                        crawled.append({'title': it.get('title', ''), 'url': it.get('url'), 'markdown': it.get('content', '')})
+                        page = {'title': it.get('title', ''), 'url': it.get('url'),
+                                'markdown': it.get('content', '')}
+                        crawled.append(page)
+                        discovered.append(page)
+            search_calls.append({'tool_name': 'search_web',
+                                 'status': 'success' if discovered else 'failed',
+                                 'tool_args': {'query': keyword, 'max_results': 8},
+                                 'result_summary': f'{len(discovered)} results'})
         except Exception as e:
             logger.warning(f'联网搜索失败: {e}')
+            search_calls.append({'tool_name': 'search_web', 'status': 'failed',
+                                 'error': str(e)})
 
     context = ''
     if crawled:
@@ -253,6 +264,7 @@ async def search_node(state: AgentState) -> dict:
         reply = _patch_outdated_models((msg.content or '').strip())
         usage = getattr(msg, 'usage_metadata', None) or {}
         return {'agent_name': 'search', 'intent': 'search', 'reply': reply,
+                'crawled_data': discovered, 'tool_calls': search_calls,
                 'token_usage': {'input': usage.get('input_tokens', 0), 'output': usage.get('output_tokens', 0)}}
     except Exception as e:
         logger.error(f'Search LLM 失败: {e}')
@@ -263,14 +275,16 @@ async def search_node(state: AgentState) -> dict:
             reply = '\n'.join(lines)
         else:
             reply = f'抱歉，处理失败: {str(e)}'
-        return {'agent_name': 'search', 'intent': 'search', 'reply': reply, 'token_usage': {'input': 0, 'output': 0}}
+        return {'agent_name': 'search', 'intent': 'search', 'reply': reply,
+                'crawled_data': discovered, 'tool_calls': search_calls,
+                'token_usage': {'input': 0, 'output': 0}}
 
 
 # ===== interim 占位节点（任务10 替换 problem 为子图）=====
 async def forum_node(state: AgentState) -> dict:
-    """论坛节点：调用 create_react_agent ReAct 发帖（LLM 自主调度工具）"""
-    from app.agents.forum import run_forum
-    res = await run_forum(state['user_message'], state['user_id'])
+    """论坛节点：保留会话草稿，并只在用户明确发布时写入论坛。"""
+    from app.agents.forum_draft import run_forum_draft
+    res = await run_forum_draft(state['user_message'], state['user_id'], state.get('history', []))
     return {'agent_name': 'forum', 'intent': 'forum', **res}
 
 

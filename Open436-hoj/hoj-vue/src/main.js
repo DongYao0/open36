@@ -4,7 +4,8 @@ import store from './store'
 import Element from 'element-ui'
 import i18n from '@/i18n'
 
-// import "element-ui/lib/theme-chalk/index.css"
+// Production builds do not inject the development CDN, so UI styles must be bundled.
+import 'element-ui/lib/theme-chalk/index.css'
 import 'font-awesome/css/font-awesome.min.css'
 import Message from 'vue-m-message'
 import 'vue-m-message/dist/index.css'
@@ -26,22 +27,18 @@ import highlight from '@/common/highlight'
 import filters from '@/common/filters.js'
 import VueCropper from 'vue-cropper'
 
-// import ECharts from 'vue-echarts/components/ECharts.vue'
-// import 'echarts/lib/chart/bar'
-// import 'echarts/lib/chart/line'
-// import 'echarts/lib/chart/pie'
-// import 'echarts/lib/component/title'
-// import 'echarts/lib/component/grid'
-// import 'echarts/lib/component/dataZoom'
-// import 'echarts/lib/component/legend'
-// import 'echarts/lib/component/tooltip'
-// import 'echarts/lib/component/toolbox'
-// import 'echarts/lib/component/markPoint'
-// Vue.component('ECharts', ECharts)
-
-// 使用CDN的方式如下引入echarts
-import VueECharts from 'vue-echarts';
-Vue.component('ECharts', VueECharts)
+import ECharts from 'vue-echarts/components/ECharts.vue'
+import 'echarts/lib/chart/bar'
+import 'echarts/lib/chart/line'
+import 'echarts/lib/chart/pie'
+import 'echarts/lib/component/title'
+import 'echarts/lib/component/grid'
+import 'echarts/lib/component/dataZoom'
+import 'echarts/lib/component/legend'
+import 'echarts/lib/component/tooltip'
+import 'echarts/lib/component/toolbox'
+import 'echarts/lib/component/markPoint'
+Vue.component('ECharts', ECharts)
 
 
 import VueParticles from 'vue-particles'
@@ -52,7 +49,7 @@ import mavonEditor from 'mavon-editor'  //引入markdown编辑器
 import 'mavon-editor/dist/css/index.css';
 Vue.use(mavonEditor)
 
-// import 'muse-ui/dist/muse-ui.css';
+import 'muse-ui/dist/muse-ui.css'
 import MuseUI from 'muse-ui'
 Vue.use(MuseUI)
 

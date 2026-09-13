@@ -67,8 +67,8 @@ public class UserProfileServiceImpl implements UserProfileService {
             .orElseThrow(() -> new RuntimeException("用户资料不存在"));
 
         try {
-            // 调用文件服务上传头像
-            String avatarUrl = fileServiceClient.uploadFile(file, "avatar");
+            // 调用文件服务上传头像（透传用户身份，FileService 侧要求 X-User-Id）
+            String avatarUrl = fileServiceClient.uploadFile(file, "avatar", userId);
             profile.setAvatarUrl(avatarUrl);
             profileRepository.save(profile);
             log.info("头像上传成功: userId={}, url={}", userId, avatarUrl);

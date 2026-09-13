@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO cleanup_logs (\n                cleanup_time,\n                files_deleted,\n                space_freed,\n                duration_ms,\n                status,\n                error_message\n            ) VALUES (CURRENT_TIMESTAMP, $1, $2, $3, $4, $5)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int8",
+        "Int4",
+        "Varchar",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c5eedb52cbe30e4c2b8d7bcfced16d54838f416443927b5a2f01e008a81360ce"
+}

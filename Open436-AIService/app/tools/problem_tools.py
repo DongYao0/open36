@@ -287,7 +287,8 @@ async def submit_problem_to_hoj(problem_data: str) -> dict:
             'problem': {
                 'problemId': data.get('problem_id', ''),
                 'title': data.get('title', ''),
-                'author': 'root',  # HOJ 管理员用户名
+                # 必须与刚刚登录成功的生产 HOJ 用户一致，否则 problem.author 外键失败。
+                'author': settings.HOJ_ADMIN_USER,
                 'description': data.get('description', ''),
                 'input': data.get('input', ''),
                 'output': data.get('output', ''),

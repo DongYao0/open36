@@ -51,6 +51,7 @@ class E2EAuthFlowTest extends BaseApiTest {
         createRequest.setUsername("e2e_test_user");
         createRequest.setPassword("initial123");
         createRequest.setRole("user");
+        createRequest.setStatus("active");
         
         MvcResult createResult = mockMvc.perform(post("/api/auth/users")
                 .header("token", adminToken)

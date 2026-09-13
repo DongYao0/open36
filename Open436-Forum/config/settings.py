@@ -7,12 +7,17 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-me-in-production')
+_ENVIRONMENT = os.getenv('OPEN436_ENV', 'development').lower()
+SECRET_KEY = os.getenv('SECRET_KEY', '')
+if _ENVIRONMENT == 'production' and not SECRET_KEY:
+    raise ImproperlyConfigured('SECRET_KEY is required in production')
+SECRET_KEY = SECRET_KEY or 'open436-local-only-key'
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 
@@ -65,16 +70,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'open436',
-        'USER': 'open436',
-        'PASSWORD': 'open436',
-        'HOST': 'localhost',
-        'PORT': '55400',
+# 生产/容器环境：优先读取 DATABASE_URL（dj_database_url 解析）
+# 本地开发：未设置 DATABASE_URL 时回退到直连 localhost:55400（与原有行为一致）
+_DATABASE_URL = os.getenv('DATABASE_URL', '')
+if _ENVIRONMENT == 'production' and not _DATABASE_URL:
+    raise ImproperlyConfigured('DATABASE_URL is required in production')
+if _DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(_DATABASE_URL, conn_max_age=600),
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'open436',
+            'USER': 'open436',
+            'PASSWORD': 'open436',
+            'HOST': 'localhost',
+            'PORT': '55400',
+        }
+    }
 
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],

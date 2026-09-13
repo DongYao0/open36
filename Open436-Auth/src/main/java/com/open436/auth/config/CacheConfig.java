@@ -1,5 +1,6 @@
 package com.open436.auth.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +27,15 @@ public class CacheConfig {
      * @return RedisCacheManager
      */
     @Bean
-    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+    public RedisCacheManager cacheManager(
+            RedisConnectionFactory connectionFactory,
+            ObjectMapper applicationObjectMapper) {
+        GenericJackson2JsonRedisSerializer valueSerializer =
+            GenericJackson2JsonRedisSerializer.builder()
+                .objectMapper(applicationObjectMapper.copy())
+                .defaultTyping(true)
+                .build();
+
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(Duration.ofMinutes(30))  // 缓存过期时间：30分钟
             .serializeKeysWith(
@@ -36,7 +45,7 @@ public class CacheConfig {
             )
             .serializeValuesWith(
                 RedisSerializationContext.SerializationPair.fromSerializer(
-                    new GenericJackson2JsonRedisSerializer()
+                    valueSerializer
                 )
             );
         

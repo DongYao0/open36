@@ -33,6 +33,7 @@ class ProblemState(TypedDict, total=False):
     tool_calls: Annotated[list[dict], operator.add]
     token_usage: dict
     gen_failed: bool
+    attempts: int
 
 
 async def _call_hoj_api(method: str, path: str, **kwargs) -> dict:
@@ -99,6 +100,7 @@ def _parse_problem_json(content: str) -> dict:
 async def gen_node(state: ProblemState) -> dict:
     """gen 节点：预取题目列表 + 格式化参考 + history 注入 + LLM 生成 + JSON 解析"""
     user_message = state['user_message']
+    attempts = state.get('attempts', 0) + 1
 
     # Step1 预取已有题目（避免重复）
     existing_context = ''
@@ -121,12 +123,18 @@ async def gen_node(state: ProblemState) -> dict:
         if msg.get('role') == 'assistant' and any(k in msg.get('content', '') for k in ('题目', '题解', '输入格式', '输出格式')):
             history_context += f'\n\n--- 历史对话中的题目信息 ---\n{msg["content"][:2000]}'
 
+    failed_context = ''
+    if state.get('failed_cases'):
+        failed_context = ('\n上一次候选题对拍失败，请修正生成器、暴力解和正解的一致性：\n' +
+                          json.dumps(state['failed_cases'][:2], ensure_ascii=False)[:2000])
+
     gen_prompt = f"""用户请求: {user_message}
 
 参考资料：
 {crawled_context}
 {history_context}
 {existing_context}
+{failed_context}
 
 任务：生成一道算法题目（描述+测试数据生成脚本+暴力解+正解）。
 
@@ -165,11 +173,14 @@ for i in range(1, 11):
 
     if not problem_data.get('title'):
         return {'problem_data': problem_data, 'token_usage': token_usage, 'gen_failed': True,
+                'attempts': attempts,
                 'reply': '❌ 题目生成失败：LLM 返回的数据格式不正确'}
     if not problem_data.get('cyaron_script'):
         return {'problem_data': problem_data, 'token_usage': token_usage, 'gen_failed': True,
+                'attempts': attempts,
                 'reply': '❌ 题目生成失败：LLM 未生成 CYaRon 脚本'}
-    return {'problem_data': problem_data, 'token_usage': token_usage, 'gen_failed': False}
+    return {'problem_data': problem_data, 'token_usage': token_usage,
+            'gen_failed': False, 'attempts': attempts}
 
 
 async def verify_node(state: ProblemState) -> dict:
@@ -183,6 +194,7 @@ async def verify_node(state: ProblemState) -> dict:
     if not test_cases:
         return {'test_cases': [], 'gen_failed': True,
                 'reply': f'❌ 测试数据生成失败: {cyaron_result.get("error", "未知错误")}',
+                'failed_cases': [{'error': cyaron_result.get('error', '测试数据生成失败')}],
                 'tool_calls': [{'tool_name': 'execute_cyaron_script', 'status': 'failed'}]}
 
     brute = problem_data.get('brute_force_solution', '')
@@ -197,7 +209,11 @@ async def verify_node(state: ProblemState) -> dict:
     all_match = all(r.get('match', False) for r in verify_results) if verify_results else False
     failed_cases = [r for r in verify_results if not r.get('match', False)]
 
+    retry_reply = '' if all_match else (
+        f'❌ 候选题对拍失败，已停止提交。失败详情：{failed_cases[0].get("error", "输出不一致")}'
+    )
     return {'test_cases': test_cases, 'all_match': all_match, 'failed_cases': failed_cases,
+            'reply': retry_reply,
             'tool_calls': [{'tool_name': 'execute_cyaron_script', 'status': 'success', 'test_count': len(test_cases)},
                            {'tool_name': 'run_brute_vs_solution', 'status': 'success' if all_match else 'failed'}]}
 
@@ -264,16 +280,25 @@ async def submit_node(state: ProblemState) -> dict:
 
 def build_problem_graph():
     """构建 problem 子图：gen →(条件)→ verify →(条件)→ submit"""
+    def after_gen(state: ProblemState):
+        if not state.get('gen_failed'):
+            return 'verify'
+        return 'retry' if state.get('attempts', 0) < 2 else 'end'
+
+    def after_verify(state: ProblemState):
+        if state.get('test_cases') and state.get('all_match'):
+            return 'submit'
+        return 'retry' if state.get('attempts', 0) < 2 else 'end'
+
     g = StateGraph(ProblemState)
     g.add_node('gen', gen_node)
     g.add_node('verify', verify_node)
     g.add_node('submit', submit_node)
     g.add_edge(START, 'gen')
-    g.add_conditional_edges('gen', lambda s: END if s.get('gen_failed') else 'verify',
-                            {END: END, 'verify': 'verify'})
-    g.add_conditional_edges('verify',
-                            lambda s: END if (s.get('gen_failed') or not s.get('test_cases')) else 'submit',
-                            {END: END, 'submit': 'submit'})
+    g.add_conditional_edges('gen', after_gen,
+                            {'retry': 'gen', 'verify': 'verify', 'end': END})
+    g.add_conditional_edges('verify', after_verify,
+                            {'retry': 'gen', 'submit': 'submit', 'end': END})
     g.add_edge('submit', END)
     return g.compile()
 
@@ -292,7 +317,8 @@ async def run_problem(user_message: str, user_id: int, crawled_data: list[dict] 
                       history: list[dict] = None) -> dict:
     """执行 problem 子图，返回 {reply, tool_calls, token_usage}"""
     init = {'user_message': user_message, 'user_id': user_id, 'history': history or [],
-            'crawled_data': crawled_data or [], 'tool_calls': [], 'gen_failed': False}
+            'crawled_data': crawled_data or [], 'tool_calls': [], 'gen_failed': False,
+            'attempts': 0}
     try:
         final = await get_problem_agent().ainvoke(init, config={'recursion_limit': 20})
     except Exception as e:

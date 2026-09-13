@@ -38,8 +38,8 @@
             <el-button @click="$router.push('/users')" class="action-btn">
               <el-icon><User /></el-icon>用户管理
             </el-button>
-            <el-button @click="$router.push('/quiz')" class="action-btn">
-              <el-icon><EditPen /></el-icon>习题管理
+            <el-button @click="openHojAdmin" class="action-btn">
+              <el-icon><EditPen /></el-icon>算法管理
             </el-button>
             <el-button @click="$router.push('/forum')" class="action-btn">
               <el-icon><ChatDotRound /></el-icon>论坛管理
@@ -57,6 +57,10 @@
 <script setup>
 import { ref } from 'vue'
 import StatCard from '@/components/StatCard.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const openHojAdmin = () => authStore.openHojAdmin()
 
 const recentPosts = ref([
   { title: 'Vue 3 Composition API 最佳实践', author: '张三', time: '5 分钟前' },

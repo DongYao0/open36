@@ -1,0 +1,5 @@
+ARG BASE_IMAGE=open436/ai-service:build
+FROM ${BASE_IMAGE}
+
+# 仅覆盖应用层；用于目标机依赖层已存在、外部镜像源不可用时的增量发布。
+COPY app/ /app/app/

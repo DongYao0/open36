@@ -50,13 +50,9 @@ const Navbar = () => {
     return () => window.removeEventListener("storage", checkAuth);
   }, []);
 
-  // 头像：有真实头像用之，游客/无头像用昵称首字母占位
-  const avatar =
-    user?.avatarUrl ||
-    user?.avatar ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      user?.nickname || user?.username || "Guest"
-    )}&background=915EFF&color=fff&size=64`;
+  // 头像：有真实头像用之；未上传头像前统一用站内默认头像 /app/user.jpg
+  // （原 ui-avatars.com 外链在无外网环境会裂图，且样式与站内不一致）
+  const avatar = user?.avatarUrl || user?.avatar || "/app/user.jpg";
 
   return (
     <nav

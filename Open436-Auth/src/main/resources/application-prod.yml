@@ -10,6 +10,8 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
     validate-on-migrate: false
+    # 与 Enrollment 共用 open436 库：必须使用各自独立的 history table，避免版本号互相吞并
+    table: auth_flyway_schema_history
 
   jpa:
     hibernate:

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE files\n                SET status = 'unused', updated_at = CURRENT_TIMESTAMP\n                WHERE id = $1\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b0cd1f372f3a916434f103b2bbf40eac8aa8a556d8be82d2fc69184f3e5e3279"
+}

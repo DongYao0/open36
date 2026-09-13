@@ -17,6 +17,7 @@ const routes = [
     ]
   },
   { path: '/resources', redirect: '/forum/share' },
+  { path: '/resources/new', redirect: { path: '/forum/post/new', query: { type: 'share' } } },
   { path: '/resources/:id', redirect: to => ({ path: `/forum/post/${to.params.id}` }) },
   {
     path: '/announcements',
@@ -31,7 +32,7 @@ const routes = [
   { path: '/contests', name: 'Contests', component: () => import('@/views/contests/Contests.vue'), meta: { title: '赛事日历' } },
   { path: '/contests/:id', name: 'ContestDetail', component: () => import('@/views/contests/ContestDetail.vue'), meta: { title: '赛事详情' } },
   { path: '/quiz', name: 'Quiz', component: () => import('@/views/Quiz.vue'), meta: { title: '算法' } },
-  { path: '/enroll', name: 'Enroll', component: () => import('@/views/Enroll.vue'), meta: { title: '报名加入' } },
+  { path: '/enroll', redirect: { path: '/login', query: { mode: 'register' } } },
   { path: '/mine', name: 'Mine', component: () => import('@/views/Mine.vue'), meta: { title: '我的', auth: true } },
   { path: '/mine/edit', name: 'MineEdit', component: () => import('@/views/MineEdit.vue'), meta: { title: '编辑资料', auth: true } },
   { path: '/assignment/:id', name: 'AssignmentSubmit', component: () => import('@/views/AssignmentSubmit.vue'), meta: { title: '作业提交', auth: true } },

@@ -40,9 +40,9 @@ const router = new VueRouter({
 router.beforeEach((to, from, next) => {
   NProgress.start()
 
-  // =================== Open436 SSO 免登（URL 参数传递 token） ===================
+  // =================== Open436 SSO 免登（fragment 传递，避免 token 进入访问日志） ===================
   // 管理端路由在 beforeEach 中处理 hoj_token，避免渲染 login 页再跳转
-  const urlParams = new URLSearchParams(window.location.search)
+  const urlParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
   const ssoToken = urlParams.get('hoj_token')
   if (ssoToken && to.path.startsWith('/admin')) {
     const ssoUsername = urlParams.get('username') || ''
@@ -55,8 +55,7 @@ router.beforeEach((to, from, next) => {
     localStorage.setItem('userInfo', JSON.stringify(userInfo))
     store.commit('changeUserInfo', { userInfo })
     store.commit('changeUserToken', ssoToken)
-    // 注意：不清理 URL 参数，避免 replaceState 破坏 history base 路径
-    // URL 参数保留无害，因为 localStorage 已持久化 token
+    history.replaceState(null, '', window.location.pathname + window.location.search)
     return next()
   }
 

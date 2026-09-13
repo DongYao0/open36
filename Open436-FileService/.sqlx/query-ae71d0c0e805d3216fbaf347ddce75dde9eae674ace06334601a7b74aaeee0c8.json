@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE files\n            SET status = $2, updated_at = CURRENT_TIMESTAMP\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "file_status",
+            "kind": {
+              "Enum": [
+                "unused",
+                "used",
+                "deleted"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ae71d0c0e805d3216fbaf347ddce75dde9eae674ace06334601a7b74aaeee0c8"
+}

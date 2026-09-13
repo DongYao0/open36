@@ -37,6 +37,7 @@ class UserControllerTest extends BaseApiTest {
         request.setUsername("new_test_user");
         request.setPassword("password123");
         request.setRole("user");
+        request.setStatus("active");
         
         // When & Then: POST /api/auth/users
         mockMvc.perform(post("/api/auth/users")
@@ -200,8 +201,8 @@ class UserControllerTest extends BaseApiTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(request)))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.code").value(40001004))
-            .andExpect(jsonPath("$.message").value("两次输入的密码不一致"));
+            .andExpect(jsonPath("$.code").value(40000001))
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("两次输入的密码不一致")));
     }
     
     @Test

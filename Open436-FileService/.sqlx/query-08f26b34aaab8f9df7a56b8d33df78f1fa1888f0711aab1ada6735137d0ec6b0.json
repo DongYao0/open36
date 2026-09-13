@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                status::TEXT as status,\n                COUNT(*)::bigint as count,\n                COALESCE(SUM(file_size), 0)::bigint as size\n            FROM files\n            GROUP BY status\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "size",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "08f26b34aaab8f9df7a56b8d33df78f1fa1888f0711aab1ada6735137d0ec6b0"
+}

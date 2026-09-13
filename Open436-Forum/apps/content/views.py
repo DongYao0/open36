@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import Case, F, IntegerField, Q, Value, When
 from django.core.cache import cache
 from django.utils import timezone
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -23,6 +23,9 @@ from .serializers import (
 )
 
 logger = logging.getLogger(__name__)
+
+# 资源板块 slug（与 db-init/V1__create_sections_table.sql 保持一致）
+RESOURCE_SECTION_SLUG = 'share'
 
 
 def _serializer_context(request, posts):
@@ -337,3 +340,86 @@ class PostViewSet(viewsets.GenericViewSet):
         histories = post.edit_history.all()
         serializer = PostEditHistorySerializer(histories, many=True)
         return Response(success_response(data=serializer.data))
+
+
+class ResourceViewSet(viewsets.GenericViewSet):
+    """
+    我的资源 / 资源分享 视图集：
+    复用 Post 模型，section 固定为 share 板块。
+    用于支持 Frontend /api/resources/ 路径（"我的资源"页）。
+
+    路由：/api/resources/         GET  列出某用户（author_id）的资源
+          /api/resources/?section_id=N  按板块筛
+    """
+    lookup_field = 'pk'
+
+    @staticmethod
+    def _share_section_id():
+        """运行时查找 share 板块 id（不写死，启动时自取）。"""
+        from apps.section.models import Section as _Section
+        return _Section.objects.filter(slug=RESOURCE_SECTION_SLUG).values_list('id', flat=True).first()
+
+    def get_queryset(self):
+        share_id = self._share_section_id()
+        if share_id is None:
+            return Post.objects.none()
+        return Post.objects.filter(section_id=share_id)
+
+    def get_permissions(self):
+        return []
+
+    def list(self, request):
+        is_admin = getattr(request, 'is_admin', False)
+        queryset = self.get_queryset()
+        if not is_admin:
+            queryset = queryset.filter(status=Post.STATUS_PUBLISHED)
+
+        author_id = request.query_params.get('author_id')
+        if author_id:
+            try:
+                queryset = queryset.filter(author_id=int(author_id))
+            except ValueError:
+                pass
+
+        search = request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) | Q(summary__icontains=search)
+            )
+
+        ordering = request.query_params.get('ordering', '-created_at')
+        if ordering in ['-created_at', 'created_at', '-views_count']:
+            queryset = queryset.order_by('-is_pinned', ordering)
+        else:
+            queryset = queryset.order_by('-is_pinned', '-created_at')
+
+        try:
+            page = max(int(request.query_params.get('page', 1)), 1)
+            page_size = min(int(request.query_params.get('page_size', 20)), 50)
+        except ValueError:
+            page, page_size = 1, 20
+        start = (page - 1) * page_size
+        end = start + page_size
+        total = queryset.count()
+        posts = list(queryset[start:end])
+        serializer = PostListSerializer(
+            posts, many=True, context=_serializer_context(request, posts)
+        )
+        return Response(success_response(data={
+            'count': total,
+            'next': f'/api/resources/?page={page + 1}' if end < total else None,
+            'previous': f'/api/resources/?page={page - 1}' if page > 1 else None,
+            'results': serializer.data,
+        }))
+
+    def retrieve(self, request, pk=None):
+        post = self.get_object()
+        if not post:
+            resp, code = error_response('资源不存在', code=40401, status_code=404)
+            return Response(resp, status=code)
+        if post.status == Post.STATUS_DELETED and not getattr(request, 'is_admin', False):
+            resp, code = error_response('资源已删除', code=40401, status_code=404)
+            return Response(resp, status=code)
+        return Response(success_response(
+            data=PostDetailSerializer(post, context=_serializer_context(request, [post])).data
+        ))

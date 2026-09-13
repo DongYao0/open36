@@ -87,3 +87,19 @@ devnull
 *.bak
 提示词.md
 .tools/
+
+# ── 生产部署：绝对不得入库 ──
+deploy/prod/.env.production
+deploy/prod/.env.production.local
+deploy/prod/backups/
+deploy/prod/*.log
+
+# Local agent/remote-control artifacts (may contain credentials or large bundles)
+.claude-remote/
+.codex-audit/
+.codex-ppt-build/
+
+# Local exports, screenshots, presentations and temporary migration bundles
+output/
+mi/
+mi.zip

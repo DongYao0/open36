@@ -49,6 +49,9 @@ class UserServiceTest extends BaseUnitTest {
     @Mock
     private RoleService roleService;
 
+    @Mock
+    private UserProfileService userProfileService;
+
     @InjectMocks
     private UserServiceImpl userService;
     
@@ -80,6 +83,7 @@ class UserServiceTest extends BaseUnitTest {
         request.setUsername("newuser");
         request.setPassword("password123");
         request.setRole("user");
+        request.setStatus("active");
         
         when(userAuthRepository.existsByUsername("newuser")).thenReturn(false);
         when(roleRepository.findByCode("user")).thenReturn(Optional.of(mockRole));
@@ -109,6 +113,7 @@ class UserServiceTest extends BaseUnitTest {
         verify(roleRepository).findByCode("user");
         verify(passwordEncoder).encode("password123");
         verify(userAuthRepository).save(any(UserAuth.class));
+        verify(userProfileService).createProfileForUser(2L, "用户2");
     }
     
     @Test

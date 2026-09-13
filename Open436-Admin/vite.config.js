@@ -57,6 +57,16 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8081',
         changeOrigin: true
+      },
+      // HOJ 前端：同源 /algo 路径（与生产 Admin nginx 行为一致）
+      '/algo': {
+        target: 'http://localhost:8066',
+        changeOrigin: true
+      },
+      // 荣誉相册静态资源：由 Landing(5173) 提供 public/honors
+      '/honors': {
+        target: 'http://localhost:5173',
+        changeOrigin: true
       }
     }
   },

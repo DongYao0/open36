@@ -15,6 +15,7 @@ from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.tool_call import ToolCall
 from app.agents.graph import run_agent, run_agent_stream
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +28,21 @@ async def _get_or_create_conversation(
 ) -> Conversation:
     """获取或创建会话"""
     if conversation_id:
+        try:
+            requested_id = uuid.UUID(conversation_id)
+        except (TypeError, ValueError) as exc:
+            raise ValueError('会话ID格式无效') from exc
         result = await session.execute(
-            select(Conversation).where(Conversation.id == conversation_id)
+            select(Conversation).where(Conversation.id == requested_id)
         )
         conversation = result.scalar_one_or_none()
-        if not conversation:
+        if conversation and conversation.user_id != user_id:
             raise ValueError('会话不存在')
+        if conversation is None:
+            # 客户端预生成的 UUID 用于首个请求也能立即取消。
+            conversation = Conversation(id=requested_id, user_id=user_id, title=first_message[:50])
+            session.add(conversation)
+            await session.flush()
     else:
         conversation = Conversation(
             user_id=user_id,
@@ -158,6 +168,8 @@ async def process_chat_stream(message: str, user_id: int, conversation_id: str =
         # 4. 注册活跃任务
         task = asyncio.current_task()
         _active_streams[conversation_id] = task
+        # 必须在 Agent 编排前发出会话编号：新会话也能立刻被停止。
+        yield {'type': 'meta', 'conversation_id': conversation_id, 'steps': 0}
 
         # 5. 流式调用 Agent
         agent_name = 'chat'
@@ -165,19 +177,27 @@ async def process_chat_stream(message: str, user_id: int, conversation_id: str =
         tool_calls = []
         token_usage = {'input': 0, 'output': 0}
 
-        async for chunk in run_agent_stream(message, user_id, history=history):
-            if chunk['type'] == 'content':
-                full_reply += chunk['content']
-                yield chunk
-            elif chunk['type'] == 'meta':
-                intent = chunk.get('intent', intent)
-                # 注入 conversation_id 到 meta 事件，前端需要它来调用 stop 接口
-                chunk['conversation_id'] = conversation_id
-                yield chunk
-            elif chunk['type'] == 'done':
-                agent_name = chunk.get('agent_name', agent_name)
-                tool_calls = chunk.get('tool_calls', tool_calls)
-                token_usage = chunk.get('token_usage', token_usage)
+        try:
+            async with asyncio.timeout(settings.AI_STREAM_TIMEOUT_SECONDS):
+                async for chunk in run_agent_stream(message, user_id, history=history):
+                    if chunk['type'] == 'content':
+                        full_reply += chunk['content']
+                        yield chunk
+                    elif chunk['type'] == 'meta':
+                        intent = chunk.get('intent', intent)
+                        # 注入 conversation_id 到 meta 事件，前端需要它来调用 stop 接口
+                        chunk['conversation_id'] = conversation_id
+                        yield chunk
+                    elif chunk['type'] == 'done':
+                        agent_name = chunk.get('agent_name', agent_name)
+                        tool_calls = chunk.get('tool_calls', tool_calls)
+                        token_usage = chunk.get('token_usage', token_usage)
+        except TimeoutError:
+            logger.warning('AI 生成超时: conversation_id=%s', conversation_id)
+            if full_reply:
+                full_reply += '\n\n_[生成超时，已停止]_'
+            else:
+                full_reply = '本次生成超过时限，已自动停止。请缩短需求后重试。'
 
         # 6. 流结束后保存到数据库
         async with async_session() as session:

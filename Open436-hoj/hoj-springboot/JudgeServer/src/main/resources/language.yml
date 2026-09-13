@@ -125,61 +125,20 @@ run:
   command: /usr/bin/java -Dfile.encoding=UTF-8 -cp /w/{exe_path} Main
 
 ---
-language: Python2
-src_path: main.py
-exe_path: main.pyc
-compile:
-  env: default
-  command: /usr/bin/python -m py_compile /w/{src_path}
-  maxCpuTime: 5s
-  maxRealTime: 10s
-  maxMemory: 256mb
-run:
-  env: default
-  command: /usr/bin/python /w/{exe_path}
-
----
+# Python3：open436/go-judge 镜像基于 Debian trixie，只提供 /usr/bin/python3 (3.13)
+# 编译目标 __pycache__/main.cpython-313.pyc
 language: Python3
 src_path: main.py
-exe_path: __pycache__/main.cpython-37.pyc
+exe_path: __pycache__/main.cpython-313.pyc
 compile:
   env: python3
-  command: /usr/bin/python3.7 -m py_compile /w/{src_path}
+  command: /usr/bin/python3 -m py_compile /w/{src_path}
   maxCpuTime: 5s
   maxRealTime: 10s
   maxMemory: 256mb
 run:
   env: python3
-  command: /usr/bin/python3.7 /w/{exe_path}
-
----
-language: PyPy2
-src_path: main.py
-exe_path: __pycache__/main.pypy-73.pyc
-compile:
-  env: default
-  command: /usr/bin/pypy -m py_compile /w/{src_path}
-  maxCpuTime: 5s
-  maxRealTime: 10s
-  maxMemory: 256mb
-run:
-  env: default
-  command: /usr/bin/pypy /w/{exe_path}
-
----
-language: PyPy3
-src_path: main.py
-exe_path: __pycache__/main.pypy39.pyc
-compile:
-  env: python3
-  command: /usr/bin/pypy3 -m py_compile /w/{src_path}
-  maxCpuTime: 5s
-  maxRealTime: 10s
-  maxMemory: 256mb
-run:
-  env: python3
-  command: /usr/bin/pypy3 /w/{exe_path}
-
+  command: /usr/bin/python3 /w/{src_path}
 
 ---
 language: Golang
@@ -194,20 +153,6 @@ compile:
 run:
   env: golang_run
   command: /w/{exe_path}
-
----
-language: C#
-src_path: Main.cs
-exe_path: main
-compile:
-  env: default
-  command: /usr/bin/mcs -optimize+ -out:{exe_path} {src_path}
-  maxCpuTime: 5s
-  maxRealTime: 10s
-  maxMemory: 512mb
-run:
-  env: default
-  command: /usr/bin/mono /w/{exe_path}
 
 ---
 language: PHP
@@ -226,14 +171,6 @@ run:
   command: /usr/bin/node /w/{exe_path}
 
 ---
-language: JavaScript V8
-src_path: main.js
-exe_path: main.js
-run:
-  env: default
-  command: /usr/bin/jsv8/d8 /w/{exe_path}
-
----
 language: Ruby
 src_path: main.rb
 exe_path: main.rb
@@ -241,21 +178,7 @@ run:
   env: default
   command: /usr/bin/ruby /w/{exe_path}
 
----
-language: Rust
-src_path: Main.cs
-exe_path: main
-compile:
-  env: default
-  command: /usr/bin/rustc -O -o {exe_path} {src_path}
-  maxCpuTime: 5s
-  maxRealTime: 10s
-  maxMemory: 512mb
-run:
-  env: default
-  command: /w/{exe_path}
-
-# 以下为特殊评测或交互评测使用的语言
+# ─── 特殊评测 / 交互评测 ───
 ---
 language: SPJ-C
 src_path: spj.c
@@ -311,3 +234,12 @@ compile:
 run:
   env: default
   command: /w/{exe_path} {std_input} {user_output} {std_output}
+
+# ─────────────────────────────────────────────────────────────
+# 已从本文件移除的语言（生产 go-judge 镜像不安装运行时）：
+#   - Python2  / PyPy2 / PyPy3：Debian trixie 已无 python2；pypy 未安装
+#   - C#（mono / mcs）：未安装
+#   - Rust（rustc）：未安装
+#   - JavaScript V8（d8）：未安装
+# 如需启用，请修改 deploy/prod/go-judge/Dockerfile 安装运行时并在此追加条目。
+# ─────────────────────────────────────────────────────────────

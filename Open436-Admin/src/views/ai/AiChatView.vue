@@ -163,8 +163,28 @@ const currentConvId = ref(null)
 const messagesRef = ref(null)
 const pendingFile = ref(null)
 let abortController = null
+let stopRequested = false
 
 // ============== 工具函数 ==============
+function createConversationId() {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
+  }
+
+  const bytes = new Uint8Array(16)
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(bytes)
+  } else {
+    for (let i = 0; i < bytes.length; i += 1) {
+      bytes[i] = Math.floor(Math.random() * 256)
+    }
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 function scrollToBottom() {
   nextTick(() => {
     if (messagesRef.value) {
@@ -248,15 +268,22 @@ async function send() {
   const fullMessage = text + fileContext
   input.value = ''
 
+  // 新会话在请求前就分配 ID，使停止操作不必等待首个 SSE 元信息。
+  if (!currentConvId.value) {
+    currentConvId.value = createConversationId()
+  }
+
   messages.value.push({ role: 'user', content: text || `[文件] ${pendingFile?.value?.name || '上传文件'}` })
   scrollToBottom()
 
   // 开始流式输出
   streaming.value = true
   streamContent.value = ''
+  stopRequested = false
 
   abortController = sendChatStream(fullMessage, currentConvId.value, {
     onChunk(chunk) {
+      if (stopRequested) return
       if (chunk.type === 'content') {
         streamContent.value += chunk.content
         scrollToBottom()
@@ -291,7 +318,7 @@ async function send() {
     },
     onDone() {
       // 如果还没通过 chunk.type === 'done' 处理过
-      if (streaming.value && streamContent.value) {
+      if (!stopRequested && streaming.value && streamContent.value) {
         messages.value.push({ role: 'assistant', content: streamContent.value })
         streamContent.value = ''
         streaming.value = false
@@ -299,6 +326,7 @@ async function send() {
       }
     },
     onError(err) {
+      if (stopRequested) return
       messages.value.push({ role: 'assistant', content: `请求失败: ${err.message}` })
       streamContent.value = ''
       streaming.value = false
@@ -308,32 +336,21 @@ async function send() {
 }
 
 // ============== 停止生成 ==============
-async function handleStop() {
-  console.log('[stop] clicked, currentConvId:', currentConvId.value, 'abortController:', abortController)
-  // 先通知后端停止任务
-  if (currentConvId.value) {
-    try {
-      const res = await stopChat(currentConvId.value)
-      console.log('[stop] backend response:', res)
-    } catch (e) {
-      console.error('[stop] backend error:', e)
-    }
-  } else {
-    console.warn('[stop] no conversation_id')
-  }
-  // 再中止前端 fetch 连接
+function handleStop() {
+  // 本地先停止，不能等待网络请求返回，否则按钮会显得无响应。
+  stopRequested = true
   if (abortController) {
     abortController.abort()
     abortController = null
-    console.log('[stop] fetch aborted')
-  } else {
-    console.warn('[stop] no abortController')
   }
-  // 强制停止 streaming 状态
   streaming.value = false
   if (streamContent.value) {
     messages.value.push({ role: 'assistant', content: streamContent.value + '\n\n_[已停止生成]_' })
     streamContent.value = ''
+  }
+  // 后端取消独立执行；不阻塞用户界面。
+  if (currentConvId.value) {
+    void stopChat(currentConvId.value).catch(() => {})
   }
 }
 

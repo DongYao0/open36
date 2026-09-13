@@ -1,0 +1,116 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO files (\n                filename, storage_key, file_type, mime_type, file_size, uploader_id\n            ) VALUES ($1, $2, $3, $4, $5, $6)\n            RETURNING \n                id, filename, storage_key,\n                file_type as \"file_type: FileType\",\n                mime_type, file_size, uploader_id,\n                status as \"status: FileStatus\",\n                created_at, updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "filename",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "storage_key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "file_type: FileType",
+        "type_info": {
+          "Custom": {
+            "name": "file_type",
+            "kind": {
+              "Enum": [
+                "avatar",
+                "post",
+                "reply",
+                "section_icon"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "mime_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "file_size",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "uploader_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "status: FileStatus",
+        "type_info": {
+          "Custom": {
+            "name": "file_status",
+            "kind": {
+              "Enum": [
+                "unused",
+                "used",
+                "deleted"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "file_type",
+            "kind": {
+              "Enum": [
+                "avatar",
+                "post",
+                "reply",
+                "section_icon"
+              ]
+            }
+          }
+        },
+        "Varchar",
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "49e076d6586e05a843b2fd2a03525c5a4476b60596060bc5d961f5e1aa73cb33"
+}

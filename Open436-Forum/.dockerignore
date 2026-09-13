@@ -1,0 +1,32 @@
+# 环境变量与密钥
+.env*
+!.env.example
+
+# Python
+venv
+.venv
+node_modules
+target
+dist
+__pycache__
+.pytest_cache
+*.py[cod]
+staticfiles
+coverage
+htmlcov
+test-results
+
+# 日志
+*.log
+logs/
+
+# 系统/IDE
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.swp
+
+# Git
+.git
+.gitignore

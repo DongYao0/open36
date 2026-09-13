@@ -1,0 +1,30 @@
+# 环境变量与密钥
+.env*
+!.env.example
+
+# Java 构建产物
+target
+**/target
+node_modules
+dist
+venv
+.venv
+__pycache__
+.pytest_cache
+*.class
+*.log
+logs/
+test-results/
+coverage/
+BOOT-INF/
+
+# 系统/IDE
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.swp
+
+# Git
+.git
+.gitignore

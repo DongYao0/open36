@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────
+#  Open436 Admin —— 生产构建
+#
+#  Admin 使用自身目录作为 build context，Landing 通过 Compose additional_contexts
+#  以只读命名上下文 `landing` 提供。原因是 HomepageView.vue 跨目录 import：
+#    - ../../../../Open436-Landing/src/data/honorGallery.js
+#    - ../../../../Open436-Landing/src/assets/index.js
+#  构建时把命名上下文复制到 /build/Open436-Landing，与 Admin 保持仓库布局。
+#
+#  资源：
+#    /usr/share/nginx/html            Admin SPA 产物
+#    /usr/share/nginx/html/honors     Landing honors 静态图片（替代 dev Junction）
+#    /etc/nginx/conf.d/default.conf   Admin 生产 nginx
+# ─────────────────────────────────────────────────────────────
+
+FROM node:20-alpine AS builder
+WORKDIR /build
+
+# 1) Admin 依赖
+COPY package*.json Open436-Admin/
+WORKDIR /build/Open436-Admin
+RUN npm ci
+
+# 2) Landing 源码（解决跨目录 import）：
+#   HomepageView.vue:234-235 -> ../../../../Open436-Landing/src/...
+#   路径从 /build/Open436-Admin/src/ 上溯四级 = /，因此 Landing 必须在 /Open436-Landing/
+COPY --from=landing . /build/Open436-Landing
+
+# 3) Admin 完整源码。
+#   Windows 开发环境下 public/honors 是 NTFS junction（指向 Landing/public/honors），
+#   Docker COPY 跟随符号链接时会触发"cannot replace to directory"错误。
+#   解决方案：build 阶段不复制 public 目录，手工 mkdir -p public/honors 占位，
+#   运行时阶段直接 COPY Landing/public/honors 覆盖（保留真实图片）。
+WORKDIR /build/Open436-Admin
+COPY package.json package-lock.json ./
+COPY vite.config.js index.html ./
+COPY src ./src
+COPY docker ./docker
+# 仅创建 honors 占位目录（其他 public 资源由本仓库 public 自行覆盖；本仓库 public 仅 honors）
+RUN mkdir -p public/honors
+RUN npm run build
+
+FROM nginx:1.27-alpine
+# 健康检查工具
+RUN apk add --no-cache curl
+COPY --from=builder /build/Open436-Admin/dist                  /usr/share/nginx/html
+COPY --from=builder /build/Open436-Admin/docker/nginx.conf     /etc/nginx/conf.d/default.conf
+# 真实复制 Landing honors（替代开发环境的 Windows junction 共享）
+COPY --from=landing public/honors                             /usr/share/nginx/html/honors
+EXPOSE 80
+HEALTHCHECK --interval=15s --timeout=5s --retries=10 \
+  CMD curl -fsS http://localhost:80/ >/dev/null || exit 1
+CMD ["nginx", "-g", "daemon off;"]

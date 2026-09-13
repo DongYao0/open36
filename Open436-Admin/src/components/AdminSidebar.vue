@@ -37,6 +37,7 @@
         <el-icon><ChatDotRound /></el-icon>
         <template #title>论坛管理</template>
       </el-menu-item>
+      <!-- HOJ 算法管理是正式功能，生产环境通过同源 /algo/ 访问 -->
       <el-menu-item @click="openHojAdmin">
         <el-icon><EditPen /></el-icon>
         <template #title>算法管理</template>
@@ -85,23 +86,7 @@ const activeMenu = computed(() => route.path)
 const collapsed = computed(() => appStore.sidebarCollapsed)
 
 const openHojAdmin = async () => {
-  await authStore.syncToHoj()
-  // 跨端口 localStorage 不共享，通过 URL 参数将 HOJ token 传递给目标页
-  const hojToken = localStorage.getItem('token') || ''
-  let username = ''
-  let role = ''
-  const userInfoStr = localStorage.getItem('userInfo')
-  if (userInfoStr) {
-    try {
-      const ui = JSON.parse(userInfoStr)
-      username = ui.username || ''
-      role = (ui.roleList && ui.roleList[0]) || ''
-    } catch (e) {}
-  }
-  // 在当前页面跳转，直接进入 HOJ 管理后台 dashboard，不再经过 login 页
-  const hojVueBase = import.meta.env.VITE_HOJ_VUE_URL || `${window.location.protocol}//${window.location.hostname}:8066`
-  const url = `${hojVueBase}/algo/admin/dashboard?hoj_token=${encodeURIComponent(hojToken)}&username=${encodeURIComponent(username)}&role=${encodeURIComponent(role)}`
-  window.location.href = url
+  await authStore.openHojAdmin()
 }
 
 </script>

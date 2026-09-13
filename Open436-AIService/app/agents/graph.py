@@ -28,6 +28,14 @@ _AGENT_TO_NODE = {
 
 async def orchestrator_node(state: AgentState) -> dict:
     """规划节点：理解意图 + 产出 steps"""
+    from app.agents.forum_draft import is_draft_followup, is_forum_request
+    if is_draft_followup(state['user_message'], state.get('history', [])) or is_forum_request(state['user_message']):
+        return {
+            'plan': {'understanding': '用户正在继续编辑或发布当前论坛草稿'},
+            'steps': [{'step': 1, 'agent': 'forum', 'task': state['user_message'],
+                       'input': state['user_message']}],
+            'understanding': '用户正在继续编辑或发布当前论坛草稿', 'step_index': 0,
+        }
     plan = await orchestrate(state['user_message'])
     steps = plan.get('steps') or [
         {'step': 1, 'agent': 'unclear', 'task': state['user_message'], 'input': state['user_message']}
@@ -82,6 +90,7 @@ async def exec_step(state: AgentState) -> dict:
     return {
         'step_results': [{'step_index': idx, 'agent': agent, 'reply': res.get('reply', ''),
                           'token_usage': st}],
+        'crawled_data': res.get('crawled_data', []),
         'tool_calls': res.get('tool_calls', []),
         'reply': res.get('reply', ''),
         'agent_name': res.get('agent_name', agent),
@@ -165,8 +174,8 @@ async def run_agent(user_message: str, user_id: int, history: list[dict] = None)
 
 
 # 流式节点（LLM token 经 stream_to_user 直送）与非流式节点（节点结束整体补发切块）
-_STREAM_NODES = {'chat', 'search', 'forum'}
-_NONSTREAM_NODES = {'problem', 'query', 'unclear', 'exec_step'}
+_STREAM_NODES = {'chat', 'search'}
+_NONSTREAM_NODES = {'forum', 'problem', 'query', 'unclear', 'exec_step'}
 
 
 async def run_agent_stream(user_message: str, user_id: int, history: list[dict] = None):

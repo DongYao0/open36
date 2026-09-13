@@ -46,5 +46,15 @@ public interface UserAuthRepository extends JpaRepository<UserAuth, Long> {
     @Override
     @EntityGraph(attributePaths = {"roles"})
     List<UserAuth> findAll();
+
+    /**
+     * 按用户名删除用户（生产首启时清理 Flyway V2/V10 默认账号）
+     * @param username 用户名
+     * @return 删除行数
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query(
+        "DELETE FROM UserAuth u WHERE u.username = :username")
+    int deleteByUsername(@org.springframework.data.repository.query.Param("username") String username);
 }
 

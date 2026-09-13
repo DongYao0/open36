@@ -96,9 +96,9 @@ class AuthControllerTest extends BaseApiTest {
     
     @Test
     void testLogin_ValidationError_Returns400() throws Exception {
-        // Given: 无效的请求（用户名太短）
+        // Given: 无效的请求（用户名超过20字符）
         LoginRequest request = new LoginRequest();
-        request.setUsername("ab"); // 少于3个字符
+        request.setUsername("a".repeat(21));
         request.setPassword("password123");
         
         // When & Then: 应该返回400

@@ -102,8 +102,8 @@ async fn main() -> std::io::Result<()> {
             .app_data(db_data.clone())
             .app_data(storage_data.clone())
             .app_data(cleanup_config_data.clone())
-            // 设置请求体大小限制（10 MB）
-            .app_data(web::PayloadConfig::new(10 * 1024 * 1024))
+            // 设置请求体大小限制（12 MB，为 10 MB 文件限制留 multipart 开销余量）
+            .app_data(web::PayloadConfig::new(12 * 1024 * 1024))
             // 中间件
             .wrap(Logger::default())
             .wrap(

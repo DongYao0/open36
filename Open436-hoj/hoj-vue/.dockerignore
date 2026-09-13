@@ -1,4 +1,27 @@
+# 环境变量与密钥
+.env*
+!.env.example
+
+# 依赖与构建产物
 node_modules
 dist
+target
+venv
+.venv
+__pycache__
+.pytest_cache
+*.log
+test-results
+coverage
+
+# 系统/IDE
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.swp
+
+# Git / 文档
 .git
+.gitignore
 *.md

@@ -3,7 +3,7 @@
 # redis配置
 redis-host: ${REDIS_HOST:172.20.0.2}
 redis-port: ${REDIS_PORT:6379}
-redis-password: ${REDIS_PASSWORD:hoj123456}
+redis-password: ${REDIS_PASSWORD}
 
 # 本服务连接mysql的地址和端口号
 mysql-host: ${MYSQL_HOST:172.20.0.3}
@@ -12,23 +12,39 @@ mysql-port: ${MYSQL_PORT:3306}
 mysql-public-host: ${MYSQL_PUBLIC_HOST:172.20.0.3}
 mysql-public-port: ${MYSQL_PUBLIC_PORT:3306}
 mysql-username: ${MYSQL_USERNAME:root}
-mysql-password: ${MYSQL_ROOT_PASSWORD:hoj123456}
+mysql-password: ${MYSQL_ROOT_PASSWORD}
 mysql-name: ${MYSQL_DATABASE_NAME:hoj}
 
 # token密钥，default表示随机生成
-jwt-token-secret: ${JWT_TOKEN_SECRET:default}
+jwt-token-secret: ${JWT_TOKEN_SECRET}
 # token过期时间 单位s
 jwt-token-expire: ${JWT_TOKEN_EXPIRE:86400}
 # token可刷新的过期时间 单位s
 jwt-token-fresh-expire: ${JWT_TOKEN_FRESH_EXPIRE:43200}
 
 # 网站是否开启远程评测
-open-remote-judge: ${OPEN_REMOTE_JUDGE:true}
+open-remote-judge: ${OPEN_REMOTE_JUDGE:false}
 # 调用评测服务的token, default表示随机生成
 judge-token: ${JUDGE_TOKEN:default}
 hoj:
+  db:
+    username: ${mysql-username}
+    password: ${mysql-password}
+    name: ${mysql-name}
+    host: ${mysql-host}
+    public-host: ${mysql-public-host}
+    port: ${mysql-port}
+    public-port: ${mysql-public-port}
+  redis:
+    host: ${redis-host}
+    port: ${redis-port}
+    password: ${redis-password}
+  jwt:
+    secret: ${jwt-token-secret}
+    expire: ${jwt-token-expire}
+    checkRefreshExpire: ${jwt-token-fresh-expire}
   judge:
-    token: ${JUDGE_TOKEN:default}
+    token: ${JUDGE_TOKEN}
 
 # 邮箱服务地址
 email-host: ${EMAIL_SERVER_HOST:smtp.qq.com}

@@ -1,7 +1,7 @@
 # Rust
 /target/
 /Open436-FileService/
-Cargo.lock
+# 注：二进制 crate，Cargo.lock 必须提交以保证可复现构建（原忽略，已移除）
 
 # IDE
 .idea/
@@ -28,6 +28,6 @@ logs/
 .DS_Store
 Thumbs.db
 
-# SQLx
-.sqlx/
+# SQLx 离线元数据 .sqlx 必须提交（生产 Dockerfile SQLX_OFFLINE=true 依赖它）
+# 故不再忽略；重新生成见 deploy/prod/scripts/gen-sqlx-offline.sh
 

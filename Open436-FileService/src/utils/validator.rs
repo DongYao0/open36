@@ -58,10 +58,10 @@ impl FileValidator {
     /// 获取文件类型的大小限制（字节）
     pub fn get_size_limit(file_type: FileType) -> usize {
         match file_type {
-            FileType::Avatar => 2 * 1024 * 1024,        // 2 MB
-            FileType::Post => 5 * 1024 * 1024,          // 5 MB
-            FileType::Reply => 5 * 1024 * 1024,         // 5 MB
-            FileType::SectionIcon => 500 * 1024,        // 500 KB
+            FileType::Avatar => 10 * 1024 * 1024,       // 10 MB
+            FileType::Post => 10 * 1024 * 1024,         // 10 MB
+            FileType::Reply => 10 * 1024 * 1024,        // 10 MB
+            FileType::SectionIcon => 10 * 1024 * 1024,  // 10 MB（首页模块图/奖项荣誉卡共用）
         }
     }
 
@@ -106,11 +106,11 @@ mod tests {
 
     #[test]
     fn test_get_size_limit() {
-        assert_eq!(FileValidator::get_size_limit(FileType::Avatar), 2_097_152);
-        assert_eq!(FileValidator::get_size_limit(FileType::Post), 5_242_880);
+        assert_eq!(FileValidator::get_size_limit(FileType::Avatar), 10_485_760);
+        assert_eq!(FileValidator::get_size_limit(FileType::Post), 10_485_760);
         assert_eq!(
             FileValidator::get_size_limit(FileType::SectionIcon),
-            512_000
+            10_485_760
         );
     }
 

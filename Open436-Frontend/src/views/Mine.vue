@@ -173,7 +173,7 @@
             <div v-else-if="resources.length === 0" class="empty-state">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               <p>还没有分享过资源</p>
-              <router-link to="/resources/new" class="link-btn">去分享</router-link>
+              <router-link to="/forum/post/new?type=share" class="link-btn">去分享</router-link>
             </div>
             <div v-else class="post-list">
               <div v-for="res in resources" :key="res.id" class="post-item" @click="$router.push(`/resources/${res.id}`)">
@@ -312,6 +312,8 @@ async function loadResources() {
     const data = res.data
     if (Array.isArray(data)) {
       resources.value = data
+    } else if (data && Array.isArray(data.results)) {
+      resources.value = data.results
     } else if (data && Array.isArray(data.list)) {
       resources.value = data.list
     } else {

@@ -10,6 +10,7 @@ import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -103,6 +104,18 @@ public class GlobalExceptionHandler {
             .body(ApiResponse.<Void>builder()
                 .code(errorCode.getCode())
                 .message("参数验证失败: " + message)
+                .timestamp(System.currentTimeMillis())
+                .build());
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingRequestParameter(
+            MissingServletRequestParameterException e) {
+        ErrorCode errorCode = ErrorCode.INVALID_PARAMETER;
+        return ResponseEntity.status(errorCode.getHttpStatus())
+            .body(ApiResponse.<Void>builder()
+                .code(errorCode.getCode())
+                .message("缺少请求参数: " + e.getParameterName())
                 .timestamp(System.currentTimeMillis())
                 .build());
     }

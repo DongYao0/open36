@@ -558,7 +558,9 @@ export default {
       }
     },
     goToOpen436Admin() {
-      window.location.href = 'http://localhost:3001/';
+      // 生产环境：HOJ 前端位于同源 /algo；Admin 入口是同源的根 /（Cloudflare 域名
+      // 或 LAN 地址）；直接用相对路径回退，避免写死任何 host。
+      window.location.href = '/';
     },
     page_width() {
       let screenWidth = window.screen.width;

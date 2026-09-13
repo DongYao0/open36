@@ -1,0 +1,84 @@
+# ─────────────────────────────────────────────────────────────
+#  Open436 生产 Kong 声明式配置（DB-less）
+#  路由顺序即优先级：Kong 按"最具体前缀优先"匹配，
+#  无正则冲突，确保 assignment/AI/文件/论坛/Auth/Enrollment/HOJ 不互串。
+#  public-web 与 Admin 已把 /api/* 统一导向 Kong :8000，
+#  本文件负责把不同前缀正确投递到对应上游。
+#
+#  AI SSE 同时在两层关闭缓冲并延长超时：
+#    - Kong route: response_buffering=false
+#    - Kong service: read/write timeout=300s
+#    - public-web / Admin Nginx: proxy_buffering=off, proxy_read_timeout=300s
+# ─────────────────────────────────────────────────────────────
+_format_version: "3.0"
+_transform: true
+
+services:
+  # ── Auth 服务（含 /api/users 用户管理与 /api/auth 认证）──
+  - name: auth-service
+    url: http://auth:8081
+    routes:
+      - name: auth-route
+        paths: ["/api/auth", "/api/users", "/api/users/homepage"]
+        strip_path: false
+
+  # ── 文件服务（需 satoken-auth 鉴权）──
+  - name: file-service
+    url: http://file-service:8007
+    routes:
+      - name: file-route
+        paths: ["/api/files"]
+        strip_path: false
+    plugins:
+      - name: satoken-auth
+        config:
+          auth_service_url: http://auth:8081
+          token_header_name: token
+
+  # ── 报名服务（enrollment + interview + assignment）──
+  - name: enrollment-service
+    url: http://enrollment:8084
+    routes:
+      - name: enrollment-route
+        paths: ["/api/enrollment", "/api/interview", "/api/assignment"]
+        strip_path: false
+
+  # ── 论坛服务（posts / comments / sections / replies / favorites / topics / follows / resources）──
+  #   /api/resources 复用 Post 模型 + section='share' 过滤 + author_id 查询；
+  #   实现见 Open436-Forum/apps/content/views.py 中的 PostViewSet
+  - name: forum-service
+    url: http://forum-service:8003
+    routes:
+      - name: forum-route
+        paths:
+          - "/api/posts"
+          - "/api/comments"
+          - "/api/sections"
+          - "/api/replies"
+          - "/api/favorites"
+          - "/api/topics"
+          - "/api/follows"
+          - "/api/resources"
+        strip_path: false
+
+  # ── AI 服务（SSE：Kong 原生超时/缓冲字段，无需额外插件）──
+  - name: ai-service
+    url: http://ai-service:8008
+    connect_timeout: 60000
+    read_timeout: 300000
+    write_timeout: 300000
+    routes:
+      - name: ai-route
+        paths: ["/api/ai"]
+        strip_path: false
+        request_buffering: false
+        response_buffering: false
+
+  # ── HOJ 后端（catch-all /api：quiz / file / msg / admin / public / 一切 HOJ 业务）──
+  #   Admin 侧 /api/hoj/* 会被 public-web/Admin nginx 剥前缀成 /api/* 后投递到这里。
+  - name: hoj-backend
+    url: http://hoj-backend:6688
+    routes:
+      - name: hoj-route
+        paths: ["/api"]
+        strip_path: false

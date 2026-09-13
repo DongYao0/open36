@@ -5,12 +5,14 @@ COPY pom.xml .
 COPY api/pom.xml api/pom.xml
 COPY DataBackup/pom.xml DataBackup/pom.xml
 COPY JudgeServer/pom.xml JudgeServer/pom.xml
-RUN mvn dependency:go-offline -B -pl JudgeServer -am
 COPY . .
-RUN mvn package -DskipTests -B -pl JudgeServer -am
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn package -DskipTests -B -pl JudgeServer -am
 
-FROM eclipse-temurin:8-jre
+FROM eclipse-temurin:8-jre-jammy
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /build/JudgeServer/target/*.jar app.jar
 EXPOSE 8088
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -36,11 +36,13 @@ const routes = [
         component: () => import('@/views/users/UserView.vue'),
         meta: { title: '用户管理', icon: 'User' }
       },
+      // Quiz 习题管理：dev 构建（mock 后端）有效；生产构建路由被
+      // beforeEach 直接跳到 /dashboard，避免展示必然 404 的界面。
       {
-        path: 'algo',
-        name: 'Algo',
+        path: 'quiz',
+        name: 'Quiz',
         component: () => import('@/views/quiz/QuizView.vue'),
-        meta: { title: '算法管理', icon: 'EditPen' }
+        meta: { title: '习题管理', icon: 'EditPen', devOnly: true }
       },
       {
         path: 'forum',
@@ -100,8 +102,15 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   if (to.path === '/algo') {
-    window.open('http://localhost:8066/algo/admin', '_blank')
+    // 同源 /algo 路径：开发由 Vite 代理到 :8066，生产由 Admin nginx 代理到 hoj-vue
+    window.open('/algo/admin', '_blank')
     return next(false)
+  }
+
+  // 生产构建：devOnly 路由（Quiz 算法管理）直接跳到 dashboard，
+  // 不暴露必然 404 的界面。dev 构建保留路由以便 mock 调试。
+  if (to.meta.devOnly && import.meta.env.PROD) {
+    return next('/dashboard')
   }
 
   const token = storage.get('token')

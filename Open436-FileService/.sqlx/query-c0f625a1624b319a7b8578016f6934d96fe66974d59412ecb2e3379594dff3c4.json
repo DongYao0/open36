@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                COUNT(*)::bigint as count,\n                COALESCE(SUM(file_size), 0)::bigint as size\n            FROM files\n            WHERE status != 'deleted'\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "size",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "c0f625a1624b319a7b8578016f6934d96fe66974d59412ecb2e3379594dff3c4"
+}

@@ -1,0 +1,39 @@
+# ── 环境变量与密钥（绝不进入构建上下文）──
+.env*
+!.env.example
+
+# ── 构建产物 ──
+/target
+**/target
+node_modules
+dist
+venv
+.venv
+__pycache__
+.pytest_cache
+*.log
+logs/
+
+# ── 测试产物 ──
+/tests
+test-results
+coverage
+**/*.rs.bk
+
+# ── 本地存储 ──
+/storage
+*.db
+*.sqlite
+
+# ── 操作系统 / IDE ──
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# ── Git ──
+.git
+.gitignore

@@ -17,7 +17,7 @@
         </div>
         <div class="avatar-info">
           <h3>头像</h3>
-          <p>支持 JPG、PNG 格式，文件大小不超过 2MB</p>
+          <p>支持 JPG、PNG 格式，文件大小不超过 10MB</p>
           <div class="avatar-actions">
             <button class="btn btn-primary btn-sm" @click="triggerUpload">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -119,8 +119,8 @@ async function handleFileChange(e) {
   const file = e.target.files[0]
   if (!file) return
 
-  if (file.size > 2 * 1024 * 1024) {
-    ui.showToast('文件大小不能超过 2MB', 'warning')
+  if (file.size > 10 * 1024 * 1024) {
+    ui.showToast('文件大小不能超过 10MB', 'warning')
     return
   }
 

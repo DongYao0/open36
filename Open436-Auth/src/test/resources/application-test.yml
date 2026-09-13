@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/open436
-    username: postgres
-    password: Shicong666
+    url: ${TEST_DATABASE_URL:jdbc:postgresql://localhost:5432/open436_test}
+    username: ${TEST_DATABASE_USERNAME:postgres}
+    password: ${TEST_DATABASE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -16,9 +16,9 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 16379
-      password:
+      host: ${TEST_REDIS_HOST:localhost}
+      port: ${TEST_REDIS_PORT:16379}
+      password: ${TEST_REDIS_PASSWORD:}
       timeout: 3000ms
 
 # Sa-Token 测试配置

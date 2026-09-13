@@ -1,21 +1,58 @@
+# ─────────────────────────────────────────────────────────────
+#  Open436 仓库根 .dockerignore
+#  用于以「仓库根」为 build context 的镜像（deploy/prod/public-web、Admin 生产）。
+#  注意：各服务目录自身的 build context（如 Open436-Auth、Open436-FileService）
+#  使用其目录下的 .dockerignore，不受本文件影响。
+# ─────────────────────────────────────────────────────────────
+
 # Git
 .git
 .gitignore
+**/.git
 
-# Docs
+# 环境变量与密钥（绝不进入构建上下文）
+.env*
+!.env.example
+!**/.env.example
+!.env.production.example
+!**/.env.production.example
+
+# 文档与杂项
 docs/
-README.md
 *.md
+!deploy/prod/**/*.md
 
-# Docker
-docker-compose.yml
-Dockerfile
-.dockerignore
+# 根上下文只用于 public-web / Admin；后端与 HOJ 各有独立 build context。
+Open436-AIService/
+Open436-Auth/
+Open436-CrawlerService/
+Open436-Enrollment/
+Open436-FileService/
+Open436-Forum/
+Open436-hoj/
+searxng/
 
-# Logs
+# Admin 的唯一 public 内容是 honors Junction；生产镜像从 Landing 原目录复制。
+Open436-Admin/public/
+
+# 未跟踪的临时/审计目录（git status 可见）
+mi/
+mi.zip
+output/
+.codex-audit/
+.codex-ppt-build/
+jar_patched/
+prototype/
+36problem/
+
+# 生产备份产物（含真实数据库/对象数据，绝不进入构建上下文）
+deploy/prod/backups/
+
+# 日志
 *.log
+logs/
 
-# Temp
+# 临时
 tmp/
 temp/
 .cache/
@@ -30,24 +67,35 @@ temp/
 .DS_Store
 Thumbs.db
 
-# Node
+# Node（构建产物与依赖，builder 阶段会重新 npm ci / build）
 node_modules/
-npm-debug.log
+**/node_modules
+dist/
+**/dist
+*.map
 
 # Rust
 target/
-Cargo.lock
+**/target
+.sqlx/
 
 # Java
-target/
 *.class
 *.jar
-!Open436-Auth/target/Open436-Auth-0.0.1-SNAPSHOT.jar
+!Open436-Auth/target/*.jar
 
 # Python
 __pycache__/
+**/__pycache__
 *.py[cod]
 *.so
-.env
 venv/
+.venv/
+**/venv
+**/.venv
 
+# 测试产物
+test1.in
+test1.out
+test_*.json
+*.result.json

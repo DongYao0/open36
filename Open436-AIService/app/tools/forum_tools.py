@@ -17,21 +17,35 @@ async def list_sections() -> dict:
 
 
 @tool
-async def create_post(title: str, content: str, section_id: int, author_id: int) -> dict:
+async def create_post(
+    title: str,
+    summary: str,
+    content: str,
+    section_id: int,
+    author_id: int,
+    resource_url: str = None,
+) -> dict:
     """
     创建论坛帖子。
 
     Args:
         title: 帖子标题，5-100字符
-        content: 帖子内容，Markdown格式，10-50000字符
+        summary: 帖子摘要，卡片展示用，20-300字符
+        content: 帖子正文，Markdown格式，10-50000字符；资源帖不含链接头
         section_id: 板块ID
         author_id: 作者用户ID
+        resource_url: 资源分享帖的官网、仓库或下载链接；技术交流帖不传
     """
+    normalized_content = content.strip()
+    if resource_url and resource_url.strip():
+        normalized_content = f'## 获取资源\n\n[访问资源]({resource_url.strip()})\n\n{normalized_content}'
+
     result = await call_internal(
         settings.CONTENT_SERVICE_URL, 'POST', '/internal/posts/',
         json={
             'title': title,
-            'content': content,
+            'summary': summary.strip(),
+            'content': normalized_content,
             'section_id': section_id,
             'author_id': author_id,
         },
@@ -61,19 +75,22 @@ async def list_posts(section_id: int = None, page: int = 1, page_size: int = 20)
 
 
 @tool
-async def update_post(post_id: int, title: str = None, content: str = None, author_id: int = 0) -> dict:
+async def update_post(post_id: int, title: str = None, summary: str = None, content: str = None, author_id: int = 0) -> dict:
     """
     编辑论坛帖子。
 
     Args:
         post_id: 帖子ID
         title: 新标题（可选）
-        content: 新内容（可选）
+        summary: 新摘要（可选）
+        content: 新正文（可选）
         author_id: 编辑者用户ID
     """
     data = {'author_id': author_id}
     if title:
         data['title'] = title
+    if summary is not None:
+        data['summary'] = summary
     if content:
         data['content'] = content
 

@@ -46,31 +46,56 @@ export const useAuthStore = defineStore('auth', () => {
         if (token.value) {
           localStorage.setItem('open436_token', token.value)
         }
+        return true
       }
     } catch (e) {
       console.error('HOJ 同步失败:', e)
     }
+    localStorage.removeItem('token')
+    localStorage.removeItem('userInfo')
+    return false
   }
 
-  async function login(username, password) {
+  async function openHojAdmin() {
+    const synced = await syncToHoj()
+    const hojToken = localStorage.getItem('token') || ''
+    let userInfo = {}
     try {
-      const res = await loginApi({ username, password })
-      const data = res.data || res
-      setToken(data.token)
-      setUser(data.user)
-      await syncToHoj()
-      console.log('[DEBUG login] token set:', data.token)
-      return data
+      userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+    } catch {
+      localStorage.removeItem('userInfo')
+    }
+    if (!synced || !hojToken) {
+      throw new Error('HOJ 同步失败，未取得登录凭据')
+    }
+    const params = new URLSearchParams({
+      hoj_token: hojToken,
+      username: userInfo.username || '',
+      role: userInfo.roleList?.[0] || 'admin'
+    })
+    const hojVueBase = import.meta.env.VITE_HOJ_VUE_URL || ''
+    window.location.assign(`${hojVueBase}/algo/admin/dashboard#${params}`)
+  }
+
+  async function loginWithBackend(username, password) {
+    const res = await loginApi({ username, password })
+    const data = res.data || res
+    setToken(data.token)
+    setUser(data.user)
+    await syncToHoj()
+    return data
+  }
+
+  async function loginWithDevFallback(username, password) {
+    try {
+      return await loginWithBackend(username, password)
     } catch (e) {
       const msg = e?.message || ''
-      // 后端明确拒绝（403/401/鉴权相关）则直接抛出
       if (msg.includes('管理员') || msg.includes('权限') || msg.includes('403') || msg.includes('401') || msg.includes('未登录') || msg.includes('密码')) {
         throw e
       }
-      // Mock fallback：仅在后端完全不可达（网络错误）时允许 admin 账号登录
       const isNetworkError = !e.response && (msg.includes('Network Error') || msg.includes('ECONNREFUSED') || msg.includes('timeout') || msg.includes('连接失败'))
       if (username === 'admin' && isNetworkError) {
-        console.warn('[DEV] 后端不可达，使用 mock 登录')
         const mockToken = 'mock-admin-token-' + Date.now()
         const mockUser = { id: 1, username: 'admin', role: 'admin', status: 'active' }
         setToken(mockToken)
@@ -80,6 +105,9 @@ export const useAuthStore = defineStore('auth', () => {
       throw e
     }
   }
+
+  // Vite 在生产构建时静态选择真实登录函数，并移除整个 dev fallback。
+  const login = import.meta.env.DEV ? loginWithDevFallback : loginWithBackend
 
   async function logout() {
     try { await logoutApi() } catch {}
@@ -100,5 +128,5 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
-  return { token, user, isLoggedIn, isAdmin, username, login, logout, fetchUser, syncToHoj }
+  return { token, user, isLoggedIn, isAdmin, username, login, logout, fetchUser, syncToHoj, openHojAdmin }
 })

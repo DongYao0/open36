@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     # 联网搜索（Tavily）
     TAVILY_API_KEY: str = ''
+    SEARXNG_URL: str = 'http://localhost:8888'
 
     # 内部服务地址
     CONTENT_SERVICE_URL: str = 'http://localhost:8003'
@@ -31,8 +32,9 @@ class Settings(BaseSettings):
     CRAWLER_SERVICE_URL: str = 'http://localhost:8009'
 
     # HOJ管理员账号
-    HOJ_ADMIN_USER: str = 'admin'
-    HOJ_ADMIN_PASS: str = 'admin123'
+    # 默认留空；生产必须由 Compose 的 .env 注入，避免镜像携带可用弱口令。
+    HOJ_ADMIN_USER: str = ''
+    HOJ_ADMIN_PASS: str = ''
 
     # 内部API密钥
     INTERNAL_API_KEY: str = 'open436-internal-secret'
@@ -51,6 +53,7 @@ class Settings(BaseSettings):
     # 应用配置
     APP_DEBUG: bool = True
     APP_LOG_LEVEL: str = 'info'
+    AI_STREAM_TIMEOUT_SECONDS: int = 90
 
     class Config:
         env_file = '.env'

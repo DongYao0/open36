@@ -7,7 +7,7 @@ COPY src ./src
 RUN mvn package -DskipTests -B
 
 FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
+RUN apk add --no-cache curl tini
 COPY --from=builder /app/target/Open436-Enrollment-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8084
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["/sbin/tini", "--", "java", "-jar", "app.jar"]

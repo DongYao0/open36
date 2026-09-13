@@ -2,7 +2,8 @@ import request from './request'
 
 export function uploadFile(formData) {
   return request.post('/api/files/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000  // 10MB 大文件上传预留
   })
 }
 

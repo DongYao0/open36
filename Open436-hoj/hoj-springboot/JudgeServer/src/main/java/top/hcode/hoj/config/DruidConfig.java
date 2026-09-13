@@ -21,25 +21,25 @@ import java.util.Objects;
 @Data
 public class DruidConfig {
 
-    @Value("${hoj.db.username:root}")
+    @Value("${MYSQL_USERNAME:${hoj.db.username:root}}")
     private String username;
 
-    @Value("${hoj.db.password:hoj123456}")
+    @Value("${MYSQL_ROOT_PASSWORD:${hoj.db.password:}}")
     private String password;
 
-    @Value("${hoj.db.host:172.20.0.3}")
+    @Value("${MYSQL_HOST:${hoj.db.host:127.0.0.1}}")
     private String host;
 
-    @Value("${hoj.db.port:3306}")
+    @Value("${MYSQL_PORT:${hoj.db.port:3306}}")
     private Integer port;
 
-    @Value("${hoj.db.public-host:172.20.0.3}")
+    @Value("${MYSQL_PUBLIC_HOST:${hoj.db.public-host:127.0.0.1}}")
     private String publicHost;
 
-    @Value("${hoj.db.public-port:3306}")
+    @Value("${MYSQL_PUBLIC_PORT:${hoj.db.public-port:3306}}")
     private Integer publicPort;
 
-    @Value("${hoj.db.name:hoj}")
+    @Value("${MYSQL_DATABASE_NAME:${hoj.db.name:hoj}}")
     private String name;
 
     @Value("${spring.datasource.driver-class-name}")
@@ -107,8 +107,8 @@ public class DruidConfig {
         String mysqlUsername = username;
         String mysqlUserPassword = password;
 
-        log.warn("[MySQL] [Config Init] name:[{}], host:[{}], port:[{}], username:[{}], password:[{}]",
-                mysqlName, mysqlHost, mysqlPort, mysqlUsername, mysqlUserPassword);
+        log.info("[MySQL] [Config Init] name:[{}], host:[{}], port:[{}], username:[{}]",
+                mysqlName, mysqlHost, mysqlPort, mysqlUsername);
 
         DruidDataSource datasource = new DruidDataSource();
         String url = "jdbc:mysql://" + mysqlHost + ":" + mysqlPort + "/" + mysqlName + "?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true&rewriteBatchedStatements=true";

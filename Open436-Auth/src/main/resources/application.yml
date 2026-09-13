@@ -1,6 +1,10 @@
 spring:
   application:
     name: Open436-Auth
+  servlet:
+    multipart:
+      max-file-size: 11MB      # 文件上传大小限制（与 FileService 的 10MB 对齐，留余量）
+      max-request-size: 11MB
   profiles:
     active: dev # 默认使用开发环境
   cloud:
@@ -43,8 +47,8 @@ sa-token:
 # HOJ 同步配置
 hoj:
   sync:
-    url: http://localhost:6688
-    api-key: open436-secret-key
+    url: ${HOJ_SYNC_URL:http://localhost:6688}
+    api-key: ${HOJ_API_KEY:open436-secret-key}
 
 # 文件服务配置
 file:
@@ -54,7 +58,7 @@ file:
 # Kong 网关配置
 kong:
   gateway:
-    url: http://kong:8000
+    url: ${KONG_GATEWAY_URL:http://kong:8000}
 
 # 安全配置
 security:
@@ -65,9 +69,13 @@ security:
 internal:
   api-key: ${INTERNAL_API_KEY:open436-internal-dev-key-2026}
 
-# CORS 配置
+# CORS 配置（生产通过环境变量覆盖，如 Cloudflare Tunnel 域名与 Admin LAN 地址）
 cors:
-  allowed-origins: http://localhost:3000,http://localhost:8080
+  # 注意：逗号分隔的字符串须整体加单引号包裹，否则 Spring 占位符内部的
+  # 逗号会被 YAML 解析为列表项，导致解析失败。
+  allowed-origins: '${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://localhost:3005,http://localhost:5173,http://localhost:8080}'
   allowed-methods: GET,POST,PUT,DELETE,OPTIONS
-  allowed-headers: Authorization,Content-Type
+  # 包含业务实际请求头：Sa-Token 的 token、kong satoken-auth 注入的 X-User-*
+  allowed-headers: 'Authorization,token,Content-Type,X-Requested-With,X-User-Id,X-Username,X-User-Role,X-User-Status,Accept,Origin,Referer,User-Agent'
   allow-credentials: true
+  max-age: 3600

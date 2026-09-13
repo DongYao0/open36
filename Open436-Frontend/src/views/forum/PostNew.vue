@@ -129,8 +129,8 @@ async function handleImageUpload(e) {
   e.target.value = ''
 
   // 客户端校验
-  const maxSize = 5 * 1024 * 1024
-  if (file.size > maxSize) { ui.showToast('图片大小不能超过 5MB', 'warning'); return }
+  const maxSize = 10 * 1024 * 1024
+  if (file.size > maxSize) { ui.showToast('图片大小不能超过 10MB', 'warning'); return }
   const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml']
   if (!allowed.includes(file.type)) { ui.showToast('仅支持 JPG / PNG / GIF / SVG 格式', 'warning'); return }
 

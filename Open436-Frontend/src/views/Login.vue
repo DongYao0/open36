@@ -1,7 +1,7 @@
 <template>
   <div class="auth-page">
     <div class="auth-left">
-      <div class="brand"><div class="brand-icon">O</div><span>Open436</span></div>
+      <div class="brand"><img class="brand-logo" src="@/assets/logo.svg" alt="Open436 logo"/><span>Open436</span></div>
       <div class="hero-title">
         <code class="code-line">
           <span class="token-class">System</span><span class="token-dot">.</span><span class="token-method">out</span><span class="token-dot">.</span><span class="token-method">print</span><span class="token-paren">(</span><span class="token-string">"Hello 0436!"</span><span class="token-paren">)</span><span class="token-semicolon">;</span><span class="cursor">|</span>
@@ -69,7 +69,7 @@
       <div class="bg-grid"/><div class="bg-orb o1"/><div class="bg-orb o2"/><div class="bg-orb o3"/>
     </div>
     <div class="auth-right">
-      <div class="mobile-brand"><div class="brand-icon">O</div><span>Open436</span></div>
+      <div class="mobile-brand"><img class="brand-logo" src="@/assets/logo.svg" alt="Open436 logo"/><span>Open436</span></div>
       <div class="form-box">
         <div class="form-tabs">
           <button :class="{ active: !isEnroll }" @click="setMode(false)">登录</button>
@@ -117,13 +117,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 
 const R = useRoute(), router = useRouter(), auth = useAuthStore(), ui = useUIStore()
-const isEnroll = ref(false)
+const isEnroll = ref(R.query.mode === 'register')
 const ld = ref(false), err = ref(''), showP = ref(false), showForgot = ref(false)
 const f = reactive({ u: '', p: '', cp: '', n: '', sid: '', rn: '', ph: '', mj: '', r: false })
 
@@ -226,13 +226,24 @@ function onBlur() {
   }, 50)
 }
 
-function setMode(enroll) {
+function setMode(enroll, syncRoute = true) {
   isEnroll.value = enroll
   err.value = ''
   if (!enroll) {
     Object.assign(f, { cp: '', n: '', sid: '', rn: '', ph: '', mj: '' })
   }
+  if (syncRoute) {
+    const query = { ...R.query }
+    if (enroll) query.mode = 'register'
+    else delete query.mode
+    router.replace({ path: R.path, query })
+  }
 }
+
+watch(() => R.query.mode, mode => {
+  const enroll = mode === 'register'
+  if (isEnroll.value !== enroll) setMode(enroll, false)
+})
 
 // 忘记密码提示弹窗开关
 

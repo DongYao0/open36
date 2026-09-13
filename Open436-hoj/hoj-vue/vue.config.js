@@ -6,6 +6,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // 本地环境是否需要使用cdn
 const devNeedCdn = true;
+// 生产镜像必须自包含，避免客户端因 cdnjs 不可达而白屏；开发环境保持原行为。
+const useCdn = !isProduction && devNeedCdn;
 
 // cdn链接
 const cdn = {
@@ -107,7 +109,7 @@ module.exports={
     // ============注入cdn start============
     config.plugin('html').tap(args => {
         // 生产环境或本地需要cdn时，才注入cdn
-        if (isProduction || devNeedCdn) args[0].cdn = cdn
+        if (useCdn) args[0].cdn = cdn
         return args
     })
     // Bundle Analyzer 仅在 ANALYZE=true 时启用，避免 Docker 构建阻塞
@@ -121,7 +123,7 @@ module.exports={
   configureWebpack: (config) => {
     // 用cdn方式引入，则构建时要忽略相关资源
     const plugins = [];
-    if (isProduction || devNeedCdn){
+    if (useCdn){
       config.externals = cdn.externals
       config.mode = 'production';
       config["performance"] = {//打包文件大小配置

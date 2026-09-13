@@ -11,6 +11,8 @@ env/
 *.egg-info/
 dist/
 build/
+node_modules/
+target/
 
 # IDE
 .idea/
@@ -22,6 +24,7 @@ build/
 .pytest_cache/
 .coverage
 htmlcov/
+test-results/
 
 # 日志
 *.log
@@ -30,5 +33,5 @@ htmlcov/
 .git/
 .gitignore
 README.md
-.env
-.env.local
+.env*
+!.env.example

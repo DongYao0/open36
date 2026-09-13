@@ -65,10 +65,12 @@ echo ""
 echo ""
 
 # 3. 启用 Sa-Token 认证插件（文件服务需要鉴权）
+#    token_header_name=token: 前端 axios 拦截器统一用 'token' 头携带凭据
 echo "Step 3: Enabling satoken-auth plugin for file-service..."
 curl -i -X POST $KONG_ADMIN/services/file-service/plugins \
   --data name=satoken-auth \
-  --data config.auth_service_url=http://${HOST_ADDR}:8081
+  --data config.auth_service_url=http://${HOST_ADDR}:8081 \
+  --data config.token_header_name=token
 
 echo ""
 echo ""

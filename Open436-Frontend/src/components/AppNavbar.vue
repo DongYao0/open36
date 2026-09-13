@@ -37,7 +37,7 @@ const tabs = [
   { label: '论坛', path: '/forum' }, { label: '赛事', path: '/contests' },
   { label: '公告', path: '/announcements' }, { label: '算法', path: '/quiz' }
 ]
-const displayName = computed(() => auth.isVisitor ? '游客' : auth.nickname || '个人中心')
+const displayName = computed(() => auth.isVisitor ? '游客' : auth.displayName || '个人中心')
 const avatar = computed(() => auth.isVisitor
   ? 'https://ui-avatars.com/api/?name=Guest&background=5546d9&color=fff&size=64'
   : auth.avatar || 'https://ui-avatars.com/api/?name=Open436&background=5546d9&color=fff&size=64')

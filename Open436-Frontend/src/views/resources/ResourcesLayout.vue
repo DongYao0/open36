@@ -18,7 +18,7 @@
       <div v-if="auth.isLoggedIn" class="rh-user">
         <div class="rh-trigger" @click="dropdownOpen = !dropdownOpen">
           <img :src="auth.isVisitor ? 'https://ui-avatars.com/api/?name=Guest&background=9E9E9E&color=fff&size=40' : auth.avatar"
-               class="avatar avatar-sm" :alt="auth.isVisitor ? '游客' : auth.nickname" />
+               class="avatar avatar-sm" :alt="auth.isVisitor ? '游客' : auth.displayName" />
           <svg class="rh-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"/>
           </svg>

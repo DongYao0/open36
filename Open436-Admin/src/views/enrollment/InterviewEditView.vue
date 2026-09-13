@@ -19,7 +19,6 @@
 
       <el-descriptions :column="4" border>
         <el-descriptions-item label="姓名">{{ detail.realName }}</el-descriptions-item>
-        <el-descriptions-item label="用户名">{{ detail.username }}</el-descriptions-item>
         <el-descriptions-item label="学号">{{ detail.studentId }}</el-descriptions-item>
         <el-descriptions-item label="专业">{{ detail.major }}</el-descriptions-item>
         <el-descriptions-item label="自我介绍" :span="4">{{ detail.selfIntro || '暂无' }}</el-descriptions-item>

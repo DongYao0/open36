@@ -51,7 +51,6 @@
       <el-table-column type="selection" width="50" />
       <el-table-column prop="enrollmentId" label="报名ID" width="80" />
       <el-table-column prop="realName" label="姓名" width="100" />
-      <el-table-column prop="username" label="用户名" width="130" />
       <el-table-column prop="studentId" label="学号" width="140" />
       <el-table-column prop="major" label="专业" width="150" />
       <el-table-column prop="submittedAt" label="提交时间" width="170" :formatter="formatDate" />
@@ -112,7 +111,6 @@
       <template v-if="currentItem">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="姓名">{{ currentItem.realName }}</el-descriptions-item>
-          <el-descriptions-item label="用户名">{{ currentItem.username }}</el-descriptions-item>
           <el-descriptions-item label="学号">{{ currentItem.studentId }}</el-descriptions-item>
           <el-descriptions-item label="专业">{{ currentItem.major }}</el-descriptions-item>
           <el-descriptions-item label="意向">{{ currentItem.direction || '-' }}</el-descriptions-item>

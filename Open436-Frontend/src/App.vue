@@ -12,7 +12,7 @@ const auth = useAuthStore()
 
 onMounted(() => {
   // 页面刷新时尝试恢复登录态
-  if (auth.token && !auth.user) {
+  if (auth.token) {
     auth.fetchUser()
   }
 })

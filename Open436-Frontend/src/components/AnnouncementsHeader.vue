@@ -22,8 +22,8 @@
     <div class="ah-right">
       <div v-if="auth.isLoggedIn" class="ah-user">
         <div class="ah-trigger" @click="dropdownOpen = !dropdownOpen">
-          <img :src="auth.isVisitor ? 'https://ui-avatars.com/api/?name=Guest&background=9E9E9E&color=fff&size=40' : auth.avatar" class="avatar avatar-sm" :alt="auth.isVisitor ? '游客' : auth.nickname" />
-          <span class="ah-name">{{ auth.isVisitor ? '游客' : auth.nickname }}</span>
+          <img :src="auth.isVisitor ? 'https://ui-avatars.com/api/?name=Guest&background=9E9E9E&color=fff&size=40' : auth.avatar" class="avatar avatar-sm" :alt="auth.isVisitor ? '游客' : auth.displayName" />
+          <span class="ah-name">{{ auth.isVisitor ? '游客' : auth.displayName }}</span>
           <svg class="ah-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div class="ah-dropdown" :class="{ active: dropdownOpen }">

@@ -16,6 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
   const canPost = computed(() => !!user.value && user.value.status === 'active')
   const avatar = computed(() => user.value?.avatarUrl || user.value?.avatar || '/app/user.jpg')
   const nickname = computed(() => user.value?.nickname || '')
+  const displayName = computed(() => user.value?.realName || user.value?.nickname || user.value?.username || '')
 
   function setUser(u) {
     user.value = u
@@ -72,7 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
         // 同步 HOJ 所需的 userInfo（含 roleList，用于登录态判定）
         const hojUserInfo = {
           username: user.value?.username || '',
-          nickname: user.value?.nickname || user.value?.username || '',
+          nickname: displayName.value,
           avatar: user.value?.avatar || '',
           roleList: user.value?.role === 'admin' ? ['admin'] : ['user']
         }
@@ -105,7 +106,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const res = await request.get('/api/auth/current')
       if (res.code === 200 && res.data?.user) {
-        setUser(res.data.user)
+        // /current 提供真实姓名等权威账号字段；保留登录响应中的头像、昵称和简介。
+        setUser({ ...(user.value || {}), ...res.data.user })
         await syncToHoj()
         return true
       }
@@ -137,5 +139,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('open436_token')
   }
 
-  return { user, token, guestMode, isLoggedIn, isAdmin, isGuest, isVisitor, isReadOnly, canPost, avatar, nickname, login, register, fetchUser, logout, enterGuestMode, exitGuestMode, setUser, setToken, syncToHoj }
+  return { user, token, guestMode, isLoggedIn, isAdmin, isGuest, isVisitor, isReadOnly, canPost, avatar, nickname, displayName, login, register, fetchUser, logout, enterGuestMode, exitGuestMode, setUser, setToken, syncToHoj }
 })

@@ -55,7 +55,6 @@
       <el-table-column type="selection" width="50" />
       <el-table-column prop="id" label="ID" width="60" />
       <el-table-column prop="realName" label="姓名" width="100" />
-      <el-table-column prop="username" label="用户名" width="120" />
       <el-table-column prop="studentId" label="学号" width="130" />
       <el-table-column prop="major" label="专业" width="180" />
       <el-table-column prop="phone" label="联系方式" width="130" />
@@ -84,7 +83,6 @@
     <el-dialog v-model="dialogVisible" :title="`申请详情 - ${currentItem?.realName || ''}`" width="480px" :close-on-click-modal="false" center>
       <el-descriptions v-if="currentItem" :column="1" border>
         <el-descriptions-item label="姓名">{{ currentItem.realName }}</el-descriptions-item>
-        <el-descriptions-item label="用户名">{{ currentItem.username }}</el-descriptions-item>
         <el-descriptions-item label="学号">{{ currentItem.studentId }}</el-descriptions-item>
         <el-descriptions-item label="专业">{{ currentItem.major }}</el-descriptions-item>
         <el-descriptions-item label="手机">{{ currentItem.phone }}</el-descriptions-item>

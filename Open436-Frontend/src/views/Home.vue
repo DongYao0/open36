@@ -16,7 +16,7 @@
         <router-link v-if="!auth.isLoggedIn" to="/login" class="nav-login">登录</router-link>
         <div v-else class="nav-user-menu" @click.stop="menuOpen = !menuOpen">
           <div class="nav-login nav-user-trigger">
-            {{ auth.isVisitor ? '游客' : auth.nickname }}
+            {{ auth.isVisitor ? '游客' : auth.displayName }}
             <svg v-if="auth.isReadOnly" class="guest-badge" width="28" height="16" viewBox="0 0 28 16">
               <rect width="28" height="16" rx="8" fill="rgba(255,152,0,0.2)"/>
               <text x="14" y="12" text-anchor="middle" fill="#ff9800" font-size="10" font-weight="500">游客</text>

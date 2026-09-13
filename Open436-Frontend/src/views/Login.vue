@@ -77,7 +77,7 @@
         </div>
         <div class="form-header"><h1>{{ isEnroll ? '报名加入 Open436' : '欢迎回来！' }}</h1><p>{{ isEnroll ? '填写信息申请成为 0436 正式成员' : '请输入你的账号信息' }}</p></div>
         <form @submit.prevent="onSubmit" class="auth-form">
-          <div class="form-group"><label>{{ isEnroll ? '真实姓名（登录账号）' : '用户名' }}</label><input ref="uRef" v-model="f.u" type="text" :placeholder="isEnroll ? '2-20 位，将作为登录账号' : '请输入用户名'" :maxlength="isEnroll ? 20 : 50" autocomplete="username" required @focus="onTextFocus" @blur="onBlur"/></div>
+          <div class="form-group"><label>{{ isEnroll ? '真实姓名' : '用户名' }}</label><input ref="uRef" v-model="f.u" type="text" :placeholder="isEnroll ? '请输入真实姓名' : '请输入用户名'" :maxlength="isEnroll ? 20 : 50" autocomplete="username" required @focus="onTextFocus" @blur="onBlur"/></div>
           <div class="form-group"><label>密码</label><div class="password-wrap"><input ref="pRef" v-model="f.p" :type="showP ? 'text' : 'password'" placeholder="至少 6 位" autocomplete="current-password" required @focus="onPasswordFocus" @blur="onBlur"/><button type="button" class="eye-btn" @click="showP = !showP"><svg v-if="showP" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="1" y1="1" x2="23" y2="23"/></svg><svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
 
           <template v-if="isEnroll">
@@ -86,6 +86,7 @@
               <div class="form-group"><label>学号</label><input v-model="f.sid" type="text" placeholder="请输入学号" maxlength="30" required @focus="onTextFocus" @blur="onBlur"/></div>
               <div class="form-group"><label>电话号码</label><input v-model="f.ph" type="tel" placeholder="请输入 11 位手机号" maxlength="11" required @focus="onTextFocus" @blur="onBlur"/></div>
             </div>
+            <div class="form-group"><label>专业</label><input v-model="f.mj" type="text" placeholder="请输入专业" maxlength="100" required @focus="onTextFocus" @blur="onBlur"/></div>
           </template>
 
           <div v-if="!isEnroll" class="form-options"><label class="remember"><input type="checkbox" v-model="f.r"/><span>记住我</span></label><a href="javascript:void(0)" class="forgot" @click="showForgot = true">忘记密码？</a></div>
@@ -267,6 +268,7 @@ async function onSubmit() {
     if (f.p.length < 6) { err.value = '密码至少 6 位'; return }
     if (f.p !== f.cp) { err.value = '两次密码输入不一致'; return }
     if (!f.sid.trim()) { err.value = '请填写学号'; return }
+    if (!f.mj.trim()) { err.value = '请填写专业'; return }
     if (!/^1\d{10}$/.test(f.ph.trim())) { err.value = '请输入正确的 11 位手机号'; return }
   }
 
@@ -280,7 +282,7 @@ async function onSubmit() {
         studentId: f.sid.trim(),
         realName: f.u.trim(),
         phone: f.ph.trim(),
-        major: '',
+        major: f.mj.trim(),
         idempotencyKey: enrollIdemKey.value
       })
       if (res.success) {

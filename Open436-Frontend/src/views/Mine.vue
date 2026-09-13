@@ -30,7 +30,7 @@
             </div>
           </div>
           <div class="info-section">
-            <h1 class="nickname">{{ profile.nickname || auth.user?.username }}</h1>
+            <h1 class="nickname">{{ auth.displayName || profile.nickname }}</h1>
                         <p class="bio" v-if="auth.user?.bio">{{ auth.user.bio }}</p>
             <p class="bio placeholder" v-else>这个人很懒，什么都没有留下...</p>
             <div class="meta-row">

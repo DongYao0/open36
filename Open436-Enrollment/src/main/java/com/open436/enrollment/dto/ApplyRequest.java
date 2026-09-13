@@ -21,6 +21,8 @@ public class ApplyRequest {
 
     private String phone;
 
+    @NotBlank(message = "专业不能为空")
+    @Size(max = 100, message = "专业长度不能超过100个字符")
     private String major;
 
     private String selfIntro;

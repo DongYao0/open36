@@ -4,18 +4,20 @@ import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.stp.StpUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.open436.auth.config.CacheConfig;
 import com.open436.auth.dto.ApiResponse;
 import com.open436.auth.entity.HomepageContent;
 import com.open436.auth.enums.ErrorCode;
 import com.open436.auth.exception.BusinessException;
 import com.open436.auth.repository.HomepageContentRepository;
+import com.open436.auth.service.HomepagePublicService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,10 +34,15 @@ public class HomepageController {
 
     private final HomepageContentRepository repository;
     private final ObjectMapper objectMapper;
+    private final HomepagePublicService homepagePublicService;
 
     /** 合法模块白名单 */
     private static final Set<String> MODULES = Set.of(
             "about", "experiences", "technologies", "works", "feedbacks");
+
+    /** 公共内容浏览器缓存策略（与 public-web nginx 同值，直连场景同样生效） */
+    private static final String PUBLIC_CACHE_CONTROL =
+            "public, max-age=60, stale-while-revalidate=300";
 
     /**
      * 前台聚合读取（匿名）：返回全部模块，DB 无行的模块不返回该键（前台用默认值）
@@ -43,16 +50,11 @@ public class HomepageController {
      */
     @GetMapping("/public")
     public ResponseEntity<ApiResponse<Map<String, JsonNode>>> getPublic() {
-        Map<String, JsonNode> result = new HashMap<>();
-        for (HomepageContent row : repository.findAll()) {
-            try {
-                result.put(row.getModule(), objectMapper.readTree(row.getContent()));
-            } catch (Exception e) {
-                log.warn("homepage_content 模块 {} JSON 解析失败，跳过: {}", row.getModule(), e.getMessage());
-            }
-        }
-        return ResponseEntity.ok(ApiResponse.<Map<String, JsonNode>>builder()
-                .code(200).message("获取成功").data(result).build());
+        Map<String, JsonNode> result = homepagePublicService.loadPublicModules();
+        return ResponseEntity.ok()
+                .header("Cache-Control", PUBLIC_CACHE_CONTROL)
+                .body(ApiResponse.<Map<String, JsonNode>>builder()
+                        .code(200).message("获取成功").data(result).build());
     }
 
     /**
@@ -83,6 +85,7 @@ public class HomepageController {
      */
     @PutMapping("/admin/{module}")
     @SaCheckRole("admin")
+    @CacheEvict(cacheNames = CacheConfig.CACHE_HOMEPAGE_PUBLIC, allEntries = true)
     public ResponseEntity<ApiResponse<Void>> saveModule(
             @PathVariable String module,
             @RequestBody JsonNode body) {
@@ -108,6 +111,7 @@ public class HomepageController {
     @PostMapping("/admin/{module}/reset")
     @SaCheckRole("admin")
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.CACHE_HOMEPAGE_PUBLIC, allEntries = true)
     public ResponseEntity<ApiResponse<Void>> resetModule(@PathVariable String module) {
         checkModule(module);
         repository.deleteByModule(module);

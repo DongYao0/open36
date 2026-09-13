@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from app.dependencies import get_current_admin
 from app.schemas.chat import ChatRequest, StopRequest
 from app.core.responses import success_response, error_response
+from app.core.stream_limiter import GlobalStreamSlot, StreamBusyError
 from app.services.chat_service import process_chat, process_chat_stream, stop_chat
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,22 @@ async def chat_stream(
     request: ChatRequest,
     user_id: int = Depends(get_current_admin),
 ):
-    """流式对话接口 - SSE 逐字输出"""
+    """流式对话接口 - SSE 逐字输出
+
+    阶段7：全局并发限制（Redis 共享，跨 worker）——
+    活跃上限 AI_STREAM_MAX_CONCURRENT=20、等待队列 50，
+    队满返回 429 + Retry-After；客户端断开（CancelledError）
+    在 finally 中释放全局槽位，下游任务随之取消。
+    """
+    slot = GlobalStreamSlot()
+    try:
+        await slot.__aenter__()
+    except StreamBusyError as e:
+        return JSONResponse(
+            content=error_response('AI 服务繁忙，请稍后重试', code=42901, status_code=429),
+            status_code=429,
+            headers={'Retry-After': str(e.retry_after)},
+        )
 
     async def event_generator():
         try:
@@ -58,6 +74,9 @@ async def chat_stream(
         except Exception as e:
             logger.error(f'流式生成器异常: {e}', exc_info=True)
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
+        finally:
+            # 正常结束 / 出错 / 客户端断开都释放全局槽位
+            await slot.__aexit__(None, None, None)
 
     return StreamingResponse(
         event_generator(),

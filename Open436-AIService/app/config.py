@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     APP_DEBUG: bool = True
     APP_LOG_LEVEL: str = 'info'
     AI_STREAM_TIMEOUT_SECONDS: int = 90
+    # 阶段7：全局流任务并发（Redis 共享，跨 worker）
+    AI_STREAM_MAX_CONCURRENT: int = 20
+    AI_STREAM_QUEUE_SIZE: int = 50
 
     class Config:
         env_file = '.env'

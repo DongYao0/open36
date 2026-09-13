@@ -19,4 +19,6 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8008
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8008"]
+# 阶段7：默认 2 个 worker（env 可覆盖）；全局流并发由 Redis 信号量限制，
+# 不依赖单进程内存状态
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8008 --workers ${AI_WORKERS:-2}"]

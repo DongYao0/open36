@@ -121,6 +121,12 @@ async fn main() -> std::io::Result<()> {
             // API 路由
             .configure(handlers::configure_routes)
     })
+    .workers(
+        std::env::var("FILE_WORKERS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(4), // 阶段7：显式 4 worker 起点（默认依赖 CPU 数不可控）
+    )
     .bind((service_host.as_str(), service_port))?
     .run();
 

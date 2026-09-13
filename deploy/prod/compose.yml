@@ -283,6 +283,12 @@ services:
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       SERVICE_PORT: "8003"
       CONSUL_SERVICE_NAME: forum-service
+      # 阶段4.1：共享缓存走 Redis（db3；不设则回退 LocMemCache）
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/3
+      # 阶段7：gthread 4×4（16 并发，对齐 PG 连接预算）
+      FORUM_WORKERS: ${FORUM_WORKERS:-4}
+      FORUM_THREADS: ${FORUM_THREADS:-4}
+      FORUM_TIMEOUT: ${FORUM_TIMEOUT:-30}
     depends_on:
       postgres: { condition: service_healthy }
       auth: { condition: service_healthy }
@@ -318,6 +324,10 @@ services:
       CONSUL_URL: http://consul:8500
       AUTH_SERVICE_URL: http://auth:8081
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      # 阶段7：显式 4 worker 起点；DB 池 20/5 纳入 PG 总预算（均可 env 覆盖）
+      FILE_WORKERS: ${FILE_WORKERS:-4}
+      FILE_DB_MAX_CONNECTIONS: ${FILE_DB_MAX_CONNECTIONS:-20}
+      FILE_DB_MIN_CONNECTIONS: ${FILE_DB_MIN_CONNECTIONS:-5}
     depends_on:
       postgres: { condition: service_healthy }
       minio: { condition: service_healthy }
@@ -362,6 +372,10 @@ services:
       APP_DEBUG: "false"
       APP_LOG_LEVEL: info
       AI_STREAM_TIMEOUT_SECONDS: "300"
+      # 阶段7：uvicorn worker 数与全局流并发（Redis 共享信号量）
+      AI_WORKERS: ${AI_WORKERS:-2}
+      AI_STREAM_MAX_CONCURRENT: ${AI_STREAM_MAX_CONCURRENT:-20}
+      AI_STREAM_QUEUE_SIZE: ${AI_STREAM_QUEUE_SIZE:-50}
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }

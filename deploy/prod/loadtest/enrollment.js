@@ -48,22 +48,31 @@ export const options = {
   },
 };
 
-// 与 Auth 校验规则一致：2-20 位
-function uniqueName(iter) {
-  return `lt${TIER}u${iter % 100000}`;
+// 每轮使用独立 runId，避免复测命中上一轮遗留的用户名/幂等记录。
+// 用户名仍以 lt 开头且不超过 Auth 的 20 字符限制，便于压测后按前缀清理。
+function uniqueName(iter, runId) {
+  return `lt${TIER}r${runId}u${iter.toString(36)}`;
 }
 
-function applyBody(iter) {
+function applyBody(iter, runId) {
   return {
-    username: uniqueName(iter),
+    username: uniqueName(iter, runId),
     password: 'LtTest#0436',
-    studentId: `LT${TIER}${String(iter).padStart(7, '0')}`,
+    studentId: `LT${TIER}${runId}${String(iter).padStart(7, '0')}`,
     realName: `压测用户${iter}`,
     phone: `170${String(10000000 + (iter % 89999999))}`,
     major: 'loadtest',
     selfIntro: '',
     skills: '',
   };
+}
+
+export function setup() {
+  const configured = (__ENV.RUN_ID || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  const runId = (configured || Date.now().toString(36).slice(-6)).slice(-6);
+  if (!runId) throw new Error('RUN_ID must contain at least one alphanumeric character');
+  console.log(`enrollment runId=${runId}, tier=${TIER}`);
+  return { runId };
 }
 
 // 统一判定：HTTP 2xx 且业务 code=200 视为"受理成功"
@@ -76,10 +85,11 @@ function accepted(res) {
   } catch (_e) { return false; }
 }
 
-export default function () {
+export default function (data) {
   const iter = exec.scenario.iterationInTest;
-  const idemKey = `lt-idem-${TIER}-${iter}`;
-  const body = applyBody(iter);
+  const runId = data.runId;
+  const idemKey = `lt-idem-${TIER}-${runId}-${iter}`;
+  const body = applyBody(iter, runId);
 
   // ── 步骤1~3：同 Key 提交 3 次（双击 + 刷新重试模型），间隔 300ms ──
   const results = [];

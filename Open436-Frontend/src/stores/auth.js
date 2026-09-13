@@ -16,7 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
   const canPost = computed(() => !!user.value && user.value.status === 'active')
   const avatar = computed(() => user.value?.avatarUrl || user.value?.avatar || '/app/user.jpg')
   const nickname = computed(() => user.value?.nickname || '')
-  const displayName = computed(() => user.value?.realName || user.value?.nickname || user.value?.username || '')
+  const displayName = computed(() => user.value?.realName || user.value?.username || user.value?.nickname || '')
 
   function setUser(u) {
     user.value = u

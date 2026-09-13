@@ -4,7 +4,9 @@ Comment views — 合并后 HTTP 内部调用改为 ORM 直查
 import logging
 import requests
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import (Count, Exists, F, IntegerField, OuterRef, Q,
+                              Subquery, Value)
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -134,8 +136,37 @@ class ReplyViewSet(viewsets.GenericViewSet):
                 queryset = queryset.filter(content__icontains=search)
 
         queryset = queryset.order_by('floor_number', 'created_at')
-        page = int(request.query_params.get('page', 1))
-        page_size = min(int(request.query_params.get('page_size', 50)), 100)
+
+        # 阶段4.3：列表注解点赞数/当前用户是否点赞，消除逐条回复的
+        # .count()/.exists() N+1 查询（模型无 FK，用子查询注解，
+        # 单条 SQL 完成整页计算，Serializer 直接读注解字段）。
+        likes_count_sq = (
+            ReplyLike.objects.filter(reply_id=OuterRef('pk'))
+            .values('reply_id')
+            .annotate(c=Count('id'))
+            .values('c')[:1]
+        )
+        queryset = queryset.annotate(
+            likes_count_annot=Coalesce(
+                Subquery(likes_count_sq, output_field=IntegerField()),
+                Value(0), output_field=IntegerField()))
+        viewer_id = getattr(request, 'user_id', None)
+        if viewer_id:
+            liked_subquery = ReplyLike.objects.filter(
+                reply_id=OuterRef('pk'), user_id=viewer_id)
+            queryset = queryset.annotate(is_liked_annot=Exists(liked_subquery))
+
+        # 阶段4.5：分页参数硬校验——非法值 400，而非 ValueError → 500
+        try:
+            page = int(request.query_params.get('page', 1))
+            page_size = int(request.query_params.get('page_size', 50))
+        except (TypeError, ValueError):
+            resp, code = error_response('page/page_size 必须是整数', code=400, status_code=400)
+            return Response(resp, status=code)
+        if page < 1 or page_size < 1:
+            resp, code = error_response('page/page_size 必须为正整数', code=400, status_code=400)
+            return Response(resp, status=code)
+        page_size = min(page_size, 100)
         start = (page - 1) * page_size
         end = start + page_size
         total = queryset.count()

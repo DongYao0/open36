@@ -44,6 +44,11 @@ class ReplyListSerializer(serializers.ModelSerializer):
         return obj.author_id == getattr(request, 'user_id', None)
 
     def get_likes_count(self, obj):
+        # 列表路径：直接读视图预注解的 likes_count_annot（零额外 SQL）；
+        # 单对象路径（create/update 的响应）无注解，回退单次查询。
+        annotated = getattr(obj, 'likes_count_annot', None)
+        if annotated is not None:
+            return annotated
         return ReplyLike.objects.filter(reply_id=obj.id).count()
 
     def get_is_liked(self, obj):
@@ -53,6 +58,9 @@ class ReplyListSerializer(serializers.ModelSerializer):
         user_id = getattr(request, 'user_id', None)
         if not user_id:
             return False
+        annotated = getattr(obj, 'is_liked_annot', None)
+        if annotated is not None:
+            return bool(annotated)
         return ReplyLike.objects.filter(reply_id=obj.id, user_id=user_id).exists()
 
 

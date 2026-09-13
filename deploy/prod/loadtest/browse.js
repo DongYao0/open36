@@ -89,11 +89,11 @@ export default function (data) {
   }
   if (!group || !group.static.length) { think(); return; }
 
-  const responses = http.batch(
-    group.static.map(u => ['GET', `${BASE_URL}${u}`,
-                           null, { tags: { type: 'static', page: group.name } }]));
-  const arr = Array.isArray(responses) ? responses : [responses];
-  for (const res of arr) {
+  // 顺序请求（每 VU 单连接 keep-alive 复用）：
+  // 天元5G AP 对并发连接数敏感（500VU×batch≈3000连接时整段断流），
+  // 顺序模式连接数=VU数，施压链路稳定；页面资源总量语义不变
+  for (const u of group.static) {
+    const res = http.get(`${BASE_URL}${u}`, { tags: { type: 'static', page: group.name } });
     recordStatic(res.status >= 200 && res.status < 400,
                  res.timings.duration, { page: group.name, url: res.url }, res.status);
   }

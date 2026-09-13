@@ -26,6 +26,26 @@ services:
   postgres:
     image: postgres:14-alpine
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-postgres
+    # 阶段9：48GB 共享主机（还跑 MySQL/Milvus/HOJ）下的保守预算。
+    # max_connections=150 覆盖阶段6 预算(101)+Flyway/运维/峰值余量；
+    # shared_buffers 2GB + effective_cache_size 6GB；work_mem 为每排序/哈希
+    # 操作上限，勿盲目调大；SSD 环境 random_page_cost=1.1。
+    command:
+      - postgres
+      - -c
+      - max_connections=150
+      - -c
+      - shared_buffers=2GB
+      - -c
+      - effective_cache_size=6GB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=512MB
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - random_page_cost=1.1
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -48,7 +68,21 @@ services:
   redis:
     image: redis:7-alpine
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-redis
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes"]
+    # 阶段9：AOF everysec + 2GB 上限 + noeviction。
+    # noeviction 原因：Redis 存登录会话与 AI 流并发槽位，驱逐=用户掉线；
+    # 所有缓存键必须带 TTL（应用层已保证），内存监控见 monitoring profile。
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD}
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 2gb
+      - --maxmemory-policy
+      - noeviction
     volumes: [redis-data:/data]
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
@@ -426,6 +460,13 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --restrict-fk-on-non-standard-key=OFF
+      # 阶段9：连接预算 120（Backend 60 + Judge 20 + 管理/备份保留 40）
+      - --max_connections=120
+      # HOJ 数据集常驻内存（48GB 主机的 4GB 切片）
+      - --innodb_buffer_pool_size=4G
+      # 慢查询观测：>0.5s 落 slow log（轮转见 deploy/prod/README）
+      - --slow_query_log=ON
+      - --long_query_time=0.5
     volumes:
       - hoj-mysql-data:/var/lib/mysql
       # 仅在数据卷首次初始化时执行；HOJ 原始 schema/seed 后接生产加固脚本。

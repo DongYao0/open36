@@ -291,6 +291,27 @@ public class EnrollmentService {
 
     @Transactional(readOnly = true)
     public Page<ApplicationListResponse> list(String status, String keyword, String startDate, String endDate, int page, int size, String token) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+        boolean hasDateFilter = (startDate != null && !startDate.isBlank())
+                || (endDate != null && !endDate.isBlank());
+
+        // 常规列表必须先在数据库分页，再调用 Auth 查询当前页用户。
+        // 否则数据量增大后，每次翻页都会全表加载并向 Auth 发送数万 ID。
+        if (!hasKeyword && !hasDateFilter) {
+            Pageable pageable = PageRequest.of(safePage - 1, safeSize,
+                    Sort.by(Sort.Direction.DESC, "submittedAt"));
+            Page<EnrollmentApplication> appPage = status != null && !status.isBlank()
+                    ? enrollmentRepository.findByStatus(status, pageable)
+                    : enrollmentRepository.findAll(pageable);
+            Map<Long, Map<String, Object>> userMap = batchFetchUserInfo(appPage.getContent(), token);
+            List<ApplicationListResponse> content = appPage.getContent().stream()
+                    .map(app -> toResponse(app, userMap.get(app.getAuthUserId())))
+                    .toList();
+            return new org.springframework.data.domain.PageImpl<>(content, pageable, appPage.getTotalElements());
+        }
+
         // 1. 先按状态筛选（关键词过滤依赖 Auth 用户信息，需全量拉取后过滤）
         List<EnrollmentApplication> apps;
         if (status != null && !status.isEmpty()) {

@@ -9,9 +9,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户管理控制器
@@ -30,15 +32,17 @@ public class UserController {
      */
     @GetMapping
     @SaCheckRole("admin")
-    public ResponseEntity<ApiResponse<List<UserInfoResponse>>> getUserList(
-            @RequestParam(required = false) String status) {
-        log.info("获取用户列表请求: status={}", status);
-        List<UserInfoResponse> users = userService.getUserList(status);
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getUserList(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("获取用户列表请求: status={}, page={}, size={}", status, page, size);
+        Page<UserInfoResponse> users = userService.getUserPage(status, page, size);
         return ResponseEntity.ok(
-            ApiResponse.<List<UserInfoResponse>>builder()
+            ApiResponse.<Map<String, Object>>builder()
                 .code(200)
                 .message("获取成功")
-                .data(users)
+                .data(Map.of("list", users.getContent(), "total", users.getTotalElements()))
                 .timestamp(System.currentTimeMillis())
                 .build()
         );

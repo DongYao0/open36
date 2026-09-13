@@ -11,6 +11,10 @@ import { Trend, Rate } from 'k6/metrics';
 import { makeSummary } from './common.js';
 
 const ADMIN_URL = __ENV.ADMIN_URL || 'http://172.20.193.162:3001';
+const ADMIN_VUS = parseInt(__ENV.ADMIN_VUS || '200', 10);
+const ADMIN_RAMP = __ENV.ADMIN_RAMP || '2m';
+const ADMIN_HOLD = __ENV.ADMIN_HOLD || '10m';
+const ADMIN_RAMP_DOWN = __ENV.ADMIN_RAMP_DOWN || '1m';
 const adminDuration = new Trend('admin_req_duration', true);
 const adminFailRate = new Rate('admin_fail_rate');
 
@@ -20,9 +24,9 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '2m', target: 200 },
-        { duration: '10m', target: 200 },
-        { duration: '1m', target: 0 },
+        { duration: ADMIN_RAMP, target: ADMIN_VUS },
+        { duration: ADMIN_HOLD, target: ADMIN_VUS },
+        { duration: ADMIN_RAMP_DOWN, target: 0 },
       ],
       gracefulRampDown: '30s',
     },
@@ -40,8 +44,6 @@ const QUERIES = [
   '/api/posts/?page=1&page_size=20',
 ];
 
-let token = null;
-
 function login() {
   const res = http.post(`${ADMIN_URL}/api/auth/admin/login`,
     JSON.stringify({ username: __ENV.ADMIN_USER, password: __ENV.ADMIN_PASS }),
@@ -53,11 +55,14 @@ function login() {
   } catch (_e) { return null; }
 }
 
-export default function () {
-  if (!token) {
-    token = login();
-    if (!token) { adminFailRate.add(1); sleep(5); return; }
-  }
+export function setup() {
+  const token = login();
+  if (!token) throw new Error('管理端压测账号登录失败');
+  return { token };
+}
+
+export default function (data) {
+  const token = data.token;
   const q = QUERIES[Math.floor(Math.random() * QUERIES.length)];
   const res = http.get(`${ADMIN_URL}${q}`, {
     headers: token.startsWith('eyJ') ? { Authorization: token } : { token: token },

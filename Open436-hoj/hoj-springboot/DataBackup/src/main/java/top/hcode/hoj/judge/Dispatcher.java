@@ -99,18 +99,22 @@ public class Dispatcher {
                 releaseTaskThread(taskKey);
                 return;
             }
-            count.getAndIncrement();
             JudgeServer judgeServer = chooseUtils.chooseServer(false);
             if (judgeServer != null) { // 获取到判题机资源
                 CommonResult result = null;
                 try {
                     result = restTemplate.postForObject("http://" + judgeServer.getUrl() + path, data, CommonResult.class);
                 } catch (Exception e) {
+                    count.incrementAndGet();
                     log.error("[Self Judge] Request the judge server [" + judgeServer.getUrl() + "] error -------------->", e);
                 } finally {
-                    checkResult(result, submitId);
                     releaseJudgeServer(judgeServer.getId());
-                    releaseTaskThread(taskKey);
+                    if (result != null) {
+                        checkResult(result, submitId);
+                        releaseTaskThread(taskKey);
+                    }
+                    // 无空闲判题机只是排队，不消耗失败重试次数；只有实际请求异常才计数。
+                    // 瞬时连接失败时保留定时任务，2 秒后重新选择判题机。
                 }
             }
         };

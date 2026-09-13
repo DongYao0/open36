@@ -5,6 +5,7 @@ import com.open436.auth.dto.UpdatePasswordRequest;
 import com.open436.auth.dto.UserInfoResponse;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
 
 /**
  * 用户管理服务接口
@@ -24,6 +25,9 @@ public interface UserService {
      * @return 用户列表
      */
     List<UserInfoResponse> getUserList(String status);
+
+    /** 分页获取用户，避免管理端在大数据量下拉取全部用户。 */
+    Page<UserInfoResponse> getUserPage(String status, int page, int size);
 
     /**
      * 根据ID查询用户

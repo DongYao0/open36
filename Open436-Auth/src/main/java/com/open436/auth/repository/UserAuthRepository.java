@@ -3,6 +3,8 @@ package com.open436.auth.repository;
 import com.open436.auth.entity.UserAuth;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -38,6 +40,11 @@ public interface UserAuthRepository extends JpaRepository<UserAuth, Long> {
      */
     @EntityGraph(attributePaths = {"roles"})
     List<UserAuth> findByStatus(String status);
+
+    Page<UserAuth> findByStatus(String status, Pageable pageable);
+
+    @Override
+    Page<UserAuth> findAll(Pageable pageable);
 
     /**
      * 查询所有用户（带角色信息，避免N+1）

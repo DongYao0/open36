@@ -18,6 +18,8 @@ import com.open436.auth.service.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -125,6 +127,32 @@ public class UserServiceImpl implements UserService {
                 .build());
         }
         return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserInfoResponse> getUserPage(String status, int page, int size) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        PageRequest pageable = PageRequest.of(safePage - 1, safeSize);
+        Page<UserAuth> users = status != null && !status.isBlank()
+                ? userAuthRepository.findByStatus(status, pageable)
+                : userAuthRepository.findAll(pageable);
+        return users.map(this::toUserInfoResponse);
+    }
+
+    private UserInfoResponse toUserInfoResponse(UserAuth user) {
+        return UserInfoResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .role(user.getPrimaryRoleCode())
+                .status(user.getStatus())
+                .studentId(user.getStudentId())
+                .realName(user.getRealName())
+                .phone(user.getPhone())
+                .major(user.getMajor())
+                .clientPermission(user.getClientPermission())
+                .build();
     }
 
     /**

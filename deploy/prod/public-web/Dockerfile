@@ -36,7 +36,11 @@ RUN apk add --no-cache curl
 COPY --from=landing-builder  /build/landing/dist  /usr/share/nginx/html/landing
 COPY --from=frontend-builder /build/frontend/dist /usr/share/nginx/html/frontend
 # 重要：build context 为仓库根；本 nginx.conf 必须用完整相对路径
+# 主配置（worker/keepalive/gzip/日志）+ server 配置（路由/缓存分层）
+COPY deploy/prod/public-web/nginx-main.conf /etc/nginx/nginx.conf
 COPY deploy/prod/public-web/nginx.conf /etc/nginx/conf.d/default.conf
+# 构建期即校验配置（upstream resolve 为运行时解析，构建期无 DNS 也能通过）
+RUN nginx -t
 EXPOSE 80
 HEALTHCHECK --interval=15s --timeout=5s --retries=10 \
   CMD curl -fsS http://localhost:80/ >/dev/null || exit 1

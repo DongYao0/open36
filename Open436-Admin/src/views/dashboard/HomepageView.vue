@@ -388,10 +388,14 @@ function photoBelongsTo(photo, projectName) {
 }
 
 function migrateWorkGalleries(content) {
-  const legacy = Array.isArray(content.gallery) ? content.gallery : honorGallery
+  const hasLegacyGallery = Array.isArray(content.gallery)
+  const legacy = hasLegacyGallery ? content.gallery : honorGallery
   const items = Array.isArray(content.items) ? content.items.map(item => ({ ...item })) : []
   const personalPhotos = legacy.filter(photo => honorKind(`${photo.category || ''}${photo.title || ''}`) === 'personal')
-  if (personalPhotos.length && !items.some(item => honorKind(item.name) === 'personal')) {
+  const needsLegacyMigration = hasLegacyGallery || (
+    items.length > 0 && items.every(item => !Array.isArray(item.gallery))
+  )
+  if (needsLegacyMigration && personalPhotos.length && !items.some(item => honorKind(item.name) === 'personal')) {
     items.push({
       name: '个人荣誉', description: '国家奖学金、三好学生等个人荣誉记录。',
       image: personalPhotos[0].image || '', tags: [], source_code_link: ''
@@ -427,13 +431,12 @@ async function loadAll() {
     const experienceItems = Array.isArray(experienceContent) ? experienceContent : experienceContent.items
     experiences.value = (Array.isArray(experienceItems) ? experienceItems : []).map(e => ({ ...e, _points: pointsToText(e.points) }))
     technologies.value = techRes.data || []
-    const worksContent = worksRes.data || {
-      subText: '', headText: '', description: '', items: [],
+    const worksContent = worksRes.data ?? {
+      subText: '', headText: '', description: '',
+      items: defaultHonorProjects.map(item => ({ ...item })),
       gallery: honorGallery.map(photo => ({ ...photo }))
     }
-    if (!Array.isArray(worksContent.items) || !worksContent.items.length) {
-      worksContent.items = defaultHonorProjects.map(item => ({ ...item }))
-    }
+    if (!Array.isArray(worksContent.items)) worksContent.items = []
     works.value = migrateWorkGalleries(worksContent)
     feedbacks.value = fbRes.data || { subText: '', headText: '', items: [] }
     if (!Array.isArray(feedbacks.value.items)) feedbacks.value.items = []

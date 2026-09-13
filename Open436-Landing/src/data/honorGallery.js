@@ -107,7 +107,7 @@ export const projectGallery = (project, legacyGallery = honorGallery) => {
 };
 
 export const withHonorAlbums = (items, legacyGallery = honorGallery) => {
-  const source = Array.isArray(items) && items.length ? [...items] : [...defaultHonorProjects];
-  if (!source.some((item) => String(item.name || "").includes("个人荣誉"))) source.push(defaultHonorProjects[4]);
+  // 数组（包括空数组）代表管理端明确保存的权威内容；仅缺失字段时使用默认卡片。
+  const source = Array.isArray(items) ? [...items] : [...defaultHonorProjects];
   return source.map((item) => ({ ...item, gallery: projectGallery(item, legacyGallery) }));
 };

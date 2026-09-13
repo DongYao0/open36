@@ -23,7 +23,7 @@ set -euo pipefail
 CONTAINER="${FORUM_PG_CONTAINER:-open436-prod-postgres}"
 DB_USER="${POSTGRES_USER:-open436}"
 DB_NAME="${POSTGRES_DB:-open436}"
-SQL_FILE="$(cd "$(dirname "$0")/../.." && pwd)/db-init/V4__add_feed_composite_indexes.sql"
+SQL_FILE="$(cd "$(dirname "$0")/../../.." && pwd)/db-init/V4__add_feed_composite_indexes.sql"
 
 if [ ! -f "$SQL_FILE" ]; then
   echo "[upgrade][FATAL] 找不到 $SQL_FILE" >&2
@@ -39,7 +39,7 @@ SQL
 
 echo "[upgrade] applying V4+V5 indexes (CONCURRENTLY, idempotent)..."
 docker exec -i "$CONTAINER" psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" < "$SQL_FILE"
-V5_FILE="$(cd "$(dirname "$0")/../.." && pwd)/db-init/V5__add_search_trgm_indexes.sql"
+V5_FILE="$(cd "$(dirname "$0")/../../.." && pwd)/db-init/V5__add_search_trgm_indexes.sql"
 docker exec -i "$CONTAINER" psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" < "$V5_FILE"
 
 echo "[upgrade] after: EXPLAIN ANALYZE 存 /tmp/forum-index-explain-after.txt"

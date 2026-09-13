@@ -85,7 +85,7 @@ public class ThreadPoolUtils {
 
     private static int intEnv(String key, int defaultVal) {
         String v = System.getenv(key);
-        if (v == null || v.isBlank()) {
+        if (v == null || v.trim().isEmpty()) { // JDK8 兼容（无 String.isBlank）
             return defaultVal;
         }
         try {

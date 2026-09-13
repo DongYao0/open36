@@ -335,7 +335,7 @@ services:
         max-size: "20m"
         max-file: "5"
     mem_limit: 1536m
-    cpus: 2
+    cpus: 6  # 压测定位：bcrypt 注册 CPU 密集，2 核钳制报名吞吐（P95 4.3s）
     build: { context: ../../Open436-Auth, dockerfile: Dockerfile }
     image: open436/auth:build
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-auth

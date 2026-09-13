@@ -7,6 +7,7 @@ import com.open436.auth.dto.*;
 import com.open436.auth.enums.TokenConstants;
 import com.open436.auth.service.AlgoSyncService;
 import com.open436.auth.service.AuthService;
+import com.open436.auth.service.RegistrationService;
 import com.open436.auth.service.RoleService;
 import com.open436.auth.service.UserService;
 import jakarta.validation.Valid;
@@ -25,32 +26,43 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    
+
     private final AuthService authService;
     private final UserService userService;
     private final RoleService roleService;
     private final AlgoSyncService algoSyncService;
-    
+    private final RegistrationService registrationService;
+
     /**
      * 用户注册（新用户默认 pending，需管理员审核后登录）
+     *
+     * 阶段5.2：携带 X-Idempotency-Key 的请求走幂等路径——
+     * 同 Key 重复提交返回原用户；同 Key 不同内容 409；
+     * 无 Key 的旧客户端保持原行为（用户名唯一约束兜底）。
      */
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserInfoResponse>> register(
-            @Valid @RequestBody RegisterRequest request) {
+            @Valid @RequestBody RegisterRequest request,
+            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
 
         log.info("注册请求: username={}", request.getUsername());
 
-        // 创建用户（默认 role=user, status=pending）
-        CreateUserRequest createRequest = new CreateUserRequest();
-        createRequest.setUsername(request.getUsername());
-        createRequest.setPassword(request.getPassword());
-        createRequest.setRole("user");
-        createRequest.setStatus("pending");
-        createRequest.setStudentId(request.getStudentId());
-        createRequest.setRealName(request.getRealName());
-        createRequest.setPhone(request.getPhone());
-        createRequest.setMajor(request.getMajor());
-        UserInfoResponse userInfo = userService.createUser(createRequest);
+        UserInfoResponse userInfo;
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            userInfo = registrationService.registerIdempotent(request, idempotencyKey.trim());
+        } else {
+            // 无幂等键的旧路径
+            CreateUserRequest createRequest = new CreateUserRequest();
+            createRequest.setUsername(request.getUsername());
+            createRequest.setPassword(request.getPassword());
+            createRequest.setRole("user");
+            createRequest.setStatus("pending");
+            createRequest.setStudentId(request.getStudentId());
+            createRequest.setRealName(request.getRealName());
+            createRequest.setPhone(request.getPhone());
+            createRequest.setMajor(request.getMajor());
+            userInfo = userService.createUser(createRequest);
+        }
 
         return ResponseEntity.ok(
             ApiResponse.<UserInfoResponse>builder()

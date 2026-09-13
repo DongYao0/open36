@@ -3,6 +3,7 @@ package com.open436.auth.controller;
 import com.open436.auth.dto.BatchUserRequest;
 import com.open436.auth.dto.IncrementStatsRequest;
 import com.open436.auth.dto.UserProfileResponse;
+import com.open436.auth.service.RegistrationService;
 import com.open436.auth.service.UserProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import java.util.Map;
 public class InternalUserController {
 
     private final UserProfileService profileService;
+    private final RegistrationService registrationService;
 
     @Value("${internal.api-key}")
     private String internalApiKey;
@@ -62,6 +64,30 @@ public class InternalUserController {
         response.put("message", "success");
         Map<String, Object> data = new HashMap<>();
         data.put("users", profiles);
+        response.put("data", data);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 按幂等键查询注册结果（阶段5.3：Enrollment 对账用）
+     * 返回 {status: SUCCEEDED|PROCESSING|FAILED|null, userId}
+     * 不返回任何身份字段或密码材料。
+     */
+    @GetMapping("/registrations/by-key/{idempotencyKey}")
+    public ResponseEntity<Map<String, Object>> lookupRegistration(
+            @RequestHeader(value = "X-Internal-API-Key", required = false) String internalKey,
+            @PathVariable String idempotencyKey) {
+        verifyInternalKey(internalKey);
+        RegistrationService.RegistrationLookup lookup =
+                registrationService.lookupByIdempotencyKey(idempotencyKey);
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 200);
+        response.put("message", "success");
+        Map<String, Object> data = new HashMap<>();
+        if (lookup != null) {
+            data.put("status", lookup.status());
+            data.put("userId", lookup.userId());
+        }
         response.put("data", data);
         return ResponseEntity.ok(response);
     }

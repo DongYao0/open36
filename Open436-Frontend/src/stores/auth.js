@@ -27,8 +27,14 @@ export const useAuthStore = defineStore('auth', () => {
     storage.set('token', t)
   }
 
-  async function register({ username, password, nickname, studentId, realName, phone, major }) {
+  /**
+   * 报名提交（阶段5.1 幂等）：
+   * idempotencyKey 由调用方（登录页报名表单会话）维护——
+   * 同一次报名的所有重试复用同一个 Key，服务端保证只建一个账号。
+   */
+  async function register({ username, password, nickname, studentId, realName, phone, major, idempotencyKey }) {
     try {
+      const headers = idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}
       const res = await request.post('/api/enrollment/apply', {
         username,
         password,
@@ -38,7 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
         major,
         selfIntro: '',
         skills: ''
-      })
+      }, { headers })
       if (res.code !== 200) {
         return { success: false, message: res.message || '注册失败' }
       }
@@ -50,7 +56,8 @@ export const useAuthStore = defineStore('auth', () => {
       return { success: true, message: res.message || '报名成功，请登录' }
     } catch (e) {
       const msg = e?.response?.data?.message
-      return { success: false, message: msg || e?.message || '注册失败' }
+      // status 透传给调用方：503=可重试保留幂等键；4xx=冲突需换键重填
+      return { success: false, message: msg || e?.message || '注册失败', status: e?.response?.status }
     }
   }
 

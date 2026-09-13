@@ -22,6 +22,13 @@ spring:
       password: ${REDIS_PASSWORD}
       timeout: 3000ms
 
+# 服务间调用（阶段5）
+auth:
+  service:
+    url: ${AUTH_SERVICE_URL:http://auth:8081}
+internal:
+  api-key: ${INTERNAL_API_KEY:}
+
 logging:
   level:
     com.open436.enrollment: WARN

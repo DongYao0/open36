@@ -240,6 +240,8 @@ services:
       CONSUL_HOST: consul
       CONSUL_PORT: "8500"
       AUTH_SERVICE_URL: http://auth:8081
+      # 阶段5.3：报名对账需查询 Auth 幂等注册结果（内部接口密钥）
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
     depends_on:
       postgres: { condition: service_healthy }

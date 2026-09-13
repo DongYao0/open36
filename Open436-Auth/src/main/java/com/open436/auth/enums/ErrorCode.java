@@ -35,6 +35,8 @@ public enum ErrorCode {
     
     // 409 冲突
     USERNAME_EXISTS(40901001, HttpStatus.CONFLICT, "用户名已存在"),
+    IDEMPOTENCY_CONFLICT(40901002, HttpStatus.CONFLICT, "请求与幂等键记录的内容不匹配"),
+    IDEMPOTENCY_IN_PROGRESS(40901003, HttpStatus.CONFLICT, "相同的请求正在处理中，请稍候"),
     
     // ========== 5xx 服务器错误 ==========
     INTERNAL_SERVER_ERROR(50000000, HttpStatus.INTERNAL_SERVER_ERROR, "服务器内部错误");

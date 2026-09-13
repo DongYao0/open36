@@ -63,9 +63,11 @@ public class EnrollmentController {
     }
 
     @PostMapping("/apply")
-    public ResponseEntity<ApiResponse<Void>> apply(@Valid @RequestBody ApplyRequest request) {
+    public ResponseEntity<ApiResponse<Void>> apply(
+            @Valid @RequestBody ApplyRequest request,
+            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
         log.info("报名申请: username={}", request.getUsername());
-        enrollmentService.apply(request);
+        enrollmentService.apply(request, idempotencyKey);
         return ResponseEntity.ok(ApiResponse.success());
     }
 

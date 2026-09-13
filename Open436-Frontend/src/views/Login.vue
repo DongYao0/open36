@@ -245,6 +245,15 @@ watch(() => R.query.mode, mode => {
   if (isEnroll.value !== enroll) setMode(enroll, false)
 })
 
+// 报名幂等键（阶段5.1）：进入报名模式/成功后生成 UUID，
+// 失败重试（含用户重复点击）复用同一个 Key，服务端不会重复建号。
+const enrollIdemKey = ref('')
+function newEnrollIdemKey() {
+  enrollIdemKey.value = (crypto.randomUUID && crypto.randomUUID()) ||
+    'web-' + Date.now() + '-' + Math.random().toString(16).slice(2)
+}
+if (isEnroll.value) newEnrollIdemKey()
+
 // 忘记密码提示弹窗开关
 
 
@@ -264,19 +273,25 @@ async function onSubmit() {
   ld.value = true
   try {
     if (isEnroll.value) {
+      if (!enrollIdemKey.value) newEnrollIdemKey()
       const res = await auth.register({
         username: f.u.trim(),
         password: f.p,
         studentId: f.sid.trim(),
         realName: f.u.trim(),
         phone: f.ph.trim(),
-        major: ''
+        major: '',
+        idempotencyKey: enrollIdemKey.value
       })
       if (res.success) {
         ui.showToast(res.message || '报名成功', 'success')
+        newEnrollIdemKey() // 本轮报名结束，下一次是新会话
         router.push('/')
       } else {
         err.value = res.message || '报名失败'
+        // 键轮换策略：503(可重试)保留同一 Key——网络恢复后重发不会重复建号；
+        // 4xx 冲突（用户名占用等）换新 Key，允许用户修改内容重新提交。
+        if (res.status !== 503) newEnrollIdemKey()
       }
     } else {
       const r = await auth.login(username, password)

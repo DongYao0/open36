@@ -88,6 +88,9 @@ export default function () {
     enrollDuration.add(res.timings.duration);
     const ok = accepted(res);
     enrollFailRate.add(!ok);
+    if (!ok && __ENV.DEBUG_FAILS) {
+      console.log(`ENROLL-FAIL i=${i} iter=${iter} key=${idemKey} status=${res.status} body=${res.body ? String(res.body).slice(0,120) : 'none'}`);
+    }
     results.push({ status: res.status, ok });
     sleep(0.3);
   }

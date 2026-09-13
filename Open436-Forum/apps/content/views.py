@@ -109,6 +109,9 @@ class PostViewSet(viewsets.GenericViewSet):
                 queryset = queryset.filter(status=status_filter)
 
         search = request.query_params.get('search', '').strip()
+        # 阶段4.5：限制搜索词长度（超长截断，不产生异常 SQL）
+        if len(search) > 100:
+            search = search[:100]
         if search:
             queryset = queryset.filter(
                 Q(title__icontains=search)
@@ -127,7 +130,13 @@ class PostViewSet(viewsets.GenericViewSet):
 
         section_id = request.query_params.get('section_id')
         if section_id:
-            queryset = queryset.filter(section_id=int(section_id))
+            # 阶段4.5：非法 section_id 返回 400，而非抛 ValueError 变 500
+            try:
+                section_id = int(section_id)
+            except (TypeError, ValueError):
+                resp, code = error_response('无效的 section_id', code=400, status_code=400)
+                return Response(resp, status=code)
+            queryset = queryset.filter(section_id=section_id)
         section_ids = request.query_params.get('section_ids', '')
         if section_ids:
             try:
@@ -147,8 +156,22 @@ class PostViewSet(viewsets.GenericViewSet):
             else:
                 queryset = queryset.order_by('-is_pinned', '-created_at')
 
-        page = int(request.query_params.get('page', 1))
-        page_size = min(int(request.query_params.get('page_size', 20)), 50)
+        # 阶段4.5：分页参数硬校验——非法值 400，不允许以异常形式 500
+        try:
+            page = int(request.query_params.get('page', 1))
+            page_size = int(request.query_params.get('page_size', 20))
+        except (TypeError, ValueError):
+            resp, code = error_response('page/page_size 必须是整数', code=400, status_code=400)
+            return Response(resp, status=code)
+        if page < 1 or page_size < 1:
+            resp, code = error_response('page/page_size 必须为正整数', code=400, status_code=400)
+            return Response(resp, status=code)
+        page_size = min(page_size, 50)
+        if search and page * page_size > 1000:
+            # 搜索模式限制翻页深度：正文 icontains 深翻页代价高，
+            # 超过 1000 条窗口提示收敛关键词（数据量大了换全文检索）
+            resp, code = error_response('搜索结果过深，请使用更精确的关键词', code=400, status_code=400)
+            return Response(resp, status=code)
         start = (page - 1) * page_size
         end = start + page_size
         total = queryset.count()

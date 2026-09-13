@@ -7,7 +7,9 @@
 #    2) FileService 表（migrations/*.sql）
 #    3) Forum 表（严格白名单：仅 V1__create_sections_table.sql、
 #                            V2__create_forum_tables.sql、
-#                            V3__add_post_ai_generated.sql）
+#                            V3__add_post_ai_generated.sql、
+#                            V4__add_feed_composite_indexes.sql、
+#                            V5__add_search_trgm_indexes.sql）
 #    4) Auth / Enrollment 表：**不由本脚本导入**，由各自 Spring Boot Flyway
 #       用独立 history table（auth_flyway_schema_history /
 #       enrollment_flyway_schema_history）自管。
@@ -48,6 +50,8 @@ FORUM_WHITELIST=(
   "/docker-entrypoint-initdb.d/forum/V1__create_sections_table.sql"
   "/docker-entrypoint-initdb.d/forum/V2__create_forum_tables.sql"
   "/docker-entrypoint-initdb.d/forum/V3__add_post_ai_generated.sql"
+  "/docker-entrypoint-initdb.d/forum/V4__add_feed_composite_indexes.sql"
+  "/docker-entrypoint-initdb.d/forum/V5__add_search_trgm_indexes.sql"
 )
 for f in "${FORUM_WHITELIST[@]}"; do
   if [ ! -f "$f" ]; then

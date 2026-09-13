@@ -478,6 +478,10 @@ services:
       MYSQL_PUBLIC_PORT: "3306"
       MYSQL_USERNAME: root
       MYSQL_DATABASE_NAME: hoj
+      # 阶段8.4：Backend Druid 池预算（默认 60，对齐 MySQL max_connections=120）
+      HOJ_DB_POOL_MAX_ACTIVE: ${HOJ_BACKEND_DB_POOL_MAX_ACTIVE:-60}
+      HOJ_DB_POOL_MIN_IDLE: ${HOJ_BACKEND_DB_POOL_MIN_IDLE:-10}
+      HOJ_DB_POOL_MAX_WAIT: ${HOJ_BACKEND_DB_POOL_MAX_WAIT:-3000}
       MYSQL_ROOT_PASSWORD: ${HOJ_MYSQL_ROOT_PASSWORD}
       JWT_TOKEN_SECRET: ${HOJ_JWT_SECRET:?HOJ_JWT_SECRET 必须设置}
       # JUDGE_TOKEN 必填：来自 .env，仓库不留默认（防止"default"被外部穷举）
@@ -539,9 +543,17 @@ services:
       # judge jar(20241013) 无 application-prod.yml，hoj.judge.token 会落到默认值
       # no_judge_token 导致 backend 调用 /judge 全部 401。用 relaxed binding 显式注入。
       HOJ_JUDGE_TOKEN: ${JUDGE_TOKEN}
-      MAX_TASK_NUM: "-1"
+      # 阶段8.1：限制真实判题并行度（原 -1=CPU自动扩到20+，
+      # 编译互抢 CPU 拖垮 Web；6 为 10核20线程主机压测起点）
+      MAX_TASK_NUM: ${JUDGE_MAX_TASK_NUM:-6}
       REMOTE_JUDGE_OPEN: "false"
       REMOTE_JUDGE_MAX_TASK_NUM: "-1"
+      # 阶段8.2/8.4：判题线程池与 Druid 池预算（env 可覆盖）
+      JUDGE_WORKERS: ${JUDGE_WORKERS:-6}
+      JUDGE_QUEUE_CAPACITY: ${JUDGE_QUEUE_CAPACITY:-300}
+      HOJ_DB_POOL_MAX_ACTIVE: ${HOJ_JUDGE_DB_POOL_MAX_ACTIVE:-20}
+      HOJ_DB_POOL_MIN_IDLE: ${HOJ_JUDGE_DB_POOL_MIN_IDLE:-5}
+      HOJ_DB_POOL_MAX_WAIT: ${HOJ_JUDGE_DB_POOL_MAX_WAIT:-3000}
     entrypoint: ["/bin/sh", "-c", "exec java -jar app.jar"]
     depends_on:
       hoj-mysql: { condition: service_healthy }

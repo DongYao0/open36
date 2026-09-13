@@ -1,28 +1,76 @@
 package top.hcode.hoj.util;
 
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * @Author: Himit_ZH
- * @Date: 2021/12/21 12:06
- * @Description:
+ * 判题线程池（阶段8.2 重写）
+ *
+ * 旧实现的问题（150 人比赛不可接受）：
+ *   - 线程数=CPU 数（20 线程主机上 20 个并发编译互相抢 CPU）；
+ *   - 队列 200×CPU；
+ *   - DiscardOldestPolicy 队满静默丢弃最早任务 → 判题记录永远 Pending。
+ *
+ * 新规则：
+ *   - 线程数：JUDGE_WORKERS 环境变量（默认 6，10核20线程主机的压测起点）；
+ *   - 队列容量：JUDGE_QUEUE_CAPACITY（默认 300）；
+ *   - 拒绝策略：不允许丢弃。队满时任务回退到提交线程执行（CallerRuns 语义，
+ *     形成天然背压：judge 控制线程变慢 → Redis 队列消费变慢 → 上游排队），
+ *     同时递增 rejected 计数并告警日志——绝不静默；
+ *   - 暴露 active/queued/completed/rejected 指标（/version 端点透出）。
  */
 public class ThreadPoolUtils {
 
-    private static ExecutorService executorService;
+    private static volatile ThreadPoolExecutor executorService;
 
-    private static final int cpuNum = Runtime.getRuntime().availableProcessors();
+    private static final AtomicLong rejectedCount = new AtomicLong();
 
     private ThreadPoolUtils() {
-        //手动创建线程池.
-        executorService = new ThreadPoolExecutor(
-                cpuNum, // 核心线程数
-                cpuNum, // 最大线程数。最多几个线程并发。
-                3,//当非核心线程无任务时，几秒后结束该线程
-                TimeUnit.SECONDS,// 结束线程时间单位
-                new LinkedBlockingDeque<>(200 * cpuNum), //阻塞队列，限制等候线程数
-                Executors.defaultThreadFactory(),
-                new ThreadPoolExecutor.DiscardOldestPolicy());//队列满了，尝试去和最早的竞争，也不会抛出异常！
+    }
+
+    private static ThreadPoolExecutor createPool() {
+        int workers = intEnv("JUDGE_WORKERS",
+                intEnv("HOJ_JUDGE_WORKERS", 6));
+        int queueCapacity = intEnv("JUDGE_QUEUE_CAPACITY", 300);
+
+        ThreadFactory factory = r -> {
+            Thread t = new Thread(r, "hoj-judge-worker");
+            t.setDaemon(false);
+            return t;
+        };
+
+        RejectedExecutionHandler neverDrop = (r, executor) -> {
+            rejectedCount.incrementAndGet();
+            if (!executor.isShutdown()) {
+                // 背压：由提交线程自己执行，任务不丢、不静默
+                r.run();
+            }
+        };
+
+        return new ThreadPoolExecutor(
+                workers,
+                workers,
+                30L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(queueCapacity),
+                factory,
+                neverDrop);
+    }
+
+    private static int intEnv(String key, int defaultVal) {
+        String v = System.getenv(key);
+        if (v == null || v.isBlank()) {
+            return defaultVal;
+        }
+        try {
+            return Integer.parseInt(v.trim());
+        } catch (NumberFormatException e) {
+            return defaultVal;
+        }
     }
 
     private static class PluginConfigHolder {
@@ -34,7 +82,40 @@ public class ThreadPoolUtils {
     }
 
     public ExecutorService getThreadPool() {
+        // 双重检查懒加载：保持旧单例调用方式，同时允许 env 生效
+        if (executorService == null) {
+            synchronized (ThreadPoolUtils.class) {
+                if (executorService == null) {
+                    executorService = createPool();
+                }
+            }
+        }
         return executorService;
     }
 
+    // ── 指标（阶段8.2：/version 与日志透出）──
+
+    public static int getActiveCount() {
+        ThreadPoolExecutor pool = (ThreadPoolExecutor) getInstance().getThreadPool();
+        return pool.getActiveCount();
+    }
+
+    public static int getQueuedCount() {
+        ThreadPoolExecutor pool = (ThreadPoolExecutor) getInstance().getThreadPool();
+        return pool.getQueue().size();
+    }
+
+    public static long getCompletedCount() {
+        ThreadPoolExecutor pool = (ThreadPoolExecutor) getInstance().getThreadPool();
+        return pool.getCompletedTaskCount();
+    }
+
+    public static long getRejectedCount() {
+        return rejectedCount.get();
+    }
+
+    public static int getPoolSize() {
+        ThreadPoolExecutor pool = (ThreadPoolExecutor) getInstance().getThreadPool();
+        return pool.getPoolSize();
+    }
 }

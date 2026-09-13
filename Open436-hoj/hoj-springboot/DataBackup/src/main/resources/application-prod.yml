@@ -93,7 +93,7 @@ spring:
         min-idle: 10 #连接池中的最小空闲连接
         max-idle: 50 #连接池中的最大空闲连接
         max-active: 200 #连接池最大连接数（使用负值表示没有限制）
-        max-wait: -1 #连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-wait: 3000ms # 阶段8.4：连接池等待上限3s（原-1无限等待会拖垮请求线程）
     password: ${redis-password}
   datasource:
     username: ${mysql-username}
@@ -102,9 +102,9 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
     initial-size: 10 # 初始化时建立物理连接的个数。初始化发生在显示调用init方法，或者第一次getConnection时
-    min-idle: 20 # 最小连接池数量
-    maxActive: 200 # 最大连接池数量
-    maxWait: 60000 # 获取连接时最大等待时间，单位毫秒。配置了maxWait之后，缺省启用公平锁，并发效率会有所下降，如果需要可以通过配置
+    min-idle: ${HOJ_DB_POOL_MIN_IDLE:10} # 最小连接池数量
+    maxActive: ${HOJ_DB_POOL_MAX_ACTIVE:60} # 阶段8.4：单机实际需求≤60（原200超出MySQL总预算）
+    maxWait: ${HOJ_DB_POOL_MAX_WAIT:3000} # 阶段8.4：3秒快速失败 获取连接时最大等待时间，单位毫秒。配置了maxWait之后，缺省启用公平锁，并发效率会有所下降，如果需要可以通过配置
     timeBetweenEvictionRunsMillis: 60000 # 关闭空闲连接的检测时间间隔.Destroy线程会检测连接的间隔时间，如果连接空闲时间大于等于minEvictableIdleTimeMillis则关闭物理连接。
     minEvictableIdleTimeMillis: 300000 # 连接的最小生存时间.连接保持空闲而不被驱逐的最小时间
     validationQuery: SELECT 1 FROM DUAL # 验证数据库服务可用性的sql.用来检测连接是否有效的sql 因数据库方言而差, 例如 oracle 应该写成 SELECT 1 FROM DUAL

@@ -19,7 +19,12 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @Author: Himit_ZH
@@ -404,44 +409,93 @@ public class JudgeRun {
         }
     }
 
+    /** 单任务（编译+全部用例）的保守超时包络 */
+    private static final long SINGLE_TASK_TIMEOUT_SECONDS = 300;
+
+    /** 批量任务（多用例并行）的整批超时包络 */
+    private static final long BATCH_TIMEOUT_SECONDS = 600;
+
+    /**
+     * 提交单个判题任务并阻塞等待结果（阶段8.3）：
+     * 旧实现每 10ms 轮询 isDone() 浪费线程与 CPU。
+     * 现在 future.get(timeout) 直接阻塞；超时取消任务并返回系统错误，
+     * InterruptedException 恢复中断标志后返回系统错误（不吞中断）。
+     */
     private JSONObject SubmitTask2ThreadPool(FutureTask<JSONObject> futureTask)
             throws InterruptedException, ExecutionException {
-        // 提交到线程池进行执行
         ThreadPoolUtils.getInstance().getThreadPool().submit(futureTask);
-        while (true) {
-            if (futureTask.isDone() && !futureTask.isCancelled()) {
-                // 获取线程返回结果
-                return futureTask.get();
-            } else {
-                Thread.sleep(10); // 避免CPU高速运转，这里休息10毫秒
-            }
+        try {
+            return futureTask.get(SINGLE_TASK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            futureTask.cancel(true);
+            return busyResult("判题超时（单任务上限 " + SINGLE_TASK_TIMEOUT_SECONDS + "s）");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // 恢复中断标志，交由上层决策
+            return busyResult("判题被中断");
         }
     }
 
+    /**
+     * 批量提交并按完成顺序收集结果（阶段8.3）：
+     * 用 ExecutorCompletionService 的 poll(timeout) 阻塞取代 10ms 轮询；
+     * 整批设总超时，超时后取消未完成任务并返回系统错误。
+     */
     private List<JSONObject> SubmitBatchTask2ThreadPool(List<FutureTask<JSONObject>> futureTasks)
-            throws InterruptedException, ExecutionException {
-        // 提交到线程池进行执行
-        for (FutureTask<JSONObject> futureTask : futureTasks) {
-            ThreadPoolUtils.getInstance().getThreadPool().submit(futureTask);
+            throws InterruptedException {
+        ExecutorService pool = ThreadPoolUtils.getInstance().getThreadPool();
+        ExecutorCompletionService<JSONObject> completion =
+                new ExecutorCompletionService<>(pool);
+        List<Future<JSONObject>> futures = new ArrayList<>(futureTasks.size());
+        for (FutureTask<JSONObject> task : futureTasks) {
+            futures.add(completion.submit(() -> {
+                task.run();
+                return task.get();
+            }));
         }
         List<JSONObject> result = new LinkedList<>();
-        while (futureTasks.size() > 0) {
-            Iterator<FutureTask<JSONObject>> iterable = futureTasks.iterator();
-            //遍历一遍
-            while (iterable.hasNext()) {
-                FutureTask<JSONObject> future = iterable.next();
-                if (future.isDone() && !future.isCancelled()) {
-                    // 获取线程返回结果
-                    JSONObject tmp = future.get();
-                    result.add(tmp);
-                    // 任务完成移除任务
-                    iterable.remove();
-                } else {
-                    Thread.sleep(10); // 避免CPU高速运转，这里休息10毫秒
+        long deadlineNanos = System.nanoTime()
+                + TimeUnit.SECONDS.toNanos(BATCH_TIMEOUT_SECONDS);
+        try {
+            for (int i = 0; i < futureTasks.size(); i++) {
+                long remaining = deadlineNanos - System.nanoTime();
+                if (remaining <= 0) {
+                    throw new TimeoutException();
                 }
+                Future<JSONObject> done = completion.poll(remaining, TimeUnit.NANOSECONDS);
+                if (done == null) {
+                    throw new TimeoutException();
+                }
+                result.add(done.get());
             }
+        } catch (TimeoutException e) {
+            for (Future<JSONObject> f : futures) {
+                f.cancel(true);
+            }
+            result.clear();
+            result.add(busyResult("批量判题超时（整批上限 " + BATCH_TIMEOUT_SECONDS + "s）"));
+        } catch (ExecutionException e) {
+            for (Future<JSONObject> f : futures) {
+                f.cancel(true);
+            }
+            result.clear();
+            String cause = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            result.add(busyResult("判题执行异常: " + cause));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            result.clear();
+            result.add(busyResult("批量判题被中断"));
         }
         return result;
+    }
+
+    /** 可识别的失败结果：状态=System Error，保留提交记录与错误信息（不丢任务） */
+    private JSONObject busyResult(String message) {
+        JSONObject res = new JSONObject();
+        res.set("status", Constants.Judge.STATUS_SYSTEM_ERROR.getStatus());
+        res.set("errMsg", message);
+        res.set("time", 0);
+        res.set("memory", 0);
+        return res;
     }
 
 }

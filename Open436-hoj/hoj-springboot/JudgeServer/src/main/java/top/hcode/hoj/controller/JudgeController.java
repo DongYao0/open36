@@ -44,7 +44,14 @@ public class JudgeController {
 
     @RequestMapping("/version")
     public CommonResult<HashMap<String, Object>> getVersion() {
-        return CommonResult.successResponse(judgeServerEntityService.getJudgeServerInfo(), "运行正常");
+        HashMap<String, Object> info = judgeServerEntityService.getJudgeServerInfo();
+        // 阶段8.2：判题线程池指标透出（150 人比赛的"不丢任务"观测点）
+        info.put("poolActive", top.hcode.hoj.util.ThreadPoolUtils.getActiveCount());
+        info.put("poolSize", top.hcode.hoj.util.ThreadPoolUtils.getPoolSize());
+        info.put("poolQueued", top.hcode.hoj.util.ThreadPoolUtils.getQueuedCount());
+        info.put("poolCompleted", top.hcode.hoj.util.ThreadPoolUtils.getCompletedCount());
+        info.put("poolRejected", top.hcode.hoj.util.ThreadPoolUtils.getRejectedCount());
+        return CommonResult.successResponse(info, "运行正常");
     }
 
     @PostMapping(value = "/judge")

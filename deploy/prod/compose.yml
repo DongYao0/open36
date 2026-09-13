@@ -209,6 +209,10 @@ services:
       KONG_GATEWAY_URL: http://kong:8000
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      # 阶段6：连接池/线程预算可经 env 覆盖（默认 20/120）
+      TOMCAT_MAX_THREADS: ${AUTH_TOMCAT_MAX_THREADS:-120}
+      HIKARI_MAX_POOL: ${AUTH_HIKARI_MAX_POOL:-20}
+      HIKARI_MIN_IDLE: ${AUTH_HIKARI_MIN_IDLE:-5}
       # 生产首启管理员初始化（ProductionAdminInitializer 读取并清理 V2/V10 默认账号）
       ADMIN_BOOTSTRAP_USER: ${ADMIN_BOOTSTRAP_USER:?ADMIN_BOOTSTRAP_USER 必须设置}
       ADMIN_BOOTSTRAP_PASSWORD_HASH: ${ADMIN_BOOTSTRAP_PASSWORD_HASH:?ADMIN_BOOTSTRAP_PASSWORD_HASH 必须设置（BCrypt cost=10）}
@@ -243,6 +247,10 @@ services:
       # 阶段5.3：报名对账需查询 Auth 幂等注册结果（内部接口密钥）
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      # 阶段6：连接池/线程预算可经 env 覆盖（默认 15/80）
+      TOMCAT_MAX_THREADS: ${ENROLLMENT_TOMCAT_MAX_THREADS:-80}
+      HIKARI_MAX_POOL: ${ENROLLMENT_HIKARI_MAX_POOL:-15}
+      HIKARI_MIN_IDLE: ${ENROLLMENT_HIKARI_MIN_IDLE:-5}
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }

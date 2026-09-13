@@ -23,6 +23,16 @@ export const useAuthStore = defineStore('auth', () => {
     storage.set('user', u)
   }
 
+  function mergeUserProfile(profile) {
+    if (!user.value || !profile) return
+    setUser({
+      ...user.value,
+      nickname: profile.nickname ?? user.value.nickname,
+      avatarUrl: profile.avatarUrl ?? user.value.avatarUrl,
+      bio: profile.bio ?? user.value.bio
+    })
+  }
+
   function setToken(t) {
     token.value = t
     storage.set('token', t)
@@ -74,7 +84,7 @@ export const useAuthStore = defineStore('auth', () => {
         const hojUserInfo = {
           username: user.value?.username || '',
           nickname: displayName.value,
-          avatar: user.value?.avatar || '',
+          avatar: avatar.value || '',
           roleList: user.value?.role === 'admin' ? ['admin'] : ['user']
         }
         localStorage.setItem('userInfo', JSON.stringify(hojUserInfo))
@@ -139,5 +149,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('open436_token')
   }
 
-  return { user, token, guestMode, isLoggedIn, isAdmin, isGuest, isVisitor, isReadOnly, canPost, avatar, nickname, displayName, login, register, fetchUser, logout, enterGuestMode, exitGuestMode, setUser, setToken, syncToHoj }
+  return { user, token, guestMode, isLoggedIn, isAdmin, isGuest, isVisitor, isReadOnly, canPost, avatar, nickname, displayName, login, register, fetchUser, logout, enterGuestMode, exitGuestMode, setUser, mergeUserProfile, setToken, syncToHoj }
 })

@@ -104,6 +104,7 @@ async function loadProfile() {
     if (res.code === 200 && res.data) {
       form.bio = res.data.bio || ''
       form.avatarUrl = res.data.avatarUrl || ''
+      auth.mergeUserProfile(res.data)
       updateCount('bio')
     }
   } catch (e) {

@@ -252,7 +252,10 @@ async function loadProfile() {
       getUserProfile(auth.user.id),
       getUserStatistics(auth.user.id)
     ])
-    if (profileRes.code === 200) profile.value = profileRes.data || {}
+    if (profileRes.code === 200) {
+      profile.value = profileRes.data || {}
+      auth.mergeUserProfile(profile.value)
+    }
     if (statsRes.code === 200) stats.value = statsRes.data || {}
   } catch (e) {
     console.error('加载资料失败:', e)

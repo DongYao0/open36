@@ -6,6 +6,10 @@ djangorestframework==3.14.0
 psycopg2-binary==2.9.9
 dj-database-url==2.1.0
 
+# 共享缓存（阶段4.1：跨 Gunicorn Worker 的 Token/资料缓存）
+django-redis==5.4.0
+redis==4.6.0
+
 # API 文档
 drf-spectacular==0.26.5
 

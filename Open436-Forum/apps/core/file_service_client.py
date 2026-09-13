@@ -5,7 +5,8 @@ import requests
 import logging
 from typing import Optional
 from django.conf import settings
-from django.core.cache import cache
+
+from apps.core import cache_utils
 from .consul_client import consul_client
 
 logger = logging.getLogger(__name__)
@@ -24,8 +25,8 @@ class FileServiceClient:
 
     def _get_service_url(self) -> Optional[str]:
         cache_key = f'service_url:{self.service_name}'
-        cached_url = cache.get(cache_key)
-        if cached_url:
+        cached_url = cache_utils.cache_get(cache_key)
+        if cached_url and cached_url is not cache_utils.CACHE_UNAVAILABLE:
             return cached_url
 
         service_info = consul_client.discover_service(self.service_name)
@@ -35,7 +36,7 @@ class FileServiceClient:
 
         # consul_client.discover_service 返回 URL 字符串
         base_url = service_info if isinstance(service_info, str) else f"http://{service_info['host']}:{service_info['port']}"
-        cache.set(cache_key, base_url, 300)
+        cache_utils.cache_set(cache_key, base_url, 300)
         return base_url
 
     def get_file_url(self, file_id: str) -> Optional[str]:
@@ -43,8 +44,8 @@ class FileServiceClient:
             return None
 
         cache_key = f'file_url:{file_id}'
-        cached_url = cache.get(cache_key)
-        if cached_url:
+        cached_url = cache_utils.cache_get(cache_key)
+        if cached_url and cached_url is not cache_utils.CACHE_UNAVAILABLE:
             return cached_url
 
         base_url = self._get_service_url()
@@ -58,7 +59,7 @@ class FileServiceClient:
                 data = response.json()
                 if 'data' in data and 'url' in data['data']:
                     url = data['data']['url']
-                    cache.set(cache_key, url, 600)
+                    cache_utils.cache_set(cache_key, url, 600)
                     return url
             else:
                 logger.warning(f"Failed to get file URL for {file_id}: HTTP {response.status_code}")

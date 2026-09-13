@@ -4,7 +4,8 @@ Consul client for service registration and discovery
 import logging
 import consul
 from django.conf import settings
-from django.core.cache import cache
+
+from apps.core import cache_utils
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +62,8 @@ class ConsulClient:
 
     def discover_service(self, service_name, cache_ttl=300):
         cache_key = f"consul:service:{service_name}"
-        cached = cache.get(cache_key)
-        if cached:
+        cached = cache_utils.cache_get(cache_key)
+        if cached and cached is not cache_utils.CACHE_UNAVAILABLE:
             return cached
         if not self.c:
             return None
@@ -71,7 +72,7 @@ class ConsulClient:
             if services:
                 service = services[0]['Service']
                 address = f"http://{service['Address']}:{service['Port']}"
-                cache.set(cache_key, address, cache_ttl)
+                cache_utils.cache_set(cache_key, address, cache_ttl)
                 return address
         except Exception as e:
             logger.error(f"Failed to discover service {service_name}: {e}")

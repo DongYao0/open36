@@ -139,12 +139,30 @@ FILE_SERVICE_NAME = os.getenv('FILE_SERVICE_NAME', 'file-service')
 
 INTERNAL_API_KEY = os.getenv('INTERNAL_API_KEY', 'change-me-in-production')
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+# 缓存（阶段4.1）：生产用 Redis（跨 Gunicorn Worker 共享，URL 形如
+# redis://:密码@redis:6379/3），未设置 REDIS_URL 时回退 LocMemCache，
+# 本地 runserver 开发方式不受影响。
+REDIS_URL = os.getenv('REDIS_URL', '')
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                # 忽略连接异常：Redis 故障时 django-redis 会抛 CommandError，
+                # 业务侧需自行 try/except 降级（见 apps/core/cache_utils.py）
+            },
+            'KEY_PREFIX': 'forum',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 LOGGING = {
     'version': 1,

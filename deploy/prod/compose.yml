@@ -1047,6 +1047,168 @@ services:
     networks: [edge]
     restart: unless-stopped
 
+  # ──────────── 监控栈（可选, --profile monitoring，仅实验室 LAN）────────────
+  # 端口绑定 ADMIN_BIND_IP（与 Admin 同网段），不经 Cloudflare 暴露公网。
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-prometheus
+    profiles: [monitoring]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${ADMIN_BIND_IP:-172.20.193.162}:9090:9090"
+    init: true
+    stop_grace_period: 30s
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    mem_limit: 1g
+    cpus: "1"
+    networks: [internal]
+
+  grafana:
+    image: grafana/grafana:10.4.5
+    container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-grafana
+    profiles: [monitoring]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "${ADMIN_BIND_IP:-172.20.193.162}:3002:3000"
+    depends_on:
+      prometheus: { condition: service_started }
+    init: true
+    stop_grace_period: 30s
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    mem_limit: 512m
+    cpus: "1"
+    networks: [internal]
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.1
+    container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-node-exporter
+    profiles: [monitoring]
+    command:
+      - --path.rootfs=/host
+    volumes:
+      - /:/host:ro,rslave
+    pid: host
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 256m
+    cpus: "0.5"
+    networks: [internal]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-cadvisor
+    profiles: [monitoring]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    privileged: true
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 512m
+    cpus: "1"
+    networks: [internal]
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-postgres-exporter
+    profiles: [monitoring]
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 256m
+    cpus: "0.5"
+    networks: [internal]
+
+  mysqld-exporter:
+    image: prometheuscommunity/mysqld-exporter:v0.15.1
+    container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-mysqld-exporter
+    profiles: [monitoring]
+    command:
+      - --mysqld.username=root
+      - --mysqld.address=hoj-mysql:3306
+    environment:
+      MYSQLD_EXPORTER_PASSWORD: ${HOJ_MYSQL_ROOT_PASSWORD}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 256m
+    cpus: "0.5"
+    networks: [internal]
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.61.0
+    container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-redis-exporter
+    profiles: [monitoring]
+    environment:
+      REDIS_ADDR: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 256m
+    cpus: "0.5"
+    networks: [internal]
+
+  # HOJ /version 的 JSON 指标转 Prometheus（判题池 queued/rejected）
+  json-exporter:
+    image: prometheuscommunity/json-exporter:v0.6.0
+    container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-json-exporter
+    profiles: [monitoring]
+    volumes:
+      - ./monitoring/json-exporter-config.yml:/config.yml:ro
+    command:
+      - --config.file=/config.yml
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 128m
+    cpus: "0.5"
+    networks: [internal]
+
 volumes:
   postgres-data:
   redis-data:
@@ -1057,6 +1219,8 @@ volumes:
   hoj-mysql-data:
   hoj-testcase:
   nacos-data:
+  prometheus-data:
+  grafana-data:
 
 networks:
   internal:

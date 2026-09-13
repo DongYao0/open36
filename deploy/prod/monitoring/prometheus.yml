@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────
+# Prometheus 抓取配置（阶段11，profile: monitoring）
+# 只绑定实验室 LAN（ADMIN_BIND_IP），绝不经 Cloudflare 暴露公网。
+# ─────────────────────────────────────────────────────────────
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: node
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  - job_name: postgres
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  - job_name: mysqld
+    static_configs:
+      - targets: ['mysqld-exporter:9104']
+
+  - job_name: redis
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # HOJ 判题线程池指标（阶段8.2 /version 透出 poolQueued/poolRejected…）
+  - job_name: hoj-judge-pool
+    metrics_path: /probe
+    params:
+      module: [json]
+    static_configs:
+      - targets:
+          - http://hoj-judge:8088/version
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: json-exporter:7979

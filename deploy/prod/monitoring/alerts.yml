@@ -1,0 +1,71 @@
+# ─────────────────────────────────────────────────────────────
+# 基础告警规则（阶段11）
+# 覆盖任务书最低集：磁盘 / 数据库连接 / 容器反复重启 / Redis 内存 /
+# HOJ 队列增长 / 判题拒绝 / 服务不可用。
+# （API 5xx 与 P95 需网关侧 metrics，见 monitoring/README.md 跟进项）
+# ─────────────────────────────────────────────────────────────
+groups:
+  - name: host
+    rules:
+      - alert: HostDiskAlmostFull
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes) > 0.8
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "磁盘剩余不足 20% ({{ $labels.instance }} {{ $labels.mountpoint }})"
+
+  - name: databases
+    rules:
+      - alert: PostgresConnectionsHigh
+        expr: pg_stat_activity_count / 150 > 0.8
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "PostgreSQL 活动连接超过 80%（预算 150）"
+
+      - alert: MysqlConnectionsHigh
+        expr: mysql_global_status_threads_connected / 120 > 0.8
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "MySQL 活动连接超过 80%（预算 120）"
+
+  - name: redis
+    rules:
+      - alert: RedisMemoryNearLimit
+        expr: redis_memory_used_bytes / 2147483648 > 0.9
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Redis 内存接近 2GB 上限（noeviction，写满会报错）"
+
+  - name: availability
+    rules:
+      # 容器反复重启：up 目标 1 小时内掉线 ≥4 次
+      - alert: ServiceFlapping
+        expr: changes(up[1h]) >= 4
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.job }} 一小时内反复重启/掉线 {{ $value }} 次"
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.instance }} 已不可达 2 分钟"
+
+  - name: hoj
+    rules:
+      - alert: HojJudgeQueueGrowing
+        expr: poolQueued > 100
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "HOJ 判题队列持续 >100（线程池吞吐不足，检查 JUDGE_WORKERS）"
+
+      - alert: HojJudgeRejected
+        expr: poolRejected > 0
+        labels: { severity: critical }
+        annotations:
+          summary: "HOJ 判题出现拒绝（CallerRuns 兜底触发，队容量不足）"

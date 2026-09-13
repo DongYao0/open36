@@ -1,0 +1,18 @@
+# HOJ /version JSON → Prometheus 指标映射（阶段11）
+modules:
+  default:
+    metrics:
+      - name: poolQueued
+        path: "{ .data.poolQueued }"
+        help: HOJ judge thread pool queued tasks
+      - name: poolActive
+        path: "{ .data.poolActive }"
+        help: HOJ judge thread pool active workers
+      - name: poolCompleted
+        path: "{ .data.poolCompleted }"
+        help: HOJ judge completed tasks
+      - name: poolRejected
+        path: "{ .data.poolRejected }"
+        help: HOJ judge rejected (caller-run) tasks - must stay 0
+    headers:
+      Accept: application/json

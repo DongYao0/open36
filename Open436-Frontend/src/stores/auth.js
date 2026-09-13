@@ -105,9 +105,9 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) return false
     try {
       const res = await request.get('/api/auth/current')
-      if (res.code === 200 && res.data?.user) {
+      if (res.code === 200 && res.data) {
         // /current 提供真实姓名等权威账号字段；保留登录响应中的头像、昵称和简介。
-        setUser({ ...(user.value || {}), ...res.data.user })
+        setUser({ ...(user.value || {}), ...res.data })
         await syncToHoj()
         return true
       }

@@ -111,6 +111,9 @@ docker logs --tail=200 open436-prod-public-web
 
 ## 查看随机网址（Cloudflare Quick Tunnel）
 
+管理端首页会读取共享运行时文件，每 15 秒自动刷新当前客户端地址。Quick
+Tunnel 重启并生成新域名后无需人工修改；可以直接复制或打开。以下日志命令仅作排障：
+
 ```bash
 docker logs open436-prod-cloudflared 2>&1 \
   | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
@@ -118,6 +121,22 @@ docker logs open436-prod-cloudflared 2>&1 \
 
 public-web 会把同源 API 请求的 `Origin` 清除后再转发到内部服务，因此随机网址
 每次变化时不需要修改 `CORS_ALLOWED_ORIGINS` 或重启后端。
+
+切换 Named Tunnel 时，在 `.env.production` 同时设置稳定的公开地址：
+
+```dotenv
+CLOUDFLARE_TUNNEL_ARGS=tunnel --no-autoupdate --protocol http2 run --token <TOKEN>
+PUBLIC_CLIENT_URL=https://open436.example.com
+```
+
+修改 Admin 展示或地址发布器后，只需增量重建两个服务：
+
+```bash
+docker compose --env-file deploy/prod/.env.production \
+  -f deploy/prod/compose.yml --profile tunnel build admin cloudflared
+docker compose --env-file deploy/prod/.env.production \
+  -f deploy/prod/compose.yml --profile tunnel up -d admin cloudflared
+```
 
 ## 健康检查
 

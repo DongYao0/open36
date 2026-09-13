@@ -1,5 +1,28 @@
 <template>
   <div class="dashboard">
+    <el-card shadow="hover" class="client-address-card">
+      <div class="client-address-row">
+        <div class="client-address-info">
+          <div class="client-address-title">
+            <el-icon><Link /></el-icon>
+            客户端访问地址
+            <el-tag v-if="clientUrl" size="small" type="success">在线</el-tag>
+            <el-tag v-else size="small" type="warning">等待隧道</el-tag>
+          </div>
+          <a v-if="clientUrl" :href="clientUrl" target="_blank" rel="noopener noreferrer">
+            {{ clientUrl }}
+          </a>
+          <span v-else class="client-address-empty">正在获取 Cloudflare 随机地址…</span>
+          <div class="client-address-time">{{ clientAddressHint }}</div>
+        </div>
+        <div class="client-address-actions">
+          <el-button :loading="clientUrlLoading" @click="loadClientUrl">刷新</el-button>
+          <el-button :disabled="!clientUrl" @click="copyClientUrl">复制</el-button>
+          <el-button type="primary" :disabled="!clientUrl" @click="openClient">打开客户端</el-button>
+        </div>
+      </div>
+    </el-card>
+
     <el-row :gutter="20" class="stat-row">
       <el-col :span="6">
         <StatCard label="用户总数" :value="1248" icon="User" icon-bg="#e3f2fd" icon-color="#1976D2" :change="12" />
@@ -55,12 +78,71 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import StatCard from '@/components/StatCard.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 const openHojAdmin = () => authStore.openHojAdmin()
+
+const clientUrl = ref('')
+const clientUrlLoading = ref(false)
+const clientAddressHint = ref('地址会在隧道启动后自动更新')
+let clientUrlTimer
+
+async function loadClientUrl() {
+  clientUrlLoading.value = true
+  try {
+    const response = await fetch(`/runtime/client-url.json?t=${Date.now()}`, { cache: 'no-store' })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const data = await response.json()
+    const parsed = data.url ? new URL(data.url) : null
+    if (parsed && !['http:', 'https:'].includes(parsed.protocol)) throw new Error('invalid protocol')
+    clientUrl.value = parsed ? parsed.href.replace(/\/$/, '') : ''
+    clientAddressHint.value = data.status === 'starting'
+      ? '隧道正在启动，页面将每 15 秒自动刷新'
+      : `更新于 ${data.updatedAt ? new Date(data.updatedAt).toLocaleString() : '刚刚'}`
+  } catch (_error) {
+    clientAddressHint.value = clientUrl.value
+      ? '自动刷新暂时失败，当前仍显示上一次可用地址'
+      : '尚未检测到地址，请确认 Cloudflare Tunnel 已启动'
+  } finally {
+    clientUrlLoading.value = false
+  }
+}
+
+async function copyClientUrl() {
+  if (!clientUrl.value) return
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(clientUrl.value)
+    } else {
+      const input = document.createElement('textarea')
+      input.value = clientUrl.value
+      input.style.position = 'fixed'
+      input.style.opacity = '0'
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      input.remove()
+    }
+    ElMessage.success('客户端地址已复制')
+  } catch (_error) {
+    ElMessage.error('复制失败，请手动选择地址')
+  }
+}
+
+function openClient() {
+  if (clientUrl.value) window.open(clientUrl.value, '_blank', 'noopener,noreferrer')
+}
+
+onMounted(() => {
+  loadClientUrl()
+  clientUrlTimer = window.setInterval(loadClientUrl, 15000)
+})
+
+onBeforeUnmount(() => window.clearInterval(clientUrlTimer))
 
 const recentPosts = ref([
   { title: 'Vue 3 Composition API 最佳实践', author: '张三', time: '5 分钟前' },
@@ -72,6 +154,29 @@ const recentPosts = ref([
 </script>
 
 <style lang="scss" scoped>
+.client-address-card { margin-bottom: 20px; }
+.client-address-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.client-address-info { min-width: 0; }
+.client-address-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.client-address-info a {
+  color: var(--el-color-primary);
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.client-address-empty, .client-address-time { color: var(--el-text-color-secondary); }
+.client-address-time { margin-top: 7px; font-size: 12px; }
+.client-address-actions { display: flex; flex-shrink: 0; }
 .stat-row { margin-bottom: 20px; }
 .card-title { font-weight: 600; font-size: 16px; }
 .quick-actions {
@@ -83,5 +188,9 @@ const recentPosts = ref([
   width: 100%;
   justify-content: flex-start;
   height: 44px;
+}
+@media (max-width: 900px) {
+  .client-address-row { align-items: flex-start; flex-direction: column; }
+  .client-address-actions { width: 100%; }
 }
 </style>

@@ -1041,21 +1041,15 @@ services:
     image: cloudflare/cloudflared:2024.12.2
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-cloudflared
     profiles: [tunnel]
-    # 阶段12：优先 Named Tunnel（CLOUDFLARE_TUNNEL_TOKEN 注入，域名稳定、
-    # 无 200 并发限制、支持 SSE）；未配置 Token 时回退 Quick Tunnel（仅测试）。
+    # 阶段12：Named Tunnel（域名稳定、无 200 并发限制、支持 SSE）。
+    # 镜像为 tini+distroless 风格（无 /bin/sh），不能用 shell 条件——
+    # 由 Compose 变量选择参数：
+    #   默认 = Quick Tunnel（仅测试，URL 会变）；
+    #   正式 = .env 设 CLOUDFLARE_TUNNEL_ARGS="tunnel --no-autoupdate
+    #          --protocol http2 run --token <TOKEN>"。
     # --protocol http2：QUIC(UDP) 在校园网环境反复超时导致 quick tunnel 被
     # Cloudflare 注销（NXDOMAIN）。http2 走 TCP 更稳。
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        if [ -n "$CLOUDFLARE_TUNNEL_TOKEN" ]; then
-          exec cloudflared tunnel --no-autoupdate --protocol http2 run --token "$CLOUDFLARE_TUNNEL_TOKEN"
-        else
-          echo "[cloudflared] 未配置 CLOUDFLARE_TUNNEL_TOKEN，使用临时 Quick Tunnel（仅测试，URL 会变）"
-          exec cloudflared tunnel --no-autoupdate --protocol http2 --url http://public-web:80
-        fi
-    environment:
-      CLOUDFLARE_TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    command: ${CLOUDFLARE_TUNNEL_ARGS:-tunnel --no-autoupdate --protocol http2 --url http://public-web:80}
     networks: [edge]
     restart: unless-stopped
 

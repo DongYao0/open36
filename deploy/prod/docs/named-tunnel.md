@@ -27,7 +27,8 @@ Tunnel 与 public-web 在同一 Docker 网络，用服务名直连。
 
 ```bash
 # /home/sunrise-ssh/open436/deploy/prod/.env.production
-CLOUDFLARE_TUNNEL_TOKEN=eyJh...（你的 Token）
+# 镜像无 shell，参数整体替换（tunnel 子命令 + token）
+CLOUDFLARE_TUNNEL_ARGS=tunnel --no-autoupdate --protocol http2 run --token eyJh...（你的 Token）
 ```
 
 重启隧道：

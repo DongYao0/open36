@@ -284,3 +284,51 @@ docker compose --env-file deploy/prod/.env.production \
 C / C++ / Python3 / PHP / Ruby / Node.js / Java / Go 可用；**Python2、PyPy2、
 PyPy3、Rust、C# 当前已从 `language.yml` 中移除**，避免提交后在生产选了该
 语言却执行失败。
+
+
+---
+
+## 并发改造运维说明（perf/open436-concurrency-1000）
+
+### 资源预算与日志轮转（阶段10）
+
+所有长期服务已注入 `init / stop_grace_period=30s / pids_limit / nofile=65535 /
+json-file 20m×5 轮转 / mem_limit+cpus`。48GB 主机内存预算：
+
+| 类别 | 预算 |
+|---|---|
+| PostgreSQL | 8GB（shared_buffers 2GB） |
+| MySQL(HOJ) | 6GB（buffer_pool 4GB） |
+| Milvus | 6GB |
+| go-judge + hoj-judge + hoj-backend | 4+2+2 GB，CPU 8+4+2 核 |
+| AI / Forum / Auth / Enrollment / File / Kong / MinIO / Redis | 3/1/1.5/1/1/1/2/3 GB |
+| 其余（web/admin/隧道/注册中心等） | ~3GB |
+| **合计** | **≈46GB，系统保留 2GB** |
+
+扩容原则：先压测单实例；任何副本扩容都会放大 DB 连接、Redis 连接与内存，
+`docker compose config` 后人工核对连接总数 ≤ `max_connections` 的 80%。
+
+### MySQL 慢查询日志轮转
+
+慢查询日志（>0.5s）写在容器内 `/var/lib/mysql/#slow.log`（命名随主机名）。
+数据卷内增长需定期轮转：
+
+```bash
+docker exec open436-prod-hoj-mysql sh -c   'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH SLOW LOGS;" &&    find /var/lib/mysql -name "*slow*.log" -size +100M -exec gzip {} \;'
+```
+
+建议加入 cron（每周）。
+
+### 论坛索引升级（存量库，阶段4.4/4.5）
+
+```bash
+bash deploy/prod/scripts/upgrade-forum-indexes.sh   # 幂等，带 EXPLAIN 前后对比
+```
+
+### 压测（阶段1）
+
+见 `deploy/prod/loadtest/README.md`。压测时叠加 LAN 端口：
+
+```bash
+docker compose --env-file .env.production -f compose.yml   -f loadtest/compose.loadtest.yml up -d public-web   # 临时 8080 绑定
+```

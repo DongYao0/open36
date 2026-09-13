@@ -1,0 +1,18 @@
+# 压测专用 Compose 覆盖文件 —— 只在实验室局域网压测时叠加使用：
+#
+#   cd deploy/prod
+#   docker compose --env-file .env.production \
+#     -f compose.yml -f loadtest/compose.loadtest.yml up -d public-web
+#
+# 为 public-web 临时增加 LAN 绑定 172.20.193.162:8080:80，
+# 绕过 Cloudflare Quick Tunnel 的 200 并发限制，压出主机与应用真实容量。
+#
+# 压测结束必须移除（重建为无覆盖配置）：
+#   docker compose --env-file .env.production -f compose.yml up -d public-web
+#
+# 禁止：将本文件的端口合并进正式 compose.yml（任务书阶段1）。
+# 禁止：docker compose down -v（会删除数据卷）。
+services:
+  public-web:
+    ports:
+      - "172.20.193.162:8080:80"

@@ -31,7 +31,7 @@ export default function () {
     // 帖子详情 + 回复列表（同屏两个动态请求，还原真实页面行为）
     const pid = 1 + Math.floor(Math.random() * POST_MAX);
     getApi(`/api/posts/${pid}/`);
-    getApi(`/api/posts/${pid}/replies/?page=1&page_size=50`);
+    getApi(`/api/replies/?post_id=${pid}&page=1&page_size=50`);
   } else {
     const section = Math.random() < 0.5 ? 'tech' : 'share';
     getApi(`/api/posts/?section=${section}&page=1&page_size=20`);

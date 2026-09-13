@@ -103,3 +103,9 @@ deploy/prod/*.log
 output/
 mi/
 mi.zip
+
+# 压测产物与账号（压测P0）
+deploy/prod/loadtest/hoj-accounts.txt
+deploy/prod/loadtest/pages.generated.js
+deploy/prod/loadtest/*-summary.json
+deploy/prod/loadtest/results/

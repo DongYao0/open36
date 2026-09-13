@@ -30,6 +30,9 @@ public class ThreadPoolUtils {
 
     private static final AtomicLong rejectedCount = new AtomicLong();
 
+    /** 队满后经 30s 等待成功入队的次数（背压生效证据） */
+    private static final AtomicLong queueWaitCount = new AtomicLong();
+
     private ThreadPoolUtils() {
     }
 
@@ -45,11 +48,30 @@ public class ThreadPoolUtils {
         };
 
         RejectedExecutionHandler neverDrop = (r, executor) -> {
-            rejectedCount.incrementAndGet();
-            if (!executor.isShutdown()) {
-                // 背压：由提交线程自己执行，任务不丢、不静默
-                r.run();
+            // 压测前置加固：队满时先阻塞排队 30s（不占判题并行度），
+            // 仍失败才由提交线程执行一个任务作为最后阀门——
+            // 任务绝不丢弃；提交线程占用有界（单任务自身有超时），
+            // 且上游 MAX_TASK_NUM 已把并发 /judge 呼入限制在 6，
+            // 最坏并行度 = 6 worker + 6 HTTP 线程，有上界。
+            if (executor.isShutdown()) {
+                rejectedCount.incrementAndGet();
+                org.slf4j.LoggerFactory.getLogger(ThreadPoolUtils.class)
+                        .error("判题线程池已关闭，任务无法执行（仅发生在停机窗口）");
+                return;
             }
+            try {
+                boolean queued = executor.getQueue().offer(r, 30, TimeUnit.SECONDS);
+                if (queued) {
+                    queueWaitCount.incrementAndGet();
+                    return;
+                }
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+            rejectedCount.incrementAndGet();
+            org.slf4j.LoggerFactory.getLogger(ThreadPoolUtils.class)
+                    .warn("判题队列等待30s仍满，退化为提交线程执行（任务不丢失）");
+            r.run();
         };
 
         return new ThreadPoolExecutor(
@@ -112,6 +134,10 @@ public class ThreadPoolUtils {
 
     public static long getRejectedCount() {
         return rejectedCount.get();
+    }
+
+    public static long getQueueWaitCount() {
+        return queueWaitCount.get();
     }
 
     public static int getPoolSize() {

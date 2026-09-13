@@ -8,6 +8,7 @@
 import http from 'k6/http';
 import { sleep } from 'k6';
 import { Trend, Rate } from 'k6/metrics';
+import { makeSummary } from './common.js';
 
 const ADMIN_URL = __ENV.ADMIN_URL || 'http://172.20.193.162:3001';
 const adminDuration = new Trend('admin_req_duration', true);
@@ -65,4 +66,8 @@ export default function () {
   adminDuration.add(res.timings.duration, { q });
   adminFailRate.add(!ok);
   sleep(3 + Math.random() * 5); // 管理员在页面间阅读停留
+}
+
+export function handleSummary(data) {
+  return makeSummary('admin-read')(data);
 }

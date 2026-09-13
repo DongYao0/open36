@@ -14,7 +14,9 @@ docker compose --env-file .env.production \
   -f compose.yml -f loadtest/compose.loadtest.yml up -d public-web
 ```
 
-- 压测电脑安装 k6（`choco install k6` / `brew install k6` / 官方包）；
+- k6 用固定版本 Docker 镜像（Windows Docker Desktop，无需 Linux 安装）：
+  `docker run --rm -v "<loadtest目录>:/scripts" -w /scripts grafana/k6:0.54.0 run <脚本>`；
+
 - 统一入口 `http://172.20.193.162:8080`，绕过 Quick Tunnel 200 并发限制。
 
 ## 场景
@@ -27,11 +29,19 @@ docker compose --env-file .env.production \
 | admin-read.js | 管理端 200 只读 | `k6 run -e ADMIN_URL=http://172.20.193.162:3001 -e ADMIN_USER=.. -e ADMIN_PASS=.. admin-read.js` |
 | hoj-submit.js | D：150浏览 + 20提交/s×3min | `k6 run -e BASE_URL=... -e HOJ_ACCOUNTS="u1:p1,u2:p2,..." hoj-submit.js` |
 
-## HOJ 压测账号准备（场景D前置）
+## HOJ 压测账号准备（场景D前置，压测前置修正）
 
-HOJ 单用户提交间隔 8s（defaultSubmitInterval），20 提交/秒需要 ≥50 个账号。
-用 root 管理员在 HOJ 后台批量创建 `ltc1..ltc60`（或用注册接口脚本），
-格式 `HOJ_ACCOUNTS="ltc1:pass,ltc2:pass,..."` 传入。**密码只放本地环境变量，不入库不入仓。**
+HOJ 单账号提交间隔 8s（defaultSubmitInterval）。恒定 R 提交/秒时，
+同账号两次提交间隔 = N/R 秒 ≥ 8s → **20/s 至少需要 160 个账号**
+（脚本按 ⌈8×R⌉+8 强制校验，且按迭代轮询取号，不用随机取号）。
+
+```bash
+# Windows 生成（走公开注册接口，重跑幂等，已存在自动跳过）：
+python deploy/prod/loadtest/gen-hoj-accounts.py   --base http://172.20.193.162:8080 --count 170   --prefix ltc --password 'LtHoj#0436' --out deploy/prod/loadtest/hoj-accounts.txt
+
+k6 run -e BASE_URL=http://172.20.193.162:8080   -e HOJ_ACCOUNTS_FILE=hoj-accounts.txt -e SUBMIT_RATE=20 hoj-submit.js
+```
+**账号文件与密码只在本地（hoj-accounts.txt 已 gitignore），不入库不入仓。**
 
 ## 验收线（判定通过/失败）
 

@@ -36,7 +36,7 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
-    mem_limit: 8g
+    mem_limit: 6g
     cpus: 4
     image: postgres:14-alpine
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-postgres
@@ -92,7 +92,7 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
-    mem_limit: 3g
+    mem_limit: 2560m
     cpus: 1.5
     image: redis:7-alpine
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-redis
@@ -188,7 +188,7 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
-    mem_limit: 6g
+    mem_limit: 4g
     cpus: 6
     image: milvusdb/milvus:v2.4.17
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-milvus
@@ -542,7 +542,7 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
-    mem_limit: 3g
+    mem_limit: 2560m
     cpus: 4
     build: { context: ../../Open436-AIService }
     image: open436/ai-service:build
@@ -607,7 +607,7 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
-    mem_limit: 4g
+    mem_limit: 3g
     cpus: 8
     build: { context: ./go-judge }
     image: open436/go-judge:v1.12.0
@@ -643,7 +643,7 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
-    mem_limit: 6g
+    mem_limit: 5g
     cpus: 4
     image: mysql:8.4
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-hoj-mysql

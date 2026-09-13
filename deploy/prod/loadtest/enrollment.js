@@ -18,7 +18,7 @@
 import exec from 'k6/execution';
 import { sleep } from 'k6';
 import { Rate, Trend, Counter } from 'k6/metrics';
-import { postApi, BASE_URL } from './common.js';
+import { postApi, BASE_URL, makeSummary } from './common.js';
 
 const TIER = parseInt(__ENV.TIER || '20', 10);
 const DURATION = __ENV.TIER_DURATION || (TIER >= 300 ? '2m' : '10m');
@@ -106,4 +106,8 @@ export default function () {
   if (driftRes.status >= 500) enrollServerErrors.add(1);
 
   sleep(1 + Math.random() * 2);
+}
+
+export function handleSummary(data) {
+  return makeSummary('enrollment')(data);
 }

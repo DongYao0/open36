@@ -51,6 +51,7 @@ public class JudgeController {
         info.put("poolQueued", top.hcode.hoj.util.ThreadPoolUtils.getQueuedCount());
         info.put("poolCompleted", top.hcode.hoj.util.ThreadPoolUtils.getCompletedCount());
         info.put("poolRejected", top.hcode.hoj.util.ThreadPoolUtils.getRejectedCount());
+        info.put("poolQueueWaited", top.hcode.hoj.util.ThreadPoolUtils.getQueueWaitCount());
         return CommonResult.successResponse(info, "运行正常");
     }
 

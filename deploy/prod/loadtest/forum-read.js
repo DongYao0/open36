@@ -4,7 +4,7 @@
 // 运行：k6 run -e BASE_URL=http://172.20.193.162:8080 forum-read.js
 // POST_ID_RANGE 控制详情页 id 范围（按当前库实际帖子量调整）。
 
-import { getApi, getStatic, think, baseThresholds } from './common.js';
+import { getApi, getStatic, think, baseThresholds, makeSummary } from './common.js';
 
 const POST_MAX = parseInt(__ENV.POST_ID_MAX || '200', 10);
 
@@ -41,4 +41,8 @@ export default function () {
     getStatic('/app/forum');
   }
   think();
+}
+
+export function handleSummary(data) {
+  return makeSummary('forum-read')(data);
 }

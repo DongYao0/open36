@@ -303,7 +303,8 @@ json-file 20m×5 轮转 / mem_limit+cpus`。48GB 主机内存预算：
 | go-judge + hoj-judge + hoj-backend | 4+2+2 GB，CPU 8+4+2 核 |
 | AI / Forum / Auth / Enrollment / File / Kong / MinIO / Redis | 3/1/1.5/1/1/1/2/3 GB |
 | 其余（web/admin/隧道/注册中心等） | ~3GB |
-| **合计** | **≈46GB，系统保留 2GB** |
+| **合计（运行集，压测P0裁剪后）** | **≈40.25GB，系统保留 ~5.75GB** |
+| +monitoring profile（压测时不启用） | ≈43.4GB（届时系统余量~2.6GB，仅观测期短开） |
 
 扩容原则：先压测单实例；任何副本扩容都会放大 DB 连接、Redis 连接与内存，
 `docker compose config` 后人工核对连接总数 ≤ `max_connections` 的 80%。

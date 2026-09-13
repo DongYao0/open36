@@ -52,13 +52,19 @@ def main():
     landing_html = fetch(base + '/')
     app_html = fetch(base + '/app/')
     forum_html = fetch(base + '/app/forum')
-    honors_html = fetch(base + '/honors/')
 
     landing_assets = assets_from_html(base, landing_html)[:8]   # 主 bundle + 字体图
     app_assets = assets_from_html(base, app_html)[:8]
-    honors_imgs = [u for u in assets_from_html(base, honors_html)][:6]
-    if not honors_imgs:
-        honors_imgs = ['/honors/']  # 目录页无资源时退化为目录本身
+    # /honors/ 目录无 autoindex；从部署 dist 固定采样真实图片
+    honors_imgs = [
+        '/honors/baidu/01.jpg', '/honors/lanqiao/01.jpg',
+        '/honors/team/01.jpg', '/honors/mati/01.jpg',
+    ]
+    for probe in list(honors_imgs):
+        try:
+            fetch(base + probe)
+        except Exception:
+            honors_imgs.remove(probe)
 
     groups = [
         {'name': 'home', 'weight': 30,
@@ -77,7 +83,8 @@ def main():
          'static': ['/app/'],
          'api': ['/api/sections/']},
         {'name': 'honors', 'weight': 10,
-         'static': ['/honors/'] + honors_imgs,
+         # /honors/ 目录无 autoindex（404），只请求真实图片
+         'static': honors_imgs,
          'api': []},
     ]
 

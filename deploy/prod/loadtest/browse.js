@@ -1,39 +1,31 @@
-// 场景A：1000 人同时在线浏览（不是 1000 rps！）
-// 爬坡：0→200(2m) →500(3m) →1000(5m) 保持1000(10m) →0(2m)
+// 场景A：N 人同时在线浏览（真实停顿模型）
 //
-// 修复（压测前置）：
-//   1. /api/* 一律按动态统计（原先混进 getStatic 导致失败率口径错误）；
-//   2. k6 不做浏览器解析 → 按真实页面清单加载哈希资源与配套 API
-//      （pages.generated.js 由 gen-pages.py 对实际部署生成）。
+// 压测前置修复（第2轮）：
+//   资产清单不再固化——setup() 对着【当前部署】的 HTML 动态解析哈希资产。
+//   原因：部署侧可能被并行更新（assets 哈希变化），固化清单会产生整批 404，
+//   污染静态失败率口径。
 //
+// 环境变量：
+//   BROWSE_VUS（默认1000）BROWSE_HOLD（默认10m）BROWSE_RAMP（默认3m）
 // 运行：k6 run -e BASE_URL=http://172.20.193.162:8080 browse.js
 
 import http from 'k6/http';
-import { PAGE_GROUPS } from './pages.generated.js';
 import { BASE_URL, getApi, think, baseThresholds, makeSummary,
          recordStatic } from './common.js';
 
-const TOTAL_WEIGHT = PAGE_GROUPS.reduce((s, g) => s + g.weight, 0);
-
-function pickGroup() {
-  let r = Math.random() * TOTAL_WEIGHT;
-  for (const g of PAGE_GROUPS) {
-    r -= g.weight;
-    if (r < 0) return g;
-  }
-  return PAGE_GROUPS[0];
-}
+const VUS = parseInt(__ENV.BROWSE_VUS || '1000', 10);
+const HOLD = __ENV.BROWSE_HOLD || '10m';
+const RAMP = __ENV.BROWSE_RAMP || '3m';
 
 export const options = {
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
   scenarios: {
-    browse1000: {
+    browse: {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '2m', target: 200 },
-        { duration: '3m', target: 500 },
-        { duration: '5m', target: 1000 },
-        { duration: '10m', target: 1000 },
+        { duration: RAMP, target: VUS },
+        { duration: HOLD, target: VUS },
         { duration: '2m', target: 0 },
       ],
       gracefulRampDown: '30s',
@@ -42,25 +34,73 @@ export const options = {
   thresholds: baseThresholds(),
 };
 
-export default function () {
-  const group = pickGroup();
-  const urls = group.static;
+/** 从 HTML 提取本站静态资源引用（js/css/图片），最多 maxN 个 */
+function assetsFromHtml(html, maxN) {
+  const out = [];
+  const re = /(?:src|href)=["']([^"']+)["']/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    let u = m[1];
+    if (u.startsWith('http') || u.startsWith('data:')) continue;
+    if (!/\.(js|css|png|jpe?g|svg|webp|glb)(\?|$)/i.test(u)) continue;
+    if (!u.startsWith('/')) u = '/' + u;
+    if (out.indexOf(u) === -1) out.push(u);
+    if (out.length >= maxN) break;
+  }
+  return out;
+}
 
-  // 页面 HTML + 静态资源一次性并发拉取（还原浏览器首屏）
+// 固定页面骨架：权重与每页 API；静态资源在 setup() 期对当前部署解析
+const PAGE_SKELETON = [
+  { name: 'home', weight: 30, htmlPath: '/', api: ['/api/users/homepage/public'] },
+  { name: 'app-home', weight: 10, htmlPath: '/app/', api: ['/api/sections/'] },
+  { name: 'forum', weight: 25, htmlPath: '/app/forum', api: ['/api/sections/', '/api/posts/?page=1&page_size=20'] },
+  { name: 'resources', weight: 15, htmlPath: '/app/resources', api: ['/api/posts/?section=share&page=1&page_size=20'] },
+  { name: 'contests', weight: 10, htmlPath: '/app/contests', api: ['/api/sections/'] },
+  { name: 'honors', weight: 10, htmlPath: null,
+    fixedStatic: ['/honors/baidu/01.jpg', '/honors/lanqiao/01.jpg',
+                  '/honors/team/01.jpg', '/honors/mati/01.jpg'], api: [] },
+];
+
+export function setup() {
+  const groups = PAGE_SKELETON.map(s => {
+    let staticUrls = s.fixedStatic || [];
+    if (s.htmlPath) {
+      const res = http.get(`${BASE_URL}${s.htmlPath}`);
+      const assets = res.status === 200 ? assetsFromHtml(res.body, 8) : [];
+      staticUrls = [s.htmlPath].concat(assets);
+    }
+    return { name: s.name, weight: s.weight, static: staticUrls, api: s.api };
+  });
+  const total = groups.reduce((a, g) => a + g.static.length, 0);
+  console.log(`setup: resolved ${groups.length} pages, ${total} static refs against live deployment`);
+  return { groups };
+}
+
+const TOTAL_WEIGHT = PAGE_SKELETON.reduce((s, g) => s + g.weight, 0);
+
+export default function (data) {
+  const groups = (data && data.groups) || [];
+  let r = Math.random() * TOTAL_WEIGHT;
+  let group = groups[groups.length - 1];
+  for (const g of groups) {
+    r -= g.weight;
+    if (r < 0) { group = g; break; }
+  }
+  if (!group || !group.static.length) { think(); return; }
+
   const responses = http.batch(
-    urls.map(u => ['GET', `${BASE_URL}${u}`,
-                   null, { tags: { type: 'static', page: group.name } }]));
+    group.static.map(u => ['GET', `${BASE_URL}${u}`,
+                           null, { tags: { type: 'static', page: group.name } }]));
   const arr = Array.isArray(responses) ? responses : [responses];
   for (const res of arr) {
     recordStatic(res.status >= 200 && res.status < 400,
-                 res.timings.duration, { page: group.name });
+                 res.timings.duration, { page: group.name, url: res.url }, res.status);
   }
-
-  // 页面配套动态 API（串行小批，还原前端首屏请求顺序）
   for (const api of group.api) {
     getApi(api, { tags: { page: group.name } });
   }
-  think(); // 3~8s 阅读停顿
+  think(); // 3~8s 阅读停顿——模拟真人，避免 DDoS 模式
 }
 
 export function handleSummary(data) {

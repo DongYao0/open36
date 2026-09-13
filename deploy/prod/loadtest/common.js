@@ -9,7 +9,7 @@
 
 import http from 'k6/http';
 import { sleep } from 'k6';
-import { Trend, Rate } from 'k6/metrics';
+import { Trend, Rate, Counter } from 'k6/metrics';
 
 export const BASE_URL = __ENV.BASE_URL || 'http://172.20.193.162:8080';
 
@@ -24,29 +24,48 @@ export function think() {
   sleep(3 + Math.random() * 5);
 }
 
-// ── 记账助手（供 http.batch 等自定义请求复用同一口径）──
-export function recordStatic(ok, durationMs, tags) {
-  staticDuration.add(durationMs, tags || {});
-  staticFailRate.add(!ok);
+// 状态码计数（必须在 init 上下文预声明——k6 禁止 VU 内建 metric）
+const STATUS_CODES = [200, 204, 301, 302, 304, 400, 401, 403, 404, 409, 429, 500, 502, 503, 504];
+const staticCounters = {};
+const dynCounters = {};
+for (const c of STATUS_CODES) {
+  staticCounters[c] = new Counter('resp_static_' + c);
+  dynCounters[c] = new Counter('resp_dyn_' + c);
+}
+export function noteStatus(code, kind) {
+  const table = kind === 'static' ? staticCounters : dynCounters;
+  const counter = table[code];
+  if (counter) counter.add(1);  // 预声明之外的状态码不计数（避免 init 违规）
 }
 
-export function recordDynamic(ok, durationMs, tags) {
+// ── 记账助手（供 http.batch 等自定义请求复用同一口径）──
+export function recordStatic(ok, durationMs, tags, code) {
+  staticDuration.add(durationMs, tags || {});
+  staticFailRate.add(!ok);
+  if (code) noteStatus(code, 'static');
+  if (!ok && __ENV.DEBUG_FAILS) {
+    console.log('STATIC-FAIL code=' + code + ' tags=' + JSON.stringify(tags || {}));
+  }
+}
+
+export function recordDynamic(ok, durationMs, tags, code) {
   dynamicDuration.add(durationMs, tags || {});
   dynamicFailRate.add(!ok);
+  if (code) noteStatus(code, 'dyn');
 }
 
 // ── 单请求封装 ──
 export function getStatic(path, extras) {
   const res = http.get(`${BASE_URL}${path}`, Object.assign({ tags: { type: 'static' } }, extras));
   const ok = res.status >= 200 && res.status < 400;
-  recordStatic(ok, res.timings.duration, Object.assign({ path }, (extras && extras.tags) || {}));
+  recordStatic(ok, res.timings.duration, Object.assign({ path }, (extras && extras.tags) || {}), res.status);
   return res;
 }
 
 export function getApi(path, extras) {
   const res = http.get(`${BASE_URL}${path}`, Object.assign({ tags: { type: 'api' } }, extras));
   const ok = res.status >= 200 && res.status < 300;
-  recordDynamic(ok, res.timings.duration, Object.assign({ path }, (extras && extras.tags) || {}));
+  recordDynamic(ok, res.timings.duration, Object.assign({ path }, (extras && extras.tags) || {}), res.status);
   return res;
 }
 
@@ -74,6 +93,9 @@ export const PAGE_POOL = [
 export function randomPage() {
   return PAGE_POOL[Math.floor(Math.random() * PAGE_POOL.length)];
 }
+
+// 所有 Trend 输出 P50/P90/P95/P99（k6 默认不含 p99）
+export const SUMMARY_TREND_STATS = ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'];
 
 export function baseThresholds() {
   return {

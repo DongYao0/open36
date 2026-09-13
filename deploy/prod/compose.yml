@@ -287,7 +287,7 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
-    mem_limit: 1536m  # 压测实测常驻~1007MiB，1G 无余量
+    mem_limit: 2g  # 压测实测随负载线性涨：200VU=1007M/500VU=1240M/1000VU=1485M
     cpus: 2
     build:
       context: ./kong

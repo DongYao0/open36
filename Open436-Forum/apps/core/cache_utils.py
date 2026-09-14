@@ -79,7 +79,8 @@ def put_token_invalid(token: str):
 # ── 用户资料缓存（阶段4.2 批量作者信息）──
 
 def profile_key(user_id) -> str:
-    return f'prof:{user_id}'
+    # v2 includes real_name; versioning avoids serving old nickname-only rows.
+    return f'prof:v2:{user_id}'
 
 
 def get_profiles(user_ids):

@@ -50,6 +50,15 @@ const HonorsGallery = () => {
 
   const photo = photos[active];
 
+  useEffect(() => {
+    if (photos.length < 2) return;
+    const neighbors = [photos[(active + 1) % photos.length], photos[(active - 1 + photos.length) % photos.length]];
+    neighbors.forEach((item) => {
+      const preload = new Image();
+      preload.src = item.image;
+    });
+  }, [active, photos]);
+
   return (
     <main className='min-h-screen overflow-hidden bg-primary text-white-100'>
       <div className='fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_15%,rgba(145,94,255,.2),transparent_38%)]' />
@@ -88,7 +97,7 @@ const HonorsGallery = () => {
                   className='grid w-full max-w-6xl items-center gap-8 px-8 sm:px-12 lg:grid-cols-[minmax(0,1fr)_330px]'
                 >
                   <div className='relative flex h-[36vh] min-h-[280px] items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-black/35 shadow-[0_30px_100px_rgba(0,0,0,.55)] sm:h-[52vh] sm:min-h-[340px]'>
-                    <img src={photo.image} alt={photo.title} className='h-full w-full object-contain' />
+                    <img src={photo.image} alt={photo.title} decoding='async' fetchPriority='high' className='h-full w-full object-contain' />
                     <span className='absolute left-5 top-5 rounded-full border border-white/15 bg-black/50 px-3 py-1 text-xs tracking-widest backdrop-blur'>{String(active + 1).padStart(2, "0")} / {String(photos.length).padStart(2, "0")}</span>
                   </div>
                   <figcaption>

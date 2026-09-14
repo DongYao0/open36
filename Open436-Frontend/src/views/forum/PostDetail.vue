@@ -20,6 +20,10 @@
     </div>
   </div>
   <template v-if="post">
+    <div v-if="post.canEdit || post.canDelete" class="pd-owner-actions">
+      <router-link v-if="post.canEdit" :to="`/forum/post/${post.id}/edit`" class="pd-owner-btn">编辑帖子</router-link>
+      <button v-if="post.canDelete" class="pd-owner-btn pd-owner-btn--danger" @click="removePost">删除帖子</button>
+    </div>
     <ForumResourceDetail v-if="post.sectionKey === 'share'" :post="post" />
     <ForumTechDetail v-else :post="post" />
     <div class="pd-discussion">
@@ -41,10 +45,11 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useSectionStore } from '@/stores/section'
 import { useAuthStore } from '@/stores/auth'
-import { getPost } from '@/api/post'
+import { deletePost, getPost } from '@/api/post'
+import { useUIStore } from '@/stores/ui'
 import { resolvePostAuthor } from '@/utils/format'
 import ForumResourceDetail from '@/components/ForumResourceDetail.vue'
 import ForumTechDetail from '@/components/ForumTechDetail.vue'
@@ -52,8 +57,10 @@ import CommentSection from '@/components/forum/CommentSection.vue'
 import InteractionBar from '@/components/forum/InteractionBar.vue'
 
 const route = useRoute()
+const router = useRouter()
 const sectionStore = useSectionStore()
 const auth = useAuthStore()
+const ui = useUIStore()
 const loading = ref(false)
 const post = ref(null)
 const fetchError = ref('')
@@ -71,13 +78,25 @@ async function fetchPost(id) {
         author: resolvePostAuthor(raw),
         section: sec?.name || '未知板块',
         sectionKey: sec?.key || '',
-        votes: raw.likes_count || 0, createdAt: raw.created_at
+        votes: raw.likes_count || 0, createdAt: raw.created_at,
+        canEdit: raw.can_edit === true, canDelete: raw.can_delete === true
       }
     } else { post.value = null }
   } catch (e) {
     fetchError.value = `[${e?.response?.status || 'ERR'}] ${e?.response?.data?.message || e?.message || '请求失败'}`
     post.value = null
   } finally { loading.value = false }
+}
+
+async function removePost() {
+  if (!post.value?.canDelete || !window.confirm('确定删除这篇帖子吗？删除后普通用户将无法查看。')) return
+  try {
+    await deletePost(post.value.id)
+    ui.showToast('帖子已删除', 'success')
+    router.push('/mine')
+  } catch (e) {
+    ui.showToast(e?.response?.data?.message || '删除失败，请稍后重试', 'error')
+  }
 }
 
 onMounted(async () => {
@@ -90,6 +109,7 @@ watch(() => route.params.id, (newId) => { if (newId) fetchPost(newId) })
 
 <style scoped>
 .pd-nav { margin-bottom: var(--s-base); }
+.pd-owner-actions{display:flex;justify-content:flex-end;gap:8px;width:min(1180px,100%);margin:0 auto 12px}.pd-owner-btn{padding:7px 14px;border:1px solid var(--divider);border-radius:8px;background:var(--bg);color:var(--text-secondary);font-size:13px;cursor:pointer}.pd-owner-btn:hover{border-color:var(--primary);color:var(--primary)}.pd-owner-btn--danger:hover{border-color:var(--error);color:var(--error)}
 .pd-back {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 13px; color: var(--text-secondary); font-weight: 500;

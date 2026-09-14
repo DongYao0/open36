@@ -1,22 +1,39 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
+const CACHE_KEY = "open436:homepage:v1";
+
+const readCache = () => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+    return cached && typeof cached.data === "object" ? cached.data : null;
+  } catch {
+    return null;
+  }
+};
+
 // 首页内容上下文：启动时拉取后台配置，逐模块 fallback 到 constants 默认值
 // 后端不可用/模块未配置时首页展示默认内容，永不空白
 const HomepageContext = createContext(null);
 
 export const HomepageProvider = ({ children }) => {
   // null=加载中, {}=已加载（可能为空，空则全走默认值）
-  const [data, setData] = useState(null);
+  const [data, setData] = useState(readCache);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/users/homepage/public")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("http " + r.status))))
       .then((res) => {
-        if (!cancelled) setData(res?.data ?? {});
+        const next = res?.data ?? {};
+        if (!cancelled) setData(next);
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: next }));
+        } catch {
+          // Storage may be disabled or full; live data still remains available.
+        }
       })
       .catch(() => {
-        if (!cancelled) setData({});
+        if (!cancelled) setData((current) => current ?? {});
       });
     return () => {
       cancelled = true;

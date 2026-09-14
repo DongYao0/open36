@@ -4,7 +4,7 @@
     <section class="hero"><div class="hero-copy"><h1>把热爱，写进<br>下一场竞赛。</h1></div><div class="hero-orbit" aria-hidden="true"><i></i><i></i><span v-for="(mark, index) in heroMarks" :key="index"><img :src="mark" alt=""></span></div></section>
     <section id="events">
       <article v-for="(item, i) in contests" :key="item.name" :class="['event', { flip: i % 2 }]">
-        <div :class="['visual', item.tone]"><em>{{ String(i + 1).padStart(2, '0') }}</em><img class="card-art" :src="item.art" alt="" aria-hidden="true"><small>{{ item.type }}</small><i></i><i></i></div>
+        <div :class="['visual', item.tone]"><em>{{ String(i + 1).padStart(2, '0') }}</em><img class="card-art" :src="item.art" alt="" aria-hidden="true" loading="lazy" decoding="async"><small>{{ item.type }}</small><i></i><i></i></div>
         <div class="copy"><p>{{ item.month }} · {{ item.type }}</p><h3>{{ item.name }}</h3><div class="summary">{{ item.summary }}</div><ul><li>校内 {{ item.school }}</li><li>山东 {{ item.shandong }}</li><li>全国 {{ item.national }}</li></ul><router-link class="detail-action" :to="`/contests/${item.id}`">赛事详情 <b>↗</b></router-link></div>
       </article>
     </section><footer><b>OPEN436</b><span>赛事不是一张表，是一条从兴趣到作品与奖项的路线。</span></footer>

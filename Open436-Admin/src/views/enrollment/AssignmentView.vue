@@ -268,11 +268,11 @@ function handleMemberSelect(rows) {
 
 async function assignMember(row) {
   try {
-    await allocateStudents(selectedAssignment.value.id, { studentIds: [row.studentId] })
-    ElMessage.success(`已分配给 ${row.studentName}`)
-    loadMembers()
+    const res = await allocateStudents(selectedAssignment.value.id, { studentIds: [row.studentId] })
+    ElMessage.success(res.data?.assigned === 1 ? `已分配给 ${row.studentName}` : `${row.studentName} 已在分配名单中`)
+    await Promise.all([loadMembers(), loadList()])
   } catch (e) {
-    ElMessage.error('分配失败')
+    ElMessage.error(e?.response?.data?.message || e?.message || '分配失败')
   }
 }
 
@@ -310,14 +310,14 @@ function batchAssignSelected() {
   }
   ElMessageBox.confirm(`确定分配选中的 ${unassignedMembers.length} 人？`, '确认', { type: 'success' }).then(async () => {
     try {
-      await allocateStudents(selectedAssignment.value.id, {
+      const res = await allocateStudents(selectedAssignment.value.id, {
         studentIds: unassignedMembers.map(m => m.studentId)
       })
-      ElMessage.success('批量分配成功')
+      ElMessage.success(`分配完成：新增 ${res.data?.assigned ?? unassignedMembers.length} 人，跳过 ${res.data?.skipped ?? 0} 人`)
       selectedMembers.value = []
-      loadMembers()
+      await Promise.all([loadMembers(), loadList()])
     } catch (e) {
-      ElMessage.error('批量分配失败')
+      ElMessage.error(e?.response?.data?.message || e?.message || '批量分配失败')
     }
   }).catch(() => {})
 }
@@ -332,16 +332,15 @@ async function batchAssign() {
     return
   }
   try {
-    await allocateStudents(selectedAssignment.value.id, {
+    const res = await allocateStudents(selectedAssignment.value.id, {
       studentIds: assignSelection.value.map(s => s.studentId)
     })
-    ElMessage.success(`已分配 ${assignSelection.value.length} 人`)
+    ElMessage.success(`分配完成：新增 ${res.data?.assigned ?? assignSelection.value.length} 人，跳过 ${res.data?.skipped ?? 0} 人`)
     showAssignDialog.value = false
     assignSelection.value = []
-    loadMembers()
-    loadList()
+    await Promise.all([loadMembers(), loadList()])
   } catch (e) {
-    ElMessage.error('分配失败')
+    ElMessage.error(e?.response?.data?.message || e?.message || '分配失败')
   }
 }
 

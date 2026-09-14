@@ -37,7 +37,8 @@ class PostListSerializer(serializers.ModelSerializer):
         profile = self.context.get('author_profiles', {}).get(obj.author_id, {})
         return {
             'user_id': obj.author_id,
-            'nickname': profile.get('nickname'),
+            'nickname': profile.get('real_name') or profile.get('nickname'),
+            'real_name': profile.get('real_name'),
             'avatar_url': profile.get('avatar_url'),
         }
 
@@ -65,7 +66,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
-            'id', 'title', 'content', 'author', 'section',
+            'id', 'title', 'summary', 'content', 'author', 'section',
             'is_pinned', 'pin_type', 'views_count',
             'replies_count', 'likes_count',
             'status', 'edit_count', 'last_edited_at', 'last_edited_by',
@@ -79,7 +80,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
         profile = self.context.get('author_profiles', {}).get(obj.author_id, {})
         return {
             'user_id': obj.author_id,
-            'nickname': profile.get('nickname'),
+            'nickname': profile.get('real_name') or profile.get('nickname'),
+            'real_name': profile.get('real_name'),
             'avatar_url': profile.get('avatar_url'),
         }
 

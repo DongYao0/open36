@@ -17,7 +17,7 @@
         </svg>
       </div>
       <div>
-        <h2 class="pn-title">{{ isResource ? '收录一份可用资源' : '写一篇工程笔记' }}</h2>
+        <h2 class="pn-title">{{ isEditing ? '编辑帖子' : (isResource ? '收录一份可用资源' : '写一篇工程笔记') }}</h2>
         <p class="pn-desc">{{ isResource ? '把链接、用途和上手方法交给下一位使用者' : '记录问题、方案、代码与可复现的实践结论' }}</p>
       </div>
     </div>
@@ -70,7 +70,7 @@
           <svg v-if="!submitting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
             <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
           </svg>
-          {{ submitting ? '发布中...' : (isResource ? '发布资源' : '发布文章') }}
+          {{ submitting ? '保存中...' : (isEditing ? '保存修改' : (isResource ? '发布资源' : '发布文章')) }}
         </button>
       </div>
     </div>
@@ -85,7 +85,7 @@ import { useSectionStore } from '@/stores/section'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { markdownToHtml } from '@/utils/format'
-import { createPost } from '@/api/post'
+import { createPost, getPost, updatePost } from '@/api/post'
 import { uploadFile } from '@/api/file'
 
 const router = useRouter()
@@ -97,7 +97,8 @@ const submitting = ref(false)
 const imageUploading = ref(false)
 const imageFileInput = ref(null)
 const form = ref({ title: '', summary: '', section: 'tech', resourceUrl: '', content: '' })
-const isResource = computed(() => route.query.type === 'share')
+const isEditing = computed(() => route.name === 'PostEdit')
+const isResource = computed(() => route.query.type === 'share' || form.value.section === 'share')
 const targetPath = computed(() => isResource.value ? '/forum/share' : '/forum/tech')
 
 const toolbar = [
@@ -114,10 +115,29 @@ const toolbar = [
 const previewHtml = computed(() => markdownToHtml(form.value.content))
 const canSubmit = computed(() => form.value.title.trim() && form.value.content.trim() && form.value.section && (!isResource.value || form.value.resourceUrl.trim()))
 
-onMounted(() => {
+onMounted(async () => {
   if (!auth.canPost) { ui.showToast('请先登录后再发帖', 'warning'); router.push('/login'); return }
-  form.value.section = isResource.value ? 'share' : 'tech'
-  sectionStore.fetchSections()
+  await sectionStore.fetchSections()
+  if (!isEditing.value) {
+    form.value.section = route.query.type === 'share' ? 'share' : 'tech'
+    return
+  }
+  try {
+    const res = await getPost(route.params.id)
+    const raw = res?.data || res
+    if (!raw?.can_edit) throw new Error('你没有权限编辑该帖子或已超过编辑次数')
+    const slug = raw.section?.slug || sectionStore.getSectionById(raw.section?.section_id)?.key || 'tech'
+    let content = raw.content || ''
+    let resourceUrl = ''
+    if (slug === 'share') {
+      const match = content.match(/^## 获取资源\s+\[访问资源\]\((https?:\/\/[^)]+)\)\s*/)
+      if (match) { resourceUrl = match[1]; content = content.slice(match[0].length) }
+    }
+    form.value = { title: raw.title || '', summary: raw.summary || '', section: slug, resourceUrl, content }
+  } catch (e) {
+    ui.showToast(e?.response?.data?.message || e.message || '帖子加载失败', 'error')
+    router.push('/mine')
+  }
 })
 
 function insertMarkdown(syntax) { form.value.content += syntax }
@@ -169,9 +189,11 @@ async function submitPost() {
     const content = isResource.value
       ? `## 获取资源\n\n[访问资源](${form.value.resourceUrl.trim()})\n\n${form.value.content.trim()}`
       : form.value.content.trim()
-    await createPost({ title: form.value.title.trim(), summary: form.value.summary.trim(), content, section_id: sectionId })
-    ui.showToast('发布成功！', 'success')
-    router.push('/forum/' + (form.value.section || 'tech'))
+    const payload = { title: form.value.title.trim(), summary: form.value.summary.trim(), content, section_id: sectionId }
+    if (isEditing.value) await updatePost(route.params.id, payload)
+    else await createPost(payload)
+    ui.showToast(isEditing.value ? '修改已保存' : '发布成功！', 'success')
+    router.push(isEditing.value ? `/forum/post/${route.params.id}` : '/forum/' + (form.value.section || 'tech'))
   } catch (e) {
     const errData = e?.response?.data
     const msg = errData?.message || '发布失败，请稍后重试'

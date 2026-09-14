@@ -109,7 +109,7 @@
                 <span v-else class="assignment-status pending">待提交</span>
               </div>
             </div>
-            <div v-if="item.submissionStatus !== 'submitted'" class="unread-dot"></div>
+            <div v-if="!item.read" class="unread-dot"></div>
           </div>
         </div>
       </div>
@@ -138,12 +138,36 @@
             </div>
             <div v-else class="post-list">
               <div v-for="post in posts" :key="post.id" class="post-item" @click="$router.push(`/forum/post/${post.id}`)">
-                <div class="post-title">{{ post.title }}</div>
-                <div class="post-meta">
-                  <span>{{ formatDate(post.createdAt) }}</span>
-                  <span>浏览 {{ post.viewCount || 0 }}</span>
-                  <span>回复 {{ post.commentCount || 0 }}</span>
+                <div class="post-row-main">
+                  <div class="post-title">{{ post.title }}</div>
+                  <div class="post-meta">
+                    <span>{{ formatDate(post.created_at || post.createdAt) }}</span>
+                    <span>浏览 {{ post.views_count || post.viewCount || 0 }}</span>
+                    <span>回复 {{ post.replies_count || post.commentCount || 0 }}</span>
+                  </div>
                 </div>
+                <div class="post-actions">
+                  <button @click.stop="$router.push(`/forum/post/${post.id}/edit`)">编辑</button>
+                  <button class="danger" @click.stop="removeOwnPost(post)">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 我的收藏 -->
+          <div v-if="activeTab === 'favorites'" class="tab-pane">
+            <div v-if="loading.favorites" class="loading-state">加载中...</div>
+            <div v-else-if="favorites.length === 0" class="empty-state">
+              <p>还没有收藏帖子</p>
+              <router-link to="/forum/tech" class="link-btn">去逛论坛</router-link>
+            </div>
+            <div v-else class="post-list">
+              <div v-for="fav in favorites" :key="fav.id" class="post-item" @click="$router.push(`/forum/post/${fav.post_id}`)">
+                <div class="post-row-main">
+                  <div class="post-title">{{ fav.title || '帖子已删除' }}</div>
+                  <div class="post-meta"><span>{{ formatDate(fav.created_at) }} 收藏</span><span>浏览 {{ fav.views_count || 0 }}</span></div>
+                </div>
+                <div class="post-actions"><button class="danger" @click.stop="removeFavorite(fav)">取消收藏</button></div>
               </div>
             </div>
           </div>
@@ -203,11 +227,15 @@ import { useRouter } from 'vue-router'
 import AppNavbar from '@/components/AppNavbar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
+import { useAssignmentStore } from '@/stores/assignment'
 import { getUserProfile, getUserStatistics, getUserPosts, getUserReplies, getUserResources, getMyAssignments } from '@/api/user'
+import { deletePost } from '@/api/post'
+import { getMyFavorites, toggleFavorite } from '@/api/interaction'
 
 const router = useRouter()
 const auth = useAuthStore()
 const ui = useUIStore()
+const assignmentStore = useAssignmentStore()
 
 const defaultAvatar = '/app/user.jpg'
 
@@ -216,6 +244,7 @@ const stats = ref({})
 const posts = ref([])
 const replies = ref([])
 const resources = ref([])
+const favorites = ref([])
 const assignments = ref([])
 const activeTab = ref('posts')
 
@@ -224,11 +253,13 @@ const loading = reactive({
   posts: false,
   replies: false,
   resources: false,
+  favorites: false,
   assignments: false
 })
 
 const tabs = [
   { key: 'posts', label: '我的帖子' },
+  { key: 'favorites', label: '我的收藏' },
   { key: 'replies', label: '我的回复' },
   { key: 'resources', label: '我的资源' }
 ]
@@ -242,6 +273,35 @@ function formatDate(dateStr) {
   if (!dateStr) return ''
   const d = new Date(dateStr)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+async function loadFavorites() {
+  loading.favorites = true
+  try {
+    const res = await getMyFavorites({ page: 1, page_size: 20 })
+    favorites.value = res?.data?.results || res?.results || []
+  } catch (e) {
+    console.error('加载收藏失败:', e)
+    favorites.value = []
+  } finally { loading.favorites = false }
+}
+
+async function removeOwnPost(post) {
+  if (!window.confirm(`确定删除“${post.title}”吗？`)) return
+  try {
+    await deletePost(post.id)
+    posts.value = posts.value.filter(item => item.id !== post.id)
+    stats.value.postsCount = Math.max(0, (stats.value.postsCount || 1) - 1)
+    ui.showToast('帖子已删除', 'success')
+  } catch (e) { ui.showToast(e?.response?.data?.message || '删除失败', 'error') }
+}
+
+async function removeFavorite(fav) {
+  try {
+    await toggleFavorite(fav.post_id)
+    favorites.value = favorites.value.filter(item => item.id !== fav.id)
+    ui.showToast('已取消收藏', 'success')
+  } catch (e) { ui.showToast('取消收藏失败', 'error') }
 }
 
 async function loadProfile() {
@@ -268,11 +328,13 @@ async function loadPosts() {
   if (!auth.user?.id) return
   loading.posts = true
   try {
-    const res = await getUserPosts(auth.user.id, { page: 1, size: 20 })
+    const res = await getUserPosts(auth.user.id, { page: 1, page_size: 20 })
     const data = res.data
     // 确保是数组
     if (Array.isArray(data)) {
       posts.value = data
+    } else if (data && Array.isArray(data.results)) {
+      posts.value = data.results
     } else if (data && Array.isArray(data.list)) {
       posts.value = data.list
     } else {
@@ -290,7 +352,7 @@ async function loadReplies() {
   if (!auth.user?.id) return
   loading.replies = true
   try {
-    const res = await getUserReplies(auth.user.id, { page: 1, size: 20 })
+    const res = await getUserReplies(auth.user.id, { page: 1, page_size: 20 })
     const data = res.data
     if (Array.isArray(data)) {
       replies.value = data
@@ -311,7 +373,7 @@ async function loadResources() {
   if (!auth.user?.id) return
   loading.resources = true
   try {
-    const res = await getUserResources(auth.user.id, { page: 1, size: 20 })
+    const res = await getUserResources(auth.user.id, { page: 1, page_size: 20 })
     const data = res.data
     if (Array.isArray(data)) {
       resources.value = data
@@ -337,6 +399,7 @@ async function loadAssignments() {
     const res = await getMyAssignments()
     console.log('作业提醒API返回:', res)
     assignments.value = res.data || []
+    assignmentStore.setFromAssignments(assignments.value)
     console.log('作业提醒数据:', assignments.value)
   } catch (e) {
     console.error('加载作业提醒失败:', e)
@@ -347,7 +410,10 @@ async function loadAssignments() {
 }
 
 function readAssignment(item) {
-  // 跳转到作业提交页面
+  if (!item.read) {
+    item.read = true
+    assignmentStore.markOneRead()
+  }
   router.push(`/assignment/${item.assignmentId}`)
 }
 
@@ -369,6 +435,7 @@ import { watch } from 'vue'
 watch(activeTab, (tab) => {
   if (tab === 'replies' && replies.value.length === 0) loadReplies()
   if (tab === 'resources' && resources.value.length === 0) loadResources()
+  if (tab === 'favorites' && favorites.value.length === 0) loadFavorites()
 })
 </script>
 
@@ -729,12 +796,20 @@ watch(activeTab, (tab) => {
   flex-direction: column;
 }
 .post-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-base);
   padding: var(--s-base);
   border-radius: var(--r-md);
   cursor: pointer;
   transition: background 200ms;
 }
 .post-item:hover { background: var(--bg-secondary); }
+.post-row-main { flex: 1; min-width: 0; }
+.post-actions { display: flex; gap: 6px; opacity: .72; }
+.post-actions button { padding: 5px 9px; border: 1px solid var(--divider); border-radius: 7px; color: var(--text-secondary); font-size: 12px; }
+.post-actions button:hover { border-color: var(--primary); color: var(--primary); }
+.post-actions button.danger:hover { border-color: var(--error); color: var(--error); }
 .post-title {
   font-size: 14px;
   font-weight: 500;

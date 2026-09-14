@@ -1,6 +1,6 @@
 import React from "react";
 
-import { TechBallsCanvas } from "./canvas";
+import TechBallsCanvas from "./canvas/Ball";
 import { SectionWrapper } from "../hoc";
 import { technologies as defaultTechnologies } from "../constants";
 import { useHomepage } from "../context/HomepageContext";

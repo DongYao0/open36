@@ -7,6 +7,7 @@ import com.open436.auth.entity.UserStatistics;
 import com.open436.auth.file.FileServiceClient;
 import com.open436.auth.repository.UserProfileRepository;
 import com.open436.auth.repository.UserStatisticsRepository;
+import com.open436.auth.repository.UserAuthRepository;
 import com.open436.auth.service.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -25,6 +28,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     private final UserProfileRepository profileRepository;
     private final UserStatisticsRepository statisticsRepository;
+    private final UserAuthRepository userAuthRepository;
     private final FileServiceClient fileServiceClient;
 
     @Override
@@ -84,9 +88,18 @@ public class UserProfileServiceImpl implements UserProfileService {
         if (userIds == null || userIds.isEmpty()) {
             return Collections.emptyList();
         }
-        List<UserProfile> profiles = profileRepository.findByUserIdIn(userIds);
-        return profiles.stream()
-            .map(UserProfileResponse::fromSlim)
+        Map<Long, UserProfile> profiles = profileRepository.findByUserIdIn(userIds).stream()
+            .collect(Collectors.toMap(UserProfile::getUserId, Function.identity()));
+        return userAuthRepository.findAllById(userIds).stream()
+            .map(user -> {
+                UserProfile profile = profiles.get(user.getId());
+                return UserProfileResponse.builder()
+                    .userId(user.getId())
+                    .realName(user.getRealName())
+                    .nickname(profile != null ? profile.getNickname() : user.getRealName())
+                    .avatarUrl(profile != null ? profile.getAvatarUrl() : null)
+                    .build();
+            })
             .collect(Collectors.toList());
     }
 

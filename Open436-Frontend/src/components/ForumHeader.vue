@@ -40,6 +40,7 @@
       <div v-if="auth.isLoggedIn" class="fh-user">
         <div class="fh-trigger" @click="dropdownOpen = !dropdownOpen">
           <img :src="auth.isVisitor ? 'https://ui-avatars.com/api/?name=Guest&background=9E9E9E&color=fff&size=40' : auth.avatar" class="avatar avatar-sm" :alt="auth.isVisitor ? '游客' : auth.displayName" />
+          <span v-if="assignmentStore.unreadCount" class="fh-assignment-badge">{{ assignmentStore.unreadCount > 99 ? '99+' : assignmentStore.unreadCount }}</span>
           <svg class="fh-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div class="fh-dropdown" :class="{ active: dropdownOpen }">
@@ -65,15 +66,18 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useAssignmentStore } from '@/stores/assignment'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const assignmentStore = useAssignmentStore()
 
 const searchQuery = ref('')
 const dropdownOpen = ref(false)
 const tabRefs = ref({})
 const pillTick = ref(0) // toggle 以在字体加载后强制重算 pill 位置
+let assignmentTimer
 
 const sections = [
   { key: 'tech', label: '技术交流', to: '/forum/tech' },
@@ -99,6 +103,7 @@ function doSearch() {
 function handleLogout() {
   dropdownOpen.value = false
   auth.logout()
+  assignmentStore.clear()
   router.push('/login')
 }
 function closeDropdown(e) { if (!e.target.closest('.fh-user')) dropdownOpen.value = false }
@@ -107,8 +112,10 @@ onMounted(() => {
   document.addEventListener('click', closeDropdown)
   nextTick(() => requestAnimationFrame(() => { pillTick.value++ }))
   if (document.fonts?.ready) document.fonts.ready.then(() => { pillTick.value++ })
+  if (auth.token) assignmentStore.refresh()
+  assignmentTimer = window.setInterval(() => auth.token && assignmentStore.refresh(), 60000)
 })
-onUnmounted(() => document.removeEventListener('click', closeDropdown))
+onUnmounted(() => { document.removeEventListener('click', closeDropdown); window.clearInterval(assignmentTimer) })
 watch(() => route.meta.forumSection, () => nextTick(() => requestAnimationFrame(() => { pillTick.value++ })))
 </script>
 
@@ -177,7 +184,8 @@ watch(() => route.meta.forumSection, () => nextTick(() => requestAnimationFrame(
 .fh-search-mobile { display: none; color: var(--cosmic-text); margin-left: var(--s-sm); }
 .fh-right { margin-left: auto; display: flex; align-items: center; gap: var(--s-sm); color: var(--cosmic-text); flex-shrink: 0; }
 .fh-user { position: relative; }
-.fh-trigger { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 8px; border-radius: var(--r-md); transition: background var(--t-fast); }
+.fh-trigger { position:relative; display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 8px; border-radius: var(--r-md); transition: background var(--t-fast); }
+.fh-assignment-badge{position:absolute;top:-4px;left:30px;min-width:18px;height:18px;padding:0 4px;border:2px solid var(--cosmic-bg);border-radius:999px;background:#ff3b45;color:#fff;font-size:9px;font-weight:800;line-height:14px;text-align:center}
 .fh-trigger:hover { background: rgba(255,255,255,0.08); }
 .fh-chevron { width: 14px; height: 14px; color: var(--cosmic-text); transition: transform var(--t-fast); }
 .fh-dropdown.active .fh-chevron { transform: rotate(180deg); }

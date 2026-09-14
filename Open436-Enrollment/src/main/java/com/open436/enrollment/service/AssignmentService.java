@@ -134,9 +134,9 @@ public class AssignmentService {
 
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("studentId", uid);
-            item.put("studentName", user != null ? user.getOrDefault("realName", user.get("username")) : alloc.getStudentName());
-            item.put("studentNo", user != null ? user.get("studentId") : alloc.getStudentNo());
-            item.put("major", user != null ? user.get("major") : alloc.getMajor());
+            item.put("studentName", user != null ? firstText(user.get("realName"), user.get("username")) : alloc != null ? alloc.getStudentName() : "");
+            item.put("studentNo", user != null ? text(user.get("studentId")) : alloc != null ? alloc.getStudentNo() : "");
+            item.put("major", user != null ? text(user.get("major")) : alloc != null ? alloc.getMajor() : "");
             item.put("direction", alloc != null ? alloc.getDirection() : "");
             item.put("assigned", assigned);
             item.put("assignedAt", alloc != null ? alloc.getAssignedAt() : null);
@@ -149,7 +149,7 @@ public class AssignmentService {
             Map<String, Object> user = userMap.get(alloc.getStudentId());
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("studentId", alloc.getStudentId());
-            item.put("studentName", user != null ? user.getOrDefault("realName", user.get("username")) : alloc.getStudentName());
+            item.put("studentName", user != null ? firstText(user.get("realName"), user.get("username")) : alloc.getStudentName());
             item.put("studentNo", user != null ? user.get("studentId") : alloc.getStudentNo());
             item.put("major", user != null ? user.get("major") : alloc.getMajor());
             item.put("direction", alloc.getDirection());
@@ -175,20 +175,24 @@ public class AssignmentService {
     }
 
     @Transactional
-    public void allocate(Long assignmentId, List<Long> studentIds, String token) {
+    public Map<String, Object> allocate(Long assignmentId, List<Long> studentIds, String token) {
         assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("作业不存在"));
 
-        Map<Long, Map<String, Object>> userMap = batchFetchUserInfo(studentIds, token);
+        List<Long> requestedIds = studentIds.stream().filter(Objects::nonNull).distinct().toList();
+        Set<Long> existingIds = new HashSet<>(allocationRepository.findStudentIdsByAssignmentId(assignmentId));
+        List<Long> newIds = requestedIds.stream().filter(id -> !existingIds.contains(id)).toList();
+        Map<Long, Map<String, Object>> userMap = batchFetchUserInfo(newIds, token);
+        List<Long> missingIds = newIds.stream().filter(id -> !userMap.containsKey(id)).toList();
+        if (!missingIds.isEmpty()) {
+            throw new RuntimeException("用户资料查询不完整，本次未分配，请重试。缺失用户ID: " + missingIds);
+        }
 
-        for (Long studentId : studentIds) {
-            if (allocationRepository.existsByAssignmentIdAndStudentId(assignmentId, studentId)) {
-                continue; // 已分配，跳过
-            }
+        for (Long studentId : newIds) {
             Map<String, Object> user = userMap.get(studentId);
-            String studentName = user != null ? String.valueOf(user.getOrDefault("realName", user.get("username"))) : "";
-            String studentNo = user != null ? String.valueOf(user.getOrDefault("studentId", "")) : "";
-            String major = user != null ? String.valueOf(user.getOrDefault("major", "")) : "";
+            String studentName = firstText(user.get("realName"), user.get("username"));
+            String studentNo = text(user.get("studentId"));
+            String major = text(user.get("major"));
 
             AssignmentAllocation allocation = AssignmentAllocation.builder()
                     .assignmentId(assignmentId)
@@ -216,7 +220,12 @@ public class AssignmentService {
         }
         // 自动激活作业状态
         activateIfNeeded(assignmentId);
-        log.info("作业分配: assignmentId={}, count={}", assignmentId, studentIds.size());
+        log.info("作业分配: assignmentId={}, assigned={}, skipped={}", assignmentId, newIds.size(), requestedIds.size() - newIds.size());
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("requested", requestedIds.size());
+        result.put("assigned", newIds.size());
+        result.put("skipped", requestedIds.size() - newIds.size());
+        return result;
     }
 
     @Transactional
@@ -257,7 +266,7 @@ public class AssignmentService {
 
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("studentId", app.getAuthUserId());
-            item.put("studentName", user.getOrDefault("realName", user.get("username")));
+            item.put("studentName", firstText(user.get("realName"), user.get("username")));
             item.put("studentNo", user.get("studentId"));
             item.put("major", user.get("major"));
             item.put("direction", "");
@@ -349,7 +358,12 @@ public class AssignmentService {
     public void sendReminder(Long submissionId) {
         AssignmentSubmission s = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new RuntimeException("提交记录不存在"));
-        // TODO: 集成消息通知服务，目前仅记录日志
+        AssignmentAllocation allocation = allocationRepository
+                .findByAssignmentIdAndStudentId(s.getAssignmentId(), s.getStudentId())
+                .orElseThrow(() -> new RuntimeException("作业分配记录不存在"));
+        allocation.setReadAt(null);
+        allocation.setRemindedAt(LocalDateTime.now());
+        allocationRepository.save(allocation);
         log.info("催交通知: assignmentId={}, studentId={}, studentName={}",
                 s.getAssignmentId(), s.getStudentId(), s.getStudentName());
     }
@@ -394,7 +408,8 @@ public class AssignmentService {
             item.put("assignedAt", alloc.getAssignedAt());
             item.put("submissionStatus", submission != null ? submission.getStatus() : "unsubmitted");
             item.put("submittedAt", submission != null ? submission.getSubmittedAt() : null);
-            item.put("read", submission != null && "submitted".equals(submission.getStatus())); // 已提交视为已读
+            item.put("read", alloc.getReadAt() != null);
+            item.put("remindedAt", alloc.getRemindedAt());
             result.add(item);
         }
         return result;
@@ -403,7 +418,7 @@ public class AssignmentService {
     /**
      * 查询单个作业详情（客户端用）
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public Map<String, Object> getMyAssignmentDetail(Long studentId, Long assignmentId) {
         // 验证是否分配了该作业
         AssignmentAllocation allocation = allocationRepository.findByAssignmentIdAndStudentId(assignmentId, studentId)
@@ -415,6 +430,11 @@ public class AssignmentService {
         // 查询提交记录
         AssignmentSubmission submission = submissionRepository.findByAssignmentIdAndStudentId(assignmentId, studentId)
                 .orElse(null);
+
+        if (allocation.getReadAt() == null) {
+            allocation.setReadAt(LocalDateTime.now());
+            allocationRepository.save(allocation);
+        }
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("assignmentId", assignment.getId());
@@ -428,6 +448,11 @@ public class AssignmentService {
         result.put("files", submission != null ? parseFiles(submission.getFilePaths()) : Collections.emptyList());
         result.put("submittedAt", submission != null ? submission.getSubmittedAt() : null);
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public long getUnreadCount(Long studentId) {
+        return allocationRepository.countByStudentIdAndReadAtIsNull(studentId);
     }
 
     /**
@@ -485,6 +510,15 @@ public class AssignmentService {
             assignmentRepository.save(a);
             log.info("作业自动截止: id={}, title={}", a.getId(), a.getTitle());
         }
+    }
+
+    private String text(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private String firstText(Object first, Object fallback) {
+        String value = text(first).trim();
+        return value.isEmpty() ? text(fallback).trim() : value;
     }
 
     private void activateIfNeeded(Long assignmentId) {

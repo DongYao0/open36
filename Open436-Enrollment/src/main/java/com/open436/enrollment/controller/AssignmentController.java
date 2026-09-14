@@ -101,12 +101,11 @@ public class AssignmentController {
 
     /** 批量分配学生 */
     @PostMapping("/{id}/allocate")
-    public ResponseEntity<ApiResponse<Void>> allocate(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> allocate(
             @PathVariable Long id, @Valid @RequestBody AllocationRequest req, HttpServletRequest request) {
         checkAdmin(request);
         String token = request.getHeader("token");
-        assignmentService.allocate(id, req.getStudentIds(), token);
-        return ResponseEntity.ok(ApiResponse.success());
+        return ResponseEntity.ok(ApiResponse.success(assignmentService.allocate(id, req.getStudentIds(), token)));
     }
 
     /** 移除单个分配 */
@@ -174,6 +173,13 @@ public class AssignmentController {
         Long userId = getCurrentUserId(request);
         List<Map<String, Object>> result = assignmentService.getMyAssignments(userId);
         return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /** 头像数字红点使用的轻量未读数接口。 */
+    @GetMapping("/my/unread-count")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> myUnreadCount(HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("count", assignmentService.getUnreadCount(userId))));
     }
 
     /** 查询单个作业详情（客户端用） */

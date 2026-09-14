@@ -4,9 +4,9 @@
     <div class="background-fx" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <div class="detail-wrap">
       <section class="tool-summary">
-        <div class="tool-icon"><img :src="cover" :alt="contest.name" /><span>赛事</span><div class="tool-actions"><button aria-label="收藏">♡</button><button aria-label="分享">↗</button></div></div>
+        <div class="tool-icon"><img :src="cover" :alt="contest.name" decoding="async" fetchpriority="high" /><span>赛事</span><div class="tool-actions"><button aria-label="收藏">♡</button><button aria-label="分享">↗</button></div></div>
         <div class="tool-info"><p class="category">{{ contest.type }}</p><h1>{{ contest.name }}</h1><p class="intro">{{ contest.summary }}</p><div class="tags"><span>{{ contest.format }}</span><span>{{ contest.month }}</span></div><div class="summary-actions"><a :href="contest.entry" target="_blank" rel="noopener">访问官方入口 <b>→</b></a><router-link to="/contests">返回赛事列表</router-link></div><small>校内组织与报名节点，请以德州学院当届通知为准</small></div>
-        <div class="tool-banner"><img :src="cover" alt="" /><div><small>竞赛导航</small><strong>{{ contest.month }}</strong><span>开始关注</span></div></div>
+        <div class="tool-banner"><img :src="cover" alt="" loading="lazy" decoding="async" /><div><small>竞赛导航</small><strong>{{ contest.month }}</strong><span>开始关注</span></div></div>
       </section>
       <div class="content-layout">
         <article class="article-panel">
@@ -20,7 +20,7 @@
         </article>
         <aside class="side-panel"><div class="side-card"><small>赛事信息</small><dl><dt>赛事类型</dt><dd>{{ contest.type }}</dd><dt>比赛形式</dt><dd>{{ contest.format }}</dd><dt>主办单位</dt><dd>{{ contest.organizer }}</dd></dl><a :href="contest.entry" target="_blank" rel="noopener">前往报名入口 →</a></div><div class="side-card note"><small>参赛提示</small><p>报名、收费和校内选拔安排会随届次更新。准备前先确认学院发布的最新通知。</p></div></aside>
       </div>
-      <section class="similar"><h2>类似于 {{ contest.name }} 的赛事</h2><div class="similar-grid"><router-link v-for="item in related" :key="item.id" :to="`/contests/${item.id}`" class="similar-card"><img :src="artFor(item.id)" :alt="item.name" /><span><b>{{ item.name }}</b><small>{{ item.summary }}</small></span><em>→</em></router-link></div></section>
+      <section class="similar"><h2>类似于 {{ contest.name }} 的赛事</h2><div class="similar-grid"><router-link v-for="item in related" :key="item.id" :to="`/contests/${item.id}`" class="similar-card"><img :src="artFor(item.id)" :alt="item.name" loading="lazy" decoding="async" /><span><b>{{ item.name }}</b><small>{{ item.summary }}</small></span><em>→</em></router-link></div></section>
     </div>
   </main>
   <main v-else class="not-found"><h1>赛事未找到</h1><router-link to="/contests">返回赛事页</router-link></main>

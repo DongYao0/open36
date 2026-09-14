@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-import { EarthCanvas } from "./canvas";
+import EarthCanvas from "./canvas/Earth";
 import { SectionWrapper } from "../hoc";
 import { slideIn } from "../utils/motion";
 

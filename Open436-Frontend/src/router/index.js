@@ -11,6 +11,7 @@ const routes = [
       { path: 'tech', name: 'ForumTech', component: () => import('@/views/forum/TechForum.vue'), meta: { title: '技术交流', forumSection: 'tech' } },
       { path: 'share', name: 'ForumShare', component: () => import('@/views/forum/ShareForum.vue'), meta: { title: '资源分享', forumSection: 'share' } },
       { path: 'post/new', name: 'PostNew', component: () => import('@/views/forum/PostNew.vue'), meta: { title: '发布新帖', auth: true, write: true } },
+      { path: 'post/:id/edit', name: 'PostEdit', component: () => import('@/views/forum/PostNew.vue'), meta: { title: '编辑帖子', auth: true, write: true } },
       { path: 'post/:id', name: 'PostDetail', component: () => import('@/views/forum/PostDetail.vue'), meta: { title: '帖子详情' } },
       { path: 'search', name: 'Search', component: () => import('@/views/forum/Search.vue'), meta: { title: '搜索' } },
       { path: 'favorites', name: 'Favorites', component: () => import('@/views/forum/Favorites.vue'), meta: { title: '我的收藏', auth: true, write: true } },

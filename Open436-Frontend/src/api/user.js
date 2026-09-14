@@ -70,6 +70,10 @@ export function getMyAssignments() {
   return request.get('/api/assignment/my')
 }
 
+export function getAssignmentUnreadCount() {
+  return request.get('/api/assignment/my/unread-count')
+}
+
 /**
  * 获取作业详情
  */

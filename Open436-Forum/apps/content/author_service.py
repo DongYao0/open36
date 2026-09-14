@@ -30,6 +30,7 @@ def _fetch_from_auth(user_ids):
         profiles = {
             int(user['userId']): {
                 'nickname': user.get('nickname'),
+                'real_name': user.get('realName'),
                 'avatar_url': user.get('avatarUrl'),
             }
             for user in users

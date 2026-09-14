@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "assignment_allocations", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"assignment_id", "student_id"})
+}, indexes = {
+    @Index(name = "idx_assignment_alloc_student_unread", columnList = "student_id,read_at")
 })
 public class AssignmentAllocation {
 
@@ -65,4 +67,12 @@ public class AssignmentAllocation {
     @CreationTimestamp
     @Column(name = "assigned_at", updatable = false)
     private LocalDateTime assignedAt;
+
+    /** 学生首次打开作业详情的时间；NULL 表示未读。 */
+    @Column(name = "read_at")
+    private LocalDateTime readAt;
+
+    /** 管理员最近一次催交时间；催交时 readAt 会重置为空。 */
+    @Column(name = "reminded_at")
+    private LocalDateTime remindedAt;
 }

@@ -28,9 +28,13 @@ const ProjectCard = ({
   onOpen,
   albumCount,
 }) => {
+  const cardImage = image?.replace(/(\/honors\/[^/]+\/)(\d+\.jpg)$/i, "$1thumbs/$2");
   return (
     <motion.div
-      variants={fadeIn("up", "spring", index * 0.5, 0.75)}
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.05 }}
+      transition={{ duration: 0.35, delay: Math.min(index * 0.06, 0.24) }}
       role='link'
       tabIndex={0}
       onClick={onOpen}
@@ -47,8 +51,21 @@ const ProjectCard = ({
       >
         <div className='relative w-full h-[230px]'>
           <img
-            src={image || noimg}
+            src={cardImage || image || noimg}
             alt={name || 'project'}
+            loading={index === 0 ? "eager" : "lazy"}
+            decoding='async'
+            fetchPriority={index === 0 ? "high" : "low"}
+            onError={(event) => {
+              const node = event.currentTarget;
+              if (node.dataset.fallback !== "full" && image && cardImage !== image) {
+                node.dataset.fallback = "full";
+                node.src = image;
+              } else {
+                node.onerror = null;
+                node.src = noimg;
+              }
+            }}
             className='w-full h-full object-cover rounded-2xl'
           />
 

@@ -23,6 +23,7 @@
       <div v-if="auth.isLoggedIn" class="ah-user">
         <div class="ah-trigger" @click="dropdownOpen = !dropdownOpen">
           <img :src="auth.isVisitor ? 'https://ui-avatars.com/api/?name=Guest&background=9E9E9E&color=fff&size=40' : auth.avatar" class="avatar avatar-sm" :alt="auth.isVisitor ? '游客' : auth.displayName" />
+          <span v-if="assignmentStore.unreadCount" class="ah-assignment-badge">{{ assignmentStore.unreadCount > 99 ? '99+' : assignmentStore.unreadCount }}</span>
           <span class="ah-name">{{ auth.isVisitor ? '游客' : auth.displayName }}</span>
           <svg class="ah-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
@@ -46,17 +47,27 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useAssignmentStore } from '@/stores/assignment'
 
 const router = useRouter()
 const auth = useAuthStore()
+const assignmentStore = useAssignmentStore()
 const dropdownOpen = ref(false)
+let assignmentTimer
+
+onMounted(() => {
+  if (auth.token) assignmentStore.refresh()
+  assignmentTimer = window.setInterval(() => auth.token && assignmentStore.refresh(), 60000)
+})
+onUnmounted(() => window.clearInterval(assignmentTimer))
 
 function handleLogout() {
   dropdownOpen.value = false
   auth.logout()
+  assignmentStore.clear()
   router.push('/login')
 }
 </script>
@@ -105,10 +116,12 @@ function handleLogout() {
 .ah-right { display: flex; align-items: center; gap: var(--s-base); margin-left: auto; }
 .ah-user { position: relative; }
 .ah-trigger {
+  position: relative;
   display: flex; align-items: center; gap: var(--s-xs);
   padding: 4px 8px; border-radius: 999px; cursor: pointer;
   transition: background var(--t-fast);
 }
+.ah-assignment-badge{position:absolute;top:-5px;left:29px;min-width:18px;height:18px;padding:0 4px;border:2px solid var(--bg);border-radius:999px;background:#ff3b45;color:#fff;font-size:9px;font-weight:800;line-height:14px;text-align:center}
 .ah-trigger:hover { background: var(--bg-dark); }
 .ah-name { font-size: 13px; color: var(--text-primary); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ah-chevron { width: 14px; height: 14px; color: var(--text-secondary); transition: transform var(--t-fast); }

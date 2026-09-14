@@ -90,7 +90,8 @@ const TechBallsCanvas = ({ technologies }) => {
       dpr={[1, 1.5]}
       orthographic
       camera={{ position: [0, 0, 10], zoom: 60 }}
-      style={{ touchAction: "none" }}
+      // 手机端纵向手势交给页面滚动；横向拖动仍由球体的 pointer 事件处理。
+      style={{ touchAction: "pan-y" }}
     >
       <Suspense fallback={<CanvasLoader />}>
         <TechBalls technologies={technologies} />

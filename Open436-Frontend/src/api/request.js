@@ -36,7 +36,8 @@ request.interceptors.request.use(
         // storage.js 可能二次序列化
         if (typeof user === 'string') user = JSON.parse(user)
         if (user?.id) config.headers['X-User-Id'] = String(user.id)
-        if (user?.username) config.headers['X-Username'] = user.username
+        // 不把显示名写入请求头：中文真实姓名无法被 XMLHttpRequest
+        // 按 ISO-8859-1 编码，会导致请求在浏览器端尚未发出就失败。
         if (user?.role) config.headers['X-User-Role'] = user.role
         if (user?.status) config.headers['X-User-Status'] = user.status
       } catch (e) {

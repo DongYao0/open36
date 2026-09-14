@@ -28,8 +28,8 @@ class RegistrationIdempotencyTest extends BaseApiTest {
 
     private String body(String username) {
         return "{\"username\":\"" + username + "\",\"password\":\"Test#0436pass\","
-                + "\"studentId\":\"S" + UNIQUE + "\",\"realName\":\"幂等测试\","
-                + "\"phone\":\"170" + UNIQUE.substring(0, 8) + "\",\"major\":\"CS\"}";
+                + "\"studentId\":\"200000000000\",\"realName\":\"幂等测试\","
+                + "\"phone\":\"170" + UNIQUE.substring(0, 8) + "\",\"major\":\"计算机科学\"}";
     }
 
     @Test
@@ -69,8 +69,8 @@ class RegistrationIdempotencyTest extends BaseApiTest {
 
         // 同 Key，学号内容漂移
         String drifted = "{\"username\":\"" + UNIQUE + "b2\","
-                + "\"password\":\"Test#0436pass\",\"studentId\":\"DIFFERENT\","
-                + "\"realName\":\"幂等测试\",\"phone\":\"17000000000\",\"major\":\"CS\"}";
+                + "\"password\":\"Test#0436pass\",\"studentId\":\"200000000001\","
+                + "\"realName\":\"幂等测试\",\"phone\":\"17000000000\",\"major\":\"计算机科学\"}";
         mockMvc.perform(post("/api/auth/register")
                         .header("X-Idempotency-Key", key)
                         .contentType(MediaType.APPLICATION_JSON)

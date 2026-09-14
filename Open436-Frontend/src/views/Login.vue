@@ -83,10 +83,10 @@
           <template v-if="isEnroll">
             <div class="form-group"><label>确认密码</label><div class="password-wrap"><input v-model="f.cp" :type="showP ? 'text' : 'password'" placeholder="再次输入密码" required @focus="onPasswordFocus" @blur="onBlur"/></div></div>
             <div class="form-row">
-              <div class="form-group"><label>学号</label><input v-model="f.sid" type="text" placeholder="请输入学号" maxlength="30" required @focus="onTextFocus" @blur="onBlur"/></div>
+              <div class="form-group"><label>学号</label><input v-model="f.sid" type="text" inputmode="numeric" pattern="20[0-9]{10}" placeholder="请输入 20xxxxxxxxxx（12位）" maxlength="12" required @focus="onTextFocus" @blur="onBlur"/></div>
               <div class="form-group"><label>电话号码</label><input v-model="f.ph" type="tel" placeholder="请输入 11 位手机号" maxlength="11" required @focus="onTextFocus" @blur="onBlur"/></div>
             </div>
-            <div class="form-group"><label>专业</label><input v-model="f.mj" type="text" placeholder="请输入专业" maxlength="100" required @focus="onTextFocus" @blur="onBlur"/></div>
+            <div class="form-group"><label>专业</label><input v-model="f.mj" type="text" pattern="[一-龥]{2,100}" placeholder="请输入中文专业名称" maxlength="100" required @focus="onTextFocus" @blur="onBlur"/></div>
           </template>
 
           <div v-if="!isEnroll" class="form-options"><label class="remember"><input type="checkbox" v-model="f.r"/><span>记住我</span></label><a href="javascript:void(0)" class="forgot" @click="showForgot = true">忘记密码？</a></div>
@@ -264,11 +264,11 @@ async function onSubmit() {
   const password = pRef.value?.value || f.p
 
   if (isEnroll.value) {
-    if (f.u.trim().length < 2 || f.u.trim().length > 20) { err.value = '真实姓名长度必须为 2-20 位'; return }
+    if (!/^[\u4e00-\u9fff]{2,20}$/.test(f.u.trim())) { err.value = '真实姓名必须为 2-20 个中文字符'; return }
     if (f.p.length < 6) { err.value = '密码至少 6 位'; return }
     if (f.p !== f.cp) { err.value = '两次密码输入不一致'; return }
-    if (!f.sid.trim()) { err.value = '请填写学号'; return }
-    if (!f.mj.trim()) { err.value = '请填写专业'; return }
+    if (!/^20\d{10}$/.test(f.sid.trim())) { err.value = '学号必须为 20 开头的 12 位数字'; return }
+    if (!/^[\u4e00-\u9fff]{2,100}$/.test(f.mj.trim())) { err.value = '专业必须填写中文名称'; return }
     if (!/^1\d{10}$/.test(f.ph.trim())) { err.value = '请输入正确的 11 位手机号'; return }
   }
 

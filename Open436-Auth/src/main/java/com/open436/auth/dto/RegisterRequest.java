@@ -1,6 +1,7 @@
 package com.open436.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,11 +37,15 @@ public class RegisterRequest {
     /**
      * 学号
      */
+    @NotBlank(message = "学号不能为空")
+    @Pattern(regexp = "^20\\d{10}$", message = "学号必须为20开头的12位数字")
     private String studentId;
 
     /**
      * 真实姓名
      */
+    @NotBlank(message = "真实姓名不能为空")
+    @Pattern(regexp = "^[\\u4e00-\\u9fff]{2,20}$", message = "真实姓名必须为2-20个中文字符")
     private String realName;
 
     /**
@@ -51,5 +56,7 @@ public class RegisterRequest {
     /**
      * 专业
      */
+    @NotBlank(message = "专业不能为空")
+    @Pattern(regexp = "^[\\u4e00-\\u9fff]{2,100}$", message = "专业必须为中文")
     private String major;
 }

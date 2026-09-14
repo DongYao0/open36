@@ -1,25 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import noimg from "../assets/noimg.svg";
 import { useHomepage } from "../context/HomepageContext";
 import { defaultHonorProjects, honorGallery, withHonorAlbums } from "../data/honorGallery";
-
-// 优先使用管理端下发的缩略图；缺缩略图时同源/同目录自动派生 _thumb 后缀；
-// 都没有则回退到原图（动态判断大小后用缩略图快速铺版、点击再拉原图）。
-function pickThumb(item) {
-  if (item.thumbnail) return item.thumbnail;
-  const src = item.image || "";
-  const dot = src.lastIndexOf(".");
-  const slash = src.lastIndexOf("/");
-  if (dot <= slash) return src;  // 无扩展名，原样返回
-  return `${src.slice(0, dot)}_thumb${src.slice(dot)}`;
-}
-
-function pickFull(item) {
-  return item.image || noimg;
-}
 
 const HonorsGallery = () => {
   const { get } = useHomepage();
@@ -39,12 +24,23 @@ const HonorsGallery = () => {
   );
   const [active, setActive] = useState(0);
   const [direction, setDirection] = useState(1);
+  const transitionLocked = useRef(false);
+  const transitionTimer = useRef(null);
+  const failedImages = useRef(new Set());
+  const [, refreshImage] = useState(0);
 
   const move = (step) => {
-    if (photos.length < 2) return;
+    if (photos.length < 2 || transitionLocked.current) return;
+    transitionLocked.current = true;
+    window.clearTimeout(transitionTimer.current);
+    transitionTimer.current = window.setTimeout(() => {
+      transitionLocked.current = false;
+    }, 460);
     setDirection(step);
     setActive((current) => (current + step + photos.length) % photos.length);
   };
+
+  useEffect(() => () => window.clearTimeout(transitionTimer.current), []);
 
   useEffect(() => {
     document.body.style.overflowX = "hidden";
@@ -64,18 +60,29 @@ const HonorsGallery = () => {
   useEffect(() => setActive(0), [selectedIndex]);
 
   const photo = photos[active];
-  const [zoomed, setZoomed] = useState(false);
 
-  // 预加载邻居的【缩略图】（原图按需才拉，~10×带宽下降）；
-  // 当某张图被点击放大时，临时把 src 切换到原图，关闭则回到缩略图。
   useEffect(() => {
-    setZoomed(false);
     if (photos.length < 2) return;
-    const neighbors = [photos[(active + 1) % photos.length], photos[(active - 1 + photos.length) % photos.length]];
-    neighbors.forEach((item) => {
-      const preload = new Image();
-      preload.src = pickThumb(item);
-    });
+    const next = photos[(active + 1) % photos.length];
+    if (!next?.image || failedImages.current.has(next.image)) return;
+    let cancelled = false;
+    const preload = new Image();
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      preload.onload = null;
+      preload.onerror = () => {
+        failedImages.current.add(next.image);
+        refreshImage((value) => value + 1);
+      };
+      preload.src = next.image;
+    }, 120);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      preload.onload = null;
+      preload.onerror = null;
+      preload.src = "";
+    };
   }, [active, photos]);
 
   return (
@@ -117,19 +124,19 @@ const HonorsGallery = () => {
                 >
                   <div className='relative flex h-[36vh] min-h-[280px] items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-black/35 shadow-[0_30px_100px_rgba(0,0,0,.55)] sm:h-[52vh] sm:min-h-[340px]'>
                     <img
-                      src={zoomed ? pickFull(photo) : pickThumb(photo)}
+                      src={failedImages.current.has(photo.image) ? noimg : photo.image}
                       alt={photo.title}
                       decoding='async'
-                      loading={zoomed ? 'eager' : 'lazy'}
-                      fetchpriority={zoomed ? 'high' : 'auto'}
-                      onClick={() => setZoomed((z) => !z)}
-                      title={zoomed ? '点击返回缩略图' : '点击查看原图'}
-                      className={`h-full w-full cursor-zoom-in object-contain transition-opacity duration-300 ${zoomed ? 'opacity-100' : 'opacity-90 hover:opacity-100'}`}
+                      fetchPriority='high'
+                      onError={(event) => {
+                        if (event.currentTarget.dataset.fallback) return;
+                        event.currentTarget.dataset.fallback = "1";
+                        failedImages.current.add(photo.image);
+                        event.currentTarget.src = noimg;
+                      }}
+                      className='h-full w-full object-contain'
                     />
                     <span className='absolute left-5 top-5 rounded-full border border-white/15 bg-black/50 px-3 py-1 text-xs tracking-widest backdrop-blur'>{String(active + 1).padStart(2, "0")} / {String(photos.length).padStart(2, "0")}</span>
-                    <span className='absolute bottom-5 right-5 rounded-full border border-white/15 bg-black/50 px-3 py-1 text-[11px] tracking-wider text-white/70 backdrop-blur'>
-                      {zoomed ? '原图（点击收起）' : '缩略图（点击查看原图）'}
-                    </span>
                   </div>
                   <figcaption>
                     <div className='mb-5 h-px w-16 bg-violet-400' />

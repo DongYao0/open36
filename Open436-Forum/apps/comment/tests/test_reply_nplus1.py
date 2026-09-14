@@ -108,3 +108,60 @@ class ReplyListQueryCountTests(APITestCase):
         self.assertEqual(author['nickname'], '张三')
         self.assertEqual(author['real_name'], '张三')
         self.assertEqual(author['avatar_url'], '/objects/open436-posts/avatar.jpg')
+
+    @patch('apps.core.middleware._get_verified_user')
+    def test_user_filter_returns_only_current_users_replies(self, verified_user):
+        verified_user.return_value = {
+            'user_id': 100, 'username': 'u100', 'role': 'user', 'status': 'active'
+        }
+        Reply.objects.bulk_create([
+            Reply(post_id=1, author_id=100, content='mine', floor_number=1),
+            Reply(post_id=1, author_id=200, content='other', floor_number=2),
+        ])
+
+        resp = self.client.get('/api/replies/?user_id=100', HTTP_TOKEN='mine-token')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        results = resp.json()['data']['results']
+        self.assertEqual([item['author']['user_id'] for item in results], [100])
+
+    @patch('apps.core.middleware._get_verified_user')
+    def test_user_filter_rejects_other_users_replies(self, verified_user):
+        verified_user.return_value = {
+            'user_id': 100, 'username': 'u100', 'role': 'user', 'status': 'active'
+        }
+
+        resp = self.client.get('/api/replies/?user_id=200', HTTP_TOKEN='mine-token')
+
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_deleted_reply_is_hidden_from_public_list(self):
+        Reply.objects.create(post_id=1, author_id=100, content='deleted',
+                             floor_number=1, is_deleted=True)
+        resp = self.client.get('/api/replies/?post_id=1')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.json()['data']['results'], [])
+
+    @patch('apps.comment.views._update_post_count')
+    @patch('apps.comment.views._update_user_stats')
+    @patch('apps.comment.views._validate_post', return_value=(True, None))
+    @patch('apps.core.middleware._get_verified_user')
+    def test_third_level_reply_can_target_second_level_reply(
+            self, verified_user, _validate, _user_stats, _post_count):
+        verified_user.return_value = {
+            'user_id': 100, 'username': 'u100', 'role': 'user', 'status': 'active'
+        }
+        root = Reply.objects.create(
+            post_id=1, author_id=200, content='root', floor_number=1)
+        second = Reply.objects.create(
+            post_id=1, author_id=300, parent_id=root.id,
+            content='second', floor_number=2)
+
+        resp = self.client.post(
+            '/api/replies/',
+            {'post_id': 1, 'parent_id': second.id, 'content': 'third level'},
+            format='json', HTTP_TOKEN='third-level-token')
+
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        created = Reply.objects.get(id=resp.json()['data']['id'])
+        self.assertEqual(created.parent_id, second.id)

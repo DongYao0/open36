@@ -90,7 +90,7 @@
         </div>
         <div class="assignment-list">
           <div
-            v-for="item in assignments"
+            v-for="item in visibleAssignments"
             :key="item.id"
             class="assignment-item"
             :class="{ unread: isAssignmentPending(item) }"
@@ -112,6 +112,12 @@
             <div v-if="isAssignmentPending(item)" class="unread-dot"></div>
           </div>
         </div>
+        <MiniPager
+          :page="pages.assignments"
+          :total="assignments.length"
+          :page-size="ASSIGNMENT_PAGE_SIZE"
+          @change="pages.assignments = $event"
+        />
       </div>
 
       <!-- 内容Tab区 -->
@@ -152,6 +158,11 @@
                 </div>
               </div>
             </div>
+            <MiniPager
+              :page="pages.posts" :total="pageMeta.posts.total"
+              :page-size="PERSONAL_PAGE_SIZE" :has-next="pageMeta.posts.hasNext"
+              @change="loadPosts"
+            />
           </div>
 
           <!-- 我的收藏 -->
@@ -170,6 +181,11 @@
                 <div class="post-actions"><button class="danger" @click.stop="removeFavorite(fav)">取消收藏</button></div>
               </div>
             </div>
+            <MiniPager
+              :page="pages.favorites" :total="pageMeta.favorites.total"
+              :page-size="PERSONAL_PAGE_SIZE" :has-next="pageMeta.favorites.hasNext"
+              @change="loadFavorites"
+            />
           </div>
 
           <!-- 我的回复 -->
@@ -189,6 +205,11 @@
                 </div>
               </div>
             </div>
+            <MiniPager
+              :page="pages.replies" :total="pageMeta.replies.total"
+              :page-size="PERSONAL_PAGE_SIZE" :has-next="pageMeta.replies.hasNext"
+              @change="loadReplies"
+            />
           </div>
 
           <!-- 我的资源 -->
@@ -203,11 +224,16 @@
               <div v-for="res in resources" :key="res.id" class="post-item" @click="$router.push(`/resources/${res.id}`)">
                 <div class="post-title">{{ res.title }}</div>
                 <div class="post-meta">
-                  <span>{{ formatDate(res.createdAt) }}</span>
+                  <span>{{ formatDate(res.created_at || res.createdAt) }}</span>
                   <span>下载 {{ res.downloadCount || 0 }}</span>
                 </div>
               </div>
             </div>
+            <MiniPager
+              :page="pages.resources" :total="pageMeta.resources.total"
+              :page-size="PERSONAL_PAGE_SIZE" :has-next="pageMeta.resources.hasNext"
+              @change="loadResources"
+            />
           </div>
         </div>
       </div>
@@ -222,9 +248,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppNavbar from '@/components/AppNavbar.vue'
+import MiniPager from '@/components/MiniPager.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 import { isAssignmentPending, useAssignmentStore } from '@/stores/assignment'
@@ -247,6 +274,16 @@ const resources = ref([])
 const favorites = ref([])
 const assignments = ref([])
 const activeTab = ref('posts')
+const PERSONAL_PAGE_SIZE = 6
+const ASSIGNMENT_PAGE_SIZE = 5
+
+const pages = reactive({ posts: 1, favorites: 1, replies: 1, resources: 1, assignments: 1 })
+const pageMeta = reactive({
+  posts: { total: 0, hasNext: false },
+  favorites: { total: 0, hasNext: false },
+  replies: { total: 0, hasNext: false },
+  resources: { total: 0, hasNext: false }
+})
 
 const loading = reactive({
   profile: false,
@@ -275,11 +312,11 @@ function formatDate(dateStr) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-async function loadFavorites() {
+async function loadFavorites(page = 1) {
   loading.favorites = true
   try {
-    const res = await getMyFavorites({ page: 1, page_size: 20 })
-    favorites.value = res?.data?.results || res?.results || []
+    const res = await getMyFavorites({ page, page_size: PERSONAL_PAGE_SIZE })
+    favorites.value = applyPage('favorites', page, res?.data || res || {})
   } catch (e) {
     console.error('加载收藏失败:', e)
     favorites.value = []
@@ -290,7 +327,7 @@ async function removeOwnPost(post) {
   if (!window.confirm(`确定删除“${post.title}”吗？`)) return
   try {
     await deletePost(post.id)
-    posts.value = posts.value.filter(item => item.id !== post.id)
+    await loadPosts(posts.value.length === 1 && pages.posts > 1 ? pages.posts - 1 : pages.posts)
     stats.value.postsCount = Math.max(0, (stats.value.postsCount || 1) - 1)
     ui.showToast('帖子已删除', 'success')
   } catch (e) { ui.showToast(e?.response?.data?.message || '删除失败', 'error') }
@@ -299,7 +336,8 @@ async function removeOwnPost(post) {
 async function removeFavorite(fav) {
   try {
     await toggleFavorite(fav.post_id)
-    favorites.value = favorites.value.filter(item => item.id !== fav.id)
+    await loadFavorites(favorites.value.length === 1 && pages.favorites > 1
+      ? pages.favorites - 1 : pages.favorites)
     ui.showToast('已取消收藏', 'success')
   } catch (e) { ui.showToast('取消收藏失败', 'error') }
 }
@@ -324,22 +362,12 @@ async function loadProfile() {
   }
 }
 
-async function loadPosts() {
+async function loadPosts(page = 1) {
   if (!auth.user?.id) return
   loading.posts = true
   try {
-    const res = await getUserPosts(auth.user.id, { page: 1, page_size: 20 })
-    const data = res.data
-    // 确保是数组
-    if (Array.isArray(data)) {
-      posts.value = data
-    } else if (data && Array.isArray(data.results)) {
-      posts.value = data.results
-    } else if (data && Array.isArray(data.list)) {
-      posts.value = data.list
-    } else {
-      posts.value = []
-    }
+    const res = await getUserPosts(auth.user.id, { page, page_size: PERSONAL_PAGE_SIZE })
+    posts.value = applyPage('posts', page, res?.data || {})
   } catch (e) {
     console.error('加载帖子失败:', e)
     posts.value = []
@@ -348,19 +376,17 @@ async function loadPosts() {
   }
 }
 
-async function loadReplies() {
+async function loadReplies(page = 1) {
   if (!auth.user?.id) return
   loading.replies = true
   try {
-    const res = await getUserReplies(auth.user.id, { page: 1, page_size: 20 })
-    const data = res.data
-    if (Array.isArray(data)) {
-      replies.value = data
-    } else if (data && Array.isArray(data.list)) {
-      replies.value = data.list
-    } else {
-      replies.value = []
-    }
+    const res = await getUserReplies(auth.user.id, { page, page_size: PERSONAL_PAGE_SIZE })
+    replies.value = applyPage('replies', page, res?.data || {}, item => ({
+      ...item,
+      postId: item.post_id,
+      postTitle: item.post_title || `帖子 #${item.post_id}`,
+      createdAt: item.created_at
+    }))
   } catch (e) {
     console.error('加载回复失败:', e)
     replies.value = []
@@ -369,21 +395,12 @@ async function loadReplies() {
   }
 }
 
-async function loadResources() {
+async function loadResources(page = 1) {
   if (!auth.user?.id) return
   loading.resources = true
   try {
-    const res = await getUserResources(auth.user.id, { page: 1, page_size: 20 })
-    const data = res.data
-    if (Array.isArray(data)) {
-      resources.value = data
-    } else if (data && Array.isArray(data.results)) {
-      resources.value = data.results
-    } else if (data && Array.isArray(data.list)) {
-      resources.value = data.list
-    } else {
-      resources.value = []
-    }
+    const res = await getUserResources(auth.user.id, { page, page_size: PERSONAL_PAGE_SIZE })
+    resources.value = applyPage('resources', page, res?.data || {})
   } catch (e) {
     console.error('加载资源失败:', e)
     resources.value = []
@@ -395,12 +412,10 @@ async function loadResources() {
 async function loadAssignments() {
   loading.assignments = true
   try {
-    console.log('开始加载作业提醒...')
     const res = await getMyAssignments()
-    console.log('作业提醒API返回:', res)
     assignments.value = res.data || []
+    pages.assignments = 1
     assignmentStore.setFromAssignments(assignments.value)
-    console.log('作业提醒数据:', assignments.value)
   } catch (e) {
     console.error('加载作业提醒失败:', e)
     console.error('错误详情:', e.response?.data || e.message)
@@ -427,12 +442,25 @@ onMounted(() => {
 })
 
 // 监听Tab切换加载数据
-import { watch } from 'vue'
 watch(activeTab, (tab) => {
   if (tab === 'replies' && replies.value.length === 0) loadReplies()
   if (tab === 'resources' && resources.value.length === 0) loadResources()
   if (tab === 'favorites' && favorites.value.length === 0) loadFavorites()
 })
+
+const visibleAssignments = computed(() => {
+  const start = (pages.assignments - 1) * ASSIGNMENT_PAGE_SIZE
+  return assignments.value.slice(start, start + ASSIGNMENT_PAGE_SIZE)
+})
+
+function applyPage(key, page, data, mapItem = item => item) {
+  const rawItems = Array.isArray(data) ? data : (data?.results || data?.list || [])
+  const items = rawItems.map(mapItem)
+  pages[key] = page
+  pageMeta[key].total = Number(data?.count ?? items.length)
+  pageMeta[key].hasNext = Boolean(data?.next)
+  return items
+}
 </script>
 
 <style scoped>

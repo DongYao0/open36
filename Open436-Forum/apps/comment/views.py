@@ -4,7 +4,7 @@ Comment views — 合并后 HTTP 内部调用改为 ORM 直查
 import logging
 import requests
 from django.db import transaction
-from django.db.models import (Count, Exists, F, IntegerField, OuterRef, Q,
+from django.db.models import (Count, Exists, F, IntegerField, OuterRef,
                               Subquery, Value)
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -112,6 +112,7 @@ class ReplyViewSet(viewsets.GenericViewSet):
         """获取帖子的回复列表"""
         is_admin = getattr(request, 'is_admin', False)
         post_id = request.query_params.get('post_id')
+        requested_user_id = request.query_params.get('user_id')
         queryset = self.get_queryset()
 
         if post_id:
@@ -121,16 +122,26 @@ class ReplyViewSet(viewsets.GenericViewSet):
                 resp, code = error_response('无效的 post_id', code=400, status_code=400)
                 return Response(resp, status=code)
             queryset = queryset.filter(post_id=post_id)
+        elif requested_user_id:
+            try:
+                requested_user_id = int(requested_user_id)
+            except (ValueError, TypeError):
+                resp, code = error_response('无效的 user_id', code=400, status_code=400)
+                return Response(resp, status=code)
+            viewer_id = getattr(request, 'user_id', None)
+            if not viewer_id:
+                resp, code = error_response('请先登录', code=401, status_code=401)
+                return Response(resp, status=code)
+            if not is_admin and viewer_id != requested_user_id:
+                resp, code = error_response('只能查看自己的回复', code=403, status_code=403)
+                return Response(resp, status=code)
+            queryset = queryset.filter(author_id=requested_user_id)
         elif not is_admin:
             resp, code = error_response('缺少 post_id 参数', code=400, status_code=400)
             return Response(resp, status=code)
 
         if not is_admin:
-            user_id = getattr(request, 'user_id', None)
-            if user_id:
-                queryset = queryset.filter(Q(is_deleted=False) | Q(author_id=user_id))
-            else:
-                queryset = queryset.filter(is_deleted=False)
+            queryset = queryset.filter(is_deleted=False)
         else:
             status_filter = request.query_params.get('status')
             if status_filter == 'deleted':
@@ -187,11 +198,15 @@ class ReplyViewSet(viewsets.GenericViewSet):
             next_parts = [f'page={page + 1}']
             if post_id:
                 next_parts.insert(0, f'post_id={post_id}')
+            elif requested_user_id:
+                next_parts.insert(0, f'user_id={requested_user_id}')
             next_url = f'/api/replies/?{"&".join(next_parts)}'
         if page > 1:
             prev_parts = [f'page={page - 1}']
             if post_id:
                 prev_parts.insert(0, f'post_id={post_id}')
+            elif requested_user_id:
+                prev_parts.insert(0, f'user_id={requested_user_id}')
             prev_url = f'/api/replies/?{"&".join(prev_parts)}'
         return Response(success_response(data={
             'count': total, 'next': next_url, 'previous': prev_url,

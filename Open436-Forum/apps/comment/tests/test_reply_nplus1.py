@@ -8,7 +8,7 @@ from django.db import connection
 from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from apps.comment.models import Reply, ReplyLike
 
@@ -165,3 +165,43 @@ class ReplyListQueryCountTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         created = Reply.objects.get(id=resp.json()['data']['id'])
         self.assertEqual(created.parent_id, second.id)
+
+    @patch('apps.comment.views._update_post_count')
+    @patch('apps.comment.views._update_user_stats')
+    @patch('apps.core.middleware._get_verified_user')
+    def test_deleting_root_cascades_to_all_descendants(
+            self, verified_user, user_stats, post_count):
+        verified_user.return_value = {
+            'user_id': 100, 'username': 'u100', 'role': 'user', 'status': 'active'
+        }
+        root = Reply.objects.create(
+            post_id=1, author_id=100, content='root', floor_number=1)
+        child = Reply.objects.create(
+            post_id=1, author_id=200, parent_id=root.id,
+            content='child', floor_number=2)
+        grandchild = Reply.objects.create(
+            post_id=1, author_id=300, parent_id=child.id,
+            content='grandchild', floor_number=3)
+        sibling_root = Reply.objects.create(
+            post_id=1, author_id=400, content='keep me', floor_number=4)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.delete(
+                f'/api/replies/{root.id}/', HTTP_TOKEN='owner-token')
+            repeated_resp = self.client.delete(
+                f'/api/replies/{root.id}/', HTTP_TOKEN='owner-token')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(repeated_resp.status_code, status.HTTP_200_OK)
+        deleted = Reply.objects.filter(
+            id__in=[root.id, child.id, grandchild.id], is_deleted=True
+        ).count()
+        self.assertEqual(deleted, 3)
+        sibling_root.refresh_from_db()
+        self.assertFalse(sibling_root.is_deleted)
+        post_count.assert_called_once_with(1, 'increment-replies', -3)
+        user_stats.assert_has_calls([
+            call(100, 'replies_count', -1),
+            call(200, 'replies_count', -1),
+            call(300, 'replies_count', -1),
+        ], any_order=True)

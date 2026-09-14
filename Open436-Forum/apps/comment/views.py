@@ -1,7 +1,9 @@
 """
 Comment views — 合并后 HTTP 内部调用改为 ORM 直查
 """
+from collections import Counter
 import logging
+
 import requests
 from django.db import transaction
 from django.db.models import (Count, Exists, F, IntegerField, OuterRef,
@@ -87,6 +89,23 @@ def _update_post_count(post_id, field, value):
             Post.objects.filter(id=post_id).update(likes_count=F('likes_count') + value)
     except Exception as e:
         logger.warning(f'Update post {field} failed: {e}')
+
+
+def _reply_subtree_ids(root):
+    """返回根回复及其全部层级后代 ID，并防御异常循环数据。"""
+    collected = {root.id}
+    frontier = {root.id}
+    while frontier:
+        children = set(Reply.objects.filter(
+            post_id=root.post_id,
+            parent_id__in=frontier,
+        ).values_list('id', flat=True))
+        children.difference_update(collected)
+        if not children:
+            break
+        collected.update(children)
+        frontier = children
+    return collected
 
 
 class ReplyViewSet(viewsets.GenericViewSet):
@@ -297,20 +316,44 @@ class ReplyViewSet(viewsets.GenericViewSet):
             message='回复已更新'
         ))
 
+    @transaction.atomic
     def destroy(self, request, pk=None):
-        """删除回复（软删除）"""
-        reply = self.get_object()
-        if not reply:
+        """软删除回复；删除父回复时同步删除其全部层级后代。"""
+        try:
+            reply = self.get_queryset().select_for_update().get(pk=pk)
+        except Reply.DoesNotExist:
             resp, code = error_response('回复不存在', code=40401, status_code=404)
             return Response(resp, status=code)
 
         # 显式对象级权限校验（get_object 被重写后 DRF 不再自动调用）
         self.check_object_permissions(request, reply)
 
-        reply.soft_delete()
-        _update_user_stats(reply.author_id, 'replies_count', -1)
-        _update_post_count(reply.post_id, 'increment-replies', -1)
-        return Response(success_response(message='回复已删除'))
+        if reply.is_deleted:
+            return Response(success_response(message='回复已删除'))
+
+        subtree_ids = _reply_subtree_ids(reply)
+        active_replies = list(Reply.objects.select_for_update().filter(
+            id__in=subtree_ids, is_deleted=False,
+        ).order_by('id').values('id', 'author_id'))
+        deleted_count = len(active_replies)
+        if deleted_count:
+            Reply.objects.filter(
+                id__in=[item['id'] for item in active_replies]
+            ).update(is_deleted=True, updated_at=timezone.now())
+            _update_post_count(reply.post_id, 'increment-replies', -deleted_count)
+
+            author_counts = Counter(item['author_id'] for item in active_replies)
+            for author_id, count in author_counts.items():
+                transaction.on_commit(
+                    lambda uid=author_id, amount=count:
+                    _update_user_stats(uid, 'replies_count', -amount)
+                )
+
+        child_count = max(0, deleted_count - 1)
+        message = '回复已删除'
+        if child_count:
+            message = f'回复及其 {child_count} 条子回复已删除'
+        return Response(success_response(message=message))
 
     @action(detail=True, methods=['post'], url_path='like')
     def toggle_reply_like(self, request, pk=None):

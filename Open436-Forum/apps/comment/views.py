@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from apps.core.permissions import IsAuthenticated, IsAuthorOrAdmin, IsAdminUser, IsActiveUser
 from apps.core.responses import success_response, error_response
 from django.conf import settings
+from apps.content.author_service import get_author_profiles
 
 from .models import Reply, PostLike, PostFavorite, ReplyLike, ShareRecord, UserFollow, Topic, TopicFollow
 from .serializers import (
@@ -23,6 +24,11 @@ from .serializers import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _reply_serializer_context(request, replies):
+    """评论作者资料批量获取，避免逐条访问 Auth。"""
+    return {'request': request, 'author_profiles': get_author_profiles(replies)}
 
 
 def _validate_post(post_id):
@@ -170,9 +176,11 @@ class ReplyViewSet(viewsets.GenericViewSet):
         start = (page - 1) * page_size
         end = start + page_size
         total = queryset.count()
-        replies = queryset[start:end]
+        replies = list(queryset[start:end])
 
-        serializer = ReplyListSerializer(replies, many=True, context={'request': request})
+        serializer = ReplyListSerializer(
+            replies, many=True, context=_reply_serializer_context(request, replies)
+        )
         next_url = None
         prev_url = None
         if end < total:
@@ -237,7 +245,9 @@ class ReplyViewSet(viewsets.GenericViewSet):
         _update_user_stats(author_id, 'replies_count', 1)
         _update_post_count(post_id, 'increment-replies', 1)
         return Response(success_response(
-            data=ReplyListSerializer(reply, context={'request': request}).data,
+            data=ReplyListSerializer(
+                reply, context=_reply_serializer_context(request, [reply])
+            ).data,
             message='回复成功'
         ), status=status.HTTP_201_CREATED)
 
@@ -266,7 +276,9 @@ class ReplyViewSet(viewsets.GenericViewSet):
         serializer.save()
         reply.record_edit()
         return Response(success_response(
-            data=ReplyListSerializer(reply, context={'request': request}).data,
+            data=ReplyListSerializer(
+                reply, context=_reply_serializer_context(request, [reply])
+            ).data,
             message='回复已更新'
         ))
 
@@ -359,15 +371,23 @@ class InteractionViewSet(viewsets.GenericViewSet):
             resp, code = error_response('无效的帖子ID', code=400, status_code=400)
             return Response(resp, status=code)
         user_id = getattr(request, 'user_id', None)
+        # 取消收藏必须先于帖子有效性校验。帖子被软删除后收藏记录仍存在，
+        # 此时用户仍应能清理自己的失效收藏。
+        existing = PostFavorite.objects.filter(
+            post_id=post_id, user_id=user_id
+        ).first()
+        if existing:
+            existing.delete()
+            _update_user_stats(user_id, 'favorites_received', -1)
+            return Response(success_response(
+                data={'is_favorited': False}, message='已取消收藏'
+            ))
+
         valid, err = _validate_post(post_id)
         if not valid:
             resp, code = error_response(err, code=400, status_code=400)
             return Response(resp, status=code)
-        fav, created = PostFavorite.objects.get_or_create(post_id=post_id, user_id=user_id)
-        if not created:
-            fav.delete()
-            _update_user_stats(user_id, 'favorites_received', -1)
-            return Response(success_response(data={'is_favorited': False}, message='已取消收藏'))
+        PostFavorite.objects.create(post_id=post_id, user_id=user_id)
         _update_user_stats(user_id, 'favorites_received', 1)
         return Response(success_response(data={'is_favorited': True}, message='收藏成功'))
 

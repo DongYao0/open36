@@ -42,9 +42,16 @@ def _fetch_from_auth(user_ids):
         return {}, True
 
 
-def get_author_profiles(posts):
-    """Return profiles keyed by user id; profile lookup failure must not break posts."""
-    user_ids = sorted({post.author_id for post in posts if not post.is_ai_generated})
+def get_author_profiles(items):
+    """Return profiles keyed by user id for posts or replies.
+
+    Reply 没有 ``is_ai_generated`` 字段，因此使用安全读取，让帖子与评论共用
+    同一套批量缓存和 Auth 回源逻辑。
+    """
+    user_ids = sorted({
+        item.author_id for item in items
+        if not getattr(item, 'is_ai_generated', False)
+    })
     if not user_ids:
         return {}
 

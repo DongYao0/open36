@@ -8,6 +8,7 @@ from django.db import connection
 from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
+from unittest.mock import patch
 
 from apps.comment.models import Reply, ReplyLike
 
@@ -88,3 +89,22 @@ class ReplyListQueryCountTests(APITestCase):
             resp = self.client.get(f'/api/replies/{bad}')
             self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST,
                              f'{bad} 应返回 400 而非 500')
+
+    @patch('apps.comment.views.get_author_profiles')
+    def test_reply_author_uses_real_name_and_avatar(self, profiles):
+        self._create_replies(1)
+        profiles.return_value = {
+            100: {
+                'real_name': '张三',
+                'nickname': 'nickname-only-fallback',
+                'avatar_url': '/objects/open436-posts/avatar.jpg',
+            }
+        }
+
+        resp = self.client.get('/api/replies/?post_id=1')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        author = resp.json()['data']['results'][0]['author']
+        self.assertEqual(author['nickname'], '张三')
+        self.assertEqual(author['real_name'], '张三')
+        self.assertEqual(author['avatar_url'], '/objects/open436-posts/avatar.jpg')

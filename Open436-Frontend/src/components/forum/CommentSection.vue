@@ -18,8 +18,8 @@
       <template v-for="c in commentTree" :key="c.id">
         <div class="comment-item">
           <div class="comment-header">
-            <img :src="`https://ui-avatars.com/api/?name=${c.author}&background=1976D2&color=fff&size=32`" class="avatar avatar-sm" />
-            <span class="comment-author">u/{{ c.author }}</span>
+            <img :src="c.avatar" :alt="c.author" class="avatar avatar-sm" />
+            <span class="comment-author">{{ c.author }}</span>
             <span class="comment-floor">#{{ c.floor }}</span>
             <span class="comment-time">{{ formatDate(c.createdAt) }}</span>
           </div>
@@ -37,8 +37,8 @@
         </div>
         <div v-for="child in c.children" :key="child.id" class="comment-item nested">
           <div class="comment-header">
-            <img :src="`https://ui-avatars.com/api/?name=${child.author}&background=1976D2&color=fff&size=28`" class="avatar avatar-xs" />
-            <span class="comment-author">u/{{ child.author }}</span>
+            <img :src="child.avatar" :alt="child.author" class="avatar avatar-xs" />
+            <span class="comment-author">{{ child.author }}</span>
             <span class="comment-time">{{ formatDate(child.createdAt) }}</span>
             <span class="reply-indicator">回复 #{{ c.floor }}</span>
           </div>
@@ -92,7 +92,8 @@ async function fetchReplies(postId) {
     const mapped = results.map(r => ({
       id: r.id,
       parentId: r.parent_id,
-      author: r.author?.nickname || `用户${r.author?.user_id || ''}`,
+      author: r.author?.real_name || r.author?.nickname || `用户${r.author?.user_id || ''}`,
+      avatar: r.author?.avatar_url || '/app/user.jpg',
       content: r.content,
       floor: r.floor_number,
       createdAt: r.created_at,
@@ -176,6 +177,24 @@ watch(() => props.postId, (newId) => {
 
 <style scoped>
 .comment-form { padding: var(--s-lg); border-bottom: 1px solid var(--divider); }
+.comment-form .form-textarea {
+  color: var(--text-primary);
+  caret-color: var(--primary);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.65;
+  background: var(--bg);
+  border-color: color-mix(in srgb, var(--text-secondary) 38%, transparent);
+}
+.comment-form .form-textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.9;
+  font-weight: 400;
+}
+.comment-form .form-textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent);
+}
 .guest-comment-tip { padding: var(--s-lg); border-bottom: 1px solid var(--divider); text-align: center; color: var(--text-secondary); font-size: 13px; background: var(--bg-secondary); }
 .comments-list { padding: var(--s-base) var(--s-lg); }
 .comment-item { padding: var(--s-base) 0; border-bottom: 1px solid var(--divider); }

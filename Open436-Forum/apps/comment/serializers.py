@@ -24,7 +24,15 @@ class ReplyListSerializer(serializers.ModelSerializer):
         ]
 
     def get_author(self, obj):
-        return {'user_id': obj.author_id, 'nickname': None, 'avatar_url': None}
+        profile = self.context.get('author_profiles', {}).get(obj.author_id, {})
+        real_name = profile.get('real_name')
+        nickname = real_name or profile.get('nickname') or f'用户{obj.author_id}'
+        return {
+            'user_id': obj.author_id,
+            'nickname': nickname,
+            'real_name': real_name,
+            'avatar_url': profile.get('avatar_url'),
+        }
 
     def get_is_edited(self, obj):
         return obj.edit_count > 0

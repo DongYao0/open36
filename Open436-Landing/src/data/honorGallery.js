@@ -9,28 +9,35 @@ const honorGallerySource = [
   { title: "2023至2024学年 · 优秀大学生奖学金", category: "个人荣誉", level: "奖学金", image: "/honors/personal/02.jpg", thumbnail: "/honors/personal/thumbs/02.jpg" },
   { title: "2023至2024学年 · 优秀共青团员", category: "个人荣誉", level: "校级荣誉", image: "/honors/personal/03.jpg", thumbnail: "/honors/personal/thumbs/03.jpg" },
   { title: "2024至2025学年 · 国家奖学金", category: "个人荣誉", level: "国家奖学金", image: "/honors/personal/04.jpg", thumbnail: "/honors/personal/thumbs/04.jpg" },
-  { title: "第17届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao/01.jpg", thumbnail: "/honors/lanqiao/thumbs/01.jpg" },
-  { title: "第17届蓝桥杯 · 全国三等奖", category: "蓝桥杯", level: "国家级三等奖", image: "/honors/lanqiao/02.jpg", thumbnail: "/honors/lanqiao/thumbs/02.jpg" },
-  { title: "第17届蓝桥杯 · 省一等奖", category: "蓝桥杯", level: "省级一等奖", image: "/honors/lanqiao/03.jpg", thumbnail: "/honors/lanqiao/thumbs/03.jpg" },
-  { title: "第17届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao/04.jpg", thumbnail: "/honors/lanqiao/thumbs/04.jpg" },
-  { title: "第17届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao/05.jpg", thumbnail: "/honors/lanqiao/thumbs/05.jpg" },
-  { title: "第17届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao/06.jpg", thumbnail: "/honors/lanqiao/thumbs/06.jpg" },
-  { title: "第17届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao/07.jpg", thumbnail: "/honors/lanqiao/thumbs/07.jpg" },
-  { title: "第15届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao/08.jpg", thumbnail: "/honors/lanqiao/thumbs/08.jpg" },
-  { title: "第15届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao/09.jpg", thumbnail: "/honors/lanqiao/thumbs/09.jpg" },
-  { title: "第16届蓝桥杯 · 省一等奖", category: "蓝桥杯", level: "省级一等奖", image: "/honors/lanqiao/10.jpg", thumbnail: "/honors/lanqiao/thumbs/10.jpg" },
-  { title: "第15届蓝桥杯 · 省一等奖", category: "蓝桥杯", level: "省级一等奖", image: "/honors/lanqiao/11.jpg", thumbnail: "/honors/lanqiao/thumbs/11.jpg" },
-  { title: "第15届蓝桥杯 · 省一等奖", category: "蓝桥杯", level: "省级一等奖", image: "/honors/lanqiao/12.jpg", thumbnail: "/honors/lanqiao/thumbs/12.jpg" },
-  { title: "第15届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao/13.jpg", thumbnail: "/honors/lanqiao/thumbs/13.jpg" },
-  { title: "第15届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao/14.jpg", thumbnail: "/honors/lanqiao/thumbs/14.jpg" },
-  { title: "第16届蓝桥杯 · 全国三等奖", category: "蓝桥杯", level: "国家级三等奖", image: "/honors/lanqiao/15.jpg", thumbnail: "/honors/lanqiao/thumbs/15.jpg" },
-  { title: "第16届蓝桥杯 · 省一等奖", category: "蓝桥杯", level: "省级一等奖", image: "/honors/lanqiao/16.jpg", thumbnail: "/honors/lanqiao/thumbs/16.jpg" },
-  { title: "第16届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao/17.jpg", thumbnail: "/honors/lanqiao/thumbs/17.jpg" },
-  { title: "第15届蓝桥杯 · 全国二等奖", category: "蓝桥杯", level: "国家级二等奖", image: "/honors/lanqiao/18.jpg", thumbnail: "/honors/lanqiao/thumbs/18.jpg" },
-  { title: "第16届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao/19.jpg", thumbnail: "/honors/lanqiao/thumbs/19.jpg" },
-  { title: "第15届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao/20.jpg", thumbnail: "/honors/lanqiao/thumbs/20.jpg" },
-  { title: "第15届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao/21.jpg", thumbnail: "/honors/lanqiao/thumbs/21.jpg" },
-  { title: "第16届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao/22.jpg", thumbnail: "/honors/lanqiao/thumbs/22.jpg" },
+  { title: "第17届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao-20260914/01.jpg" },
+  { title: "第17届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao-20260914/02.png" },
+  { title: "第17届蓝桥杯 · 全国三等奖", category: "蓝桥杯", level: "国家级三等奖", image: "/honors/lanqiao-20260914/03.jpg" },
+  { title: "第17届蓝桥杯 · 省一等奖", category: "蓝桥杯", level: "省级一等奖", image: "/honors/lanqiao-20260914/04.jpg" },
+  { title: "第17届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao-20260914/05.jpg" },
+  { title: "第17届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao-20260914/06.jpg" },
+  { title: "第17届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao-20260914/07.jpg" },
+  { title: "第17届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao-20260914/08.jpg" },
+  { title: "第16届蓝桥杯 · 省一等奖", category: "蓝桥杯", level: "省级一等奖", image: "/honors/lanqiao-20260914/09.jpg" },
+  { title: "第16届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao-20260914/10.jpg" },
+  { title: "第16届蓝桥杯 · 全国三等奖", category: "蓝桥杯", level: "国家级三等奖", image: "/honors/lanqiao-20260914/11.jpg" },
+  { title: "第16届蓝桥杯 · 省一等奖", category: "蓝桥杯", level: "省级一等奖", image: "/honors/lanqiao-20260914/12.jpg" },
+  { title: "第16届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao-20260914/13.jpg" },
+  { title: "第16届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao-20260914/14.jpg" },
+  { title: "第16届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao-20260914/15.jpg" },
+  { title: "第15届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao-20260914/16.jpg" },
+  { title: "第15届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao-20260914/17.png" },
+  { title: "第15届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao-20260914/18.jpg" },
+  { title: "第15届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao-20260914/19.png" },
+  { title: "第15届蓝桥杯 · 省一等奖", category: "蓝桥杯", level: "省级一等奖", image: "/honors/lanqiao-20260914/20.jpg" },
+  { title: "第15届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao-20260914/21.jpg" },
+  { title: "第15届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao-20260914/22.jpg" },
+  { title: "第15届蓝桥杯 · 全国二等奖", category: "蓝桥杯", level: "国家级二等奖", image: "/honors/lanqiao-20260914/23.png" },
+  { title: "第15届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao-20260914/24.png" },
+  { title: "第15届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao-20260914/25.jpg" },
+  { title: "第15届蓝桥杯 · 省二等奖", category: "蓝桥杯", level: "省级二等奖", image: "/honors/lanqiao-20260914/26.jpg" },
+  { title: "第14届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao-20260914/27.png" },
+  { title: "第12届蓝桥杯 · 省一等奖", category: "蓝桥杯", level: "省级一等奖", image: "/honors/lanqiao-20260914/28.png" },
+  { title: "第14届蓝桥杯 · 省三等奖", category: "蓝桥杯", level: "省级三等奖", image: "/honors/lanqiao-20260914/29.png" },
   { title: "第8届码蹄杯 · 省金奖", category: "码蹄杯", level: "省级金奖", image: "/honors/mati/01.jpg", thumbnail: "/honors/mati/thumbs/01.jpg" },
   { title: "第8届码蹄杯 · 省金奖", category: "码蹄杯", level: "省级金奖", image: "/honors/mati/02.jpg", thumbnail: "/honors/mati/thumbs/02.jpg" },
   { title: "第8届码蹄杯 · 省银奖", category: "码蹄杯", level: "省级银奖", image: "/honors/mati/03.jpg", thumbnail: "/honors/mati/thumbs/03.jpg" },
@@ -56,7 +63,7 @@ const honorGallerySource = [
 const recipients = {
   baidu: ["葛露辉", "林城", "乔中乐", "时慧杰", "田涛", "尹讯哲"],
   personal: ["杨雅岚", "杨雅岚", "杨雅岚", "杨雅岚"],
-  lanqiao: ["贾凡", "林城", "林城", "刘思涵", "刘彦笑", "王严", "尹讯哲", "丁雅文", "梁悦", "林城", "时慧杰", "时慧杰", "孙宇昂", "王景然", "王瑞聪", "王瑞聪", "王严", "王一方", "杨雅岚", "张佳乐", "张婷", "赵满"],
+  lanqiao: ["布占恒", "贾凡", "林城", "林城", "刘思涵", "刘彦笑", "王严", "尹逊哲", "林城", "田涛", "王瑞聪", "王瑞聪", "王严", "杨雅岚", "赵满", "丁雅文", "李文琦", "梁悦", "马兰有", "时慧杰", "孙宇昂", "王景然", "王一方", "杨雅岚", "张佳乐", "张婷", "冯凯枫", "冯子健", "李文琦"],
   mati: ["葛露怿", "林城", "乔申乐", "时慧杰", "田涛", "王广超", "杨雅岚", "尹讯哲"],
   team: Array(12).fill("Open436 参赛团队"),
 };
@@ -64,7 +71,7 @@ const recipients = {
 const years = {
   baidu: Array(6).fill(2026),
   personal: [2024, 2024, 2024, 2025],
-  lanqiao: [2026, 2026, 2026, 2026, 2026, 2026, 2026, 2024, 2024, 2025, 2024, 2024, 2024, 2024, 2025, 2025, 2025, 2024, 2025, 2024, 2024, 2025],
+  lanqiao: [2026, 2026, 2026, 2026, 2026, 2026, 2026, 2026, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2024, 2024, 2024, 2024, 2024, 2024, 2024, 2024, 2024, 2024, 2024, 2023, 2021, 2023],
   mati: Array(8).fill(2026),
   team: [2023, 2025, 2025, 2025, 2026, 2026, 2026, 2025, 2025, 2025, 2026, 2026],
 };
@@ -82,8 +89,9 @@ export const sortHonorGallery = (photos = []) => [...photos].sort((a, b) => {
 });
 
 export const honorGallery = honorGallerySource.map((item, sourceIndex) => {
-  const match = item.image.match(/\/honors\/([^/]+)\/(\d+)\.jpg$/);
-  const group = match?.[1] || "team";
+  const match = item.image.match(/\/honors\/([^/]+)\/(\d+)\.(?:jpg|png)$/i);
+  const rawGroup = match?.[1] || "team";
+  const group = rawGroup.startsWith("lanqiao") ? "lanqiao" : rawGroup;
   const index = Number(match?.[2] || 1) - 1;
   const level = group === "baidu" ? `省级${item.level}`
     : group === "team" && index === 0 ? "国家级一等奖"
@@ -92,7 +100,7 @@ export const honorGallery = honorGallerySource.map((item, sourceIndex) => {
 });
 
 export const defaultHonorProjects = [
-  { name: "蓝桥杯大赛", description: "从省赛到全国总决赛，记录实验室成员在算法赛场上的持续突破。", image: "/honors/lanqiao/02.jpg", tags: [] },
+  { name: "蓝桥杯大赛", description: "从省赛到全国总决赛，记录实验室成员在算法赛场上的持续突破。", image: "/honors/lanqiao-20260914/02.png", tags: [] },
   { name: "码蹄杯算法竞赛", description: "以限时编程检验算法功底，在高强度实战中锻炼解题能力。", image: "/honors/mati/01.jpg", tags: [] },
   { name: "百度之星算法竞赛", description: "面向高水平程序设计挑战，展现实验室成员的算法实力。", image: "/honors/baidu/01.jpg", tags: [] },
   { name: "团队项目赛", description: "覆盖挑战杯、计算机设计大赛与机器人赛事，见证团队协作成果。", image: "/honors/team/07.jpg", tags: [] },

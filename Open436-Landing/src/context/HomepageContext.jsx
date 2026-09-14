@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-const CACHE_KEY = "open436:homepage:v1";
+const CACHE_KEY = "open436:homepage:v2";
 
 const readCache = () => {
   try {

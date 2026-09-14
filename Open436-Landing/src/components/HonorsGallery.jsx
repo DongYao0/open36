@@ -6,6 +6,21 @@ import noimg from "../assets/noimg.svg";
 import { useHomepage } from "../context/HomepageContext";
 import { defaultHonorProjects, honorGallery, withHonorAlbums } from "../data/honorGallery";
 
+// 优先使用管理端下发的缩略图；缺缩略图时同源/同目录自动派生 _thumb 后缀；
+// 都没有则回退到原图（动态判断大小后用缩略图快速铺版、点击再拉原图）。
+function pickThumb(item) {
+  if (item.thumbnail) return item.thumbnail;
+  const src = item.image || "";
+  const dot = src.lastIndexOf(".");
+  const slash = src.lastIndexOf("/");
+  if (dot <= slash) return src;  // 无扩展名，原样返回
+  return `${src.slice(0, dot)}_thumb${src.slice(dot)}`;
+}
+
+function pickFull(item) {
+  return item.image || noimg;
+}
+
 const HonorsGallery = () => {
   const { get } = useHomepage();
   const works = get("works", { items: defaultHonorProjects, gallery: honorGallery });
@@ -49,13 +64,17 @@ const HonorsGallery = () => {
   useEffect(() => setActive(0), [selectedIndex]);
 
   const photo = photos[active];
+  const [zoomed, setZoomed] = useState(false);
 
+  // 预加载邻居的【缩略图】（原图按需才拉，~10×带宽下降）；
+  // 当某张图被点击放大时，临时把 src 切换到原图，关闭则回到缩略图。
   useEffect(() => {
+    setZoomed(false);
     if (photos.length < 2) return;
     const neighbors = [photos[(active + 1) % photos.length], photos[(active - 1 + photos.length) % photos.length]];
     neighbors.forEach((item) => {
       const preload = new Image();
-      preload.src = item.image;
+      preload.src = pickThumb(item);
     });
   }, [active, photos]);
 
@@ -97,8 +116,20 @@ const HonorsGallery = () => {
                   className='grid w-full max-w-6xl items-center gap-8 px-8 sm:px-12 lg:grid-cols-[minmax(0,1fr)_330px]'
                 >
                   <div className='relative flex h-[36vh] min-h-[280px] items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-black/35 shadow-[0_30px_100px_rgba(0,0,0,.55)] sm:h-[52vh] sm:min-h-[340px]'>
-                    <img src={photo.image} alt={photo.title} decoding='async' fetchPriority='high' className='h-full w-full object-contain' />
+                    <img
+                      src={zoomed ? pickFull(photo) : pickThumb(photo)}
+                      alt={photo.title}
+                      decoding='async'
+                      loading={zoomed ? 'eager' : 'lazy'}
+                      fetchpriority={zoomed ? 'high' : 'auto'}
+                      onClick={() => setZoomed((z) => !z)}
+                      title={zoomed ? '点击返回缩略图' : '点击查看原图'}
+                      className={`h-full w-full cursor-zoom-in object-contain transition-opacity duration-300 ${zoomed ? 'opacity-100' : 'opacity-90 hover:opacity-100'}`}
+                    />
                     <span className='absolute left-5 top-5 rounded-full border border-white/15 bg-black/50 px-3 py-1 text-xs tracking-widest backdrop-blur'>{String(active + 1).padStart(2, "0")} / {String(photos.length).padStart(2, "0")}</span>
+                    <span className='absolute bottom-5 right-5 rounded-full border border-white/15 bg-black/50 px-3 py-1 text-[11px] tracking-wider text-white/70 backdrop-blur'>
+                      {zoomed ? '原图（点击收起）' : '缩略图（点击查看原图）'}
+                    </span>
                   </div>
                   <figcaption>
                     <div className='mb-5 h-px w-16 bg-violet-400' />

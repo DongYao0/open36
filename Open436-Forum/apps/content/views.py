@@ -146,6 +146,17 @@ class PostViewSet(viewsets.GenericViewSet):
             if allowed_section_ids:
                 queryset = queryset.filter(section_id__in=allowed_section_ids)
 
+        # 个人中心按作者查询。此前前端已传 author_id，但列表接口未消费该参数，
+        # 结果会错误返回全站帖子。
+        author_id = request.query_params.get('author_id')
+        if author_id:
+            try:
+                author_id = int(author_id)
+            except (TypeError, ValueError):
+                resp, code = error_response('无效的 author_id', code=400, status_code=400)
+                return Response(resp, status=code)
+            queryset = queryset.filter(author_id=author_id)
+
         if search:
             queryset = queryset.order_by('search_rank', '-created_at')
         else:
@@ -261,7 +272,7 @@ class PostViewSet(viewsets.GenericViewSet):
         user_id = getattr(request, 'user_id', None)
 
         if not post.can_edit(user_id, is_admin):
-            resp, code = error_response('超过编辑次数限制', code=400, status_code=400)
+            resp, code = error_response('无权编辑该帖子', code=403, status_code=403)
             return Response(resp, status=code)
 
         PostEditHistory.objects.create(

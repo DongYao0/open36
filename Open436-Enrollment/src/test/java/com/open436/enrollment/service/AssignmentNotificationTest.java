@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -63,8 +64,37 @@ class AssignmentNotificationTest {
     }
 
     @Test
-    void unreadCountComesFromAllocationState() {
-        when(allocationRepository.countByStudentIdAndReadAtIsNull(30L)).thenReturn(3L);
+    void badgeCountComesFromPendingActionableAssignments() {
+        when(allocationRepository.countPendingActionable(eq(30L), any(LocalDateTime.class)))
+                .thenReturn(3L);
         assertEquals(3L, service.getUnreadCount(30L));
+    }
+
+    @Test
+    void assignmentListMarksOnlyActiveUnsubmittedFutureWorkAsActionable() {
+        LocalDateTime now = LocalDateTime.now();
+        List<AssignmentAllocation> allocations = List.of(
+                AssignmentAllocation.builder().id(1L).assignmentId(11L).studentId(30L).build(),
+                AssignmentAllocation.builder().id(2L).assignmentId(12L).studentId(30L).build(),
+                AssignmentAllocation.builder().id(3L).assignmentId(13L).studentId(30L).build(),
+                AssignmentAllocation.builder().id(4L).assignmentId(14L).studentId(30L).build());
+        List<Assignment> assignments = List.of(
+                Assignment.builder().id(11L).title("待完成").status("active").deadline(now.plusHours(1)).build(),
+                Assignment.builder().id(12L).title("已提交").status("active").deadline(now.plusHours(1)).build(),
+                Assignment.builder().id(13L).title("已过期").status("active").deadline(now.minusHours(1)).build(),
+                Assignment.builder().id(14L).title("未发布").status("pending").deadline(now.plusHours(1)).build());
+        AssignmentSubmission submitted = AssignmentSubmission.builder()
+                .assignmentId(12L).studentId(30L).status("submitted").build();
+
+        when(allocationRepository.findByStudentIdOrderByAssignedAtDesc(30L)).thenReturn(allocations);
+        when(assignmentRepository.findAllById(anyList())).thenReturn(assignments);
+        when(submissionRepository.findByStudentId(30L)).thenReturn(List.of(submitted));
+
+        List<Map<String, Object>> result = service.getMyAssignments(30L);
+
+        assertEquals(List.of(true, false, false, false),
+                result.stream().map(item -> item.get("pendingActionable")).toList());
+        assertEquals(List.of(false, false, true, true),
+                result.stream().map(item -> item.get("expired")).toList());
     }
 }

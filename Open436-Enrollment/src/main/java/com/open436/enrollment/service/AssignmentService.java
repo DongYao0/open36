@@ -397,6 +397,10 @@ public class AssignmentService {
             if (assignment == null) continue;
 
             AssignmentSubmission submission = submissionMap.get(assignment.getId());
+            boolean submitted = submission != null && "submitted".equals(submission.getStatus());
+            boolean expired = !"active".equals(assignment.getStatus())
+                    || (assignment.getDeadline() != null
+                        && !assignment.getDeadline().isAfter(LocalDateTime.now()));
 
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", alloc.getId());
@@ -410,6 +414,8 @@ public class AssignmentService {
             item.put("submittedAt", submission != null ? submission.getSubmittedAt() : null);
             item.put("read", alloc.getReadAt() != null);
             item.put("remindedAt", alloc.getRemindedAt());
+            item.put("expired", expired);
+            item.put("pendingActionable", !submitted && !expired);
             result.add(item);
         }
         return result;
@@ -452,7 +458,8 @@ public class AssignmentService {
 
     @Transactional(readOnly = true)
     public long getUnreadCount(Long studentId) {
-        return allocationRepository.countByStudentIdAndReadAtIsNull(studentId);
+        // 头像提醒表示仍需处理的作业，而不是尚未打开的作业。
+        return allocationRepository.countPendingActionable(studentId, LocalDateTime.now());
     }
 
     /**

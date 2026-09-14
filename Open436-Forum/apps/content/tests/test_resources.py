@@ -139,3 +139,28 @@ class ResourceViewSetTests(APITestCase):
     def test_retrieve_404_for_missing(self):
         resp = self.client.get('/api/resources/9999/')
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_posts_list_filters_by_author_id(self):
+        Post.objects.create(id=201, title='Mine', summary='', content='x',
+                            author_id=100, section_id=1, status='published')
+        Post.objects.create(id=202, title='Other', summary='', content='y',
+                            author_id=200, section_id=1, status='published')
+
+        resp = self.client.get('/api/posts/?author_id=100')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        results = resp.json()['data']['results']
+        self.assertEqual({item['id'] for item in results}, {201})
+
+    def test_posts_list_rejects_invalid_author_id(self):
+        resp = self.client.get('/api/posts/?author_id=not-a-number')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_post_author_can_edit_without_time_or_count_limit(self):
+        post = Post.objects.create(id=203, title='Editable', summary='', content='x',
+                                   author_id=100, section_id=1, status='published',
+                                   edit_count=999)
+
+        self.assertTrue(post.can_edit(100))
+        self.assertFalse(post.can_edit(200))
+        self.assertTrue(post.can_edit(200, is_admin=True))

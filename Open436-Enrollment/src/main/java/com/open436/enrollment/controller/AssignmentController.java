@@ -175,7 +175,7 @@ public class AssignmentController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
-    /** 头像数字红点使用的轻量未读数接口。 */
+    /** 头像数字红点使用的轻量待完成作业数接口（保留原路径以兼容旧客户端）。 */
     @GetMapping("/my/unread-count")
     public ResponseEntity<ApiResponse<Map<String, Long>>> myUnreadCount(HttpServletRequest request) {
         Long userId = getCurrentUserId(request);

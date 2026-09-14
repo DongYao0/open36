@@ -2,6 +2,14 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getAssignmentUnreadCount } from '@/api/user'
 
+export function isAssignmentPending(item) {
+  if (!item || item.submissionStatus === 'submitted' || item.status !== 'active') return false
+  if (item.pendingActionable === false || item.expired === true) return false
+  if (!item.deadline) return true
+  const deadline = new Date(item.deadline).getTime()
+  return Number.isNaN(deadline) || deadline > Date.now()
+}
+
 export const useAssignmentStore = defineStore('assignmentNotifications', () => {
   const unreadCount = ref(0)
   const lastFetchedAt = ref(0)
@@ -22,12 +30,8 @@ export const useAssignmentStore = defineStore('assignmentNotifications', () => {
   }
 
   function setFromAssignments(assignments) {
-    unreadCount.value = (assignments || []).filter(item => !item.read).length
+    unreadCount.value = (assignments || []).filter(isAssignmentPending).length
     lastFetchedAt.value = Date.now()
-  }
-
-  function markOneRead() {
-    unreadCount.value = Math.max(0, unreadCount.value - 1)
   }
 
   function clear() {
@@ -35,5 +39,5 @@ export const useAssignmentStore = defineStore('assignmentNotifications', () => {
     lastFetchedAt.value = 0
   }
 
-  return { unreadCount, refresh, setFromAssignments, markOneRead, clear }
+  return { unreadCount, refresh, setFromAssignments, clear }
 })

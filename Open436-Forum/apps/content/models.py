@@ -82,15 +82,8 @@ class Post(models.Model):
     def can_edit(self, user_id, is_admin=False):
         if is_admin:
             return True
-        if self.author_id != user_id:
-            return False
-        created_at = self.created_at
-        if timezone.is_naive(created_at):
-            created_at = timezone.make_aware(created_at)
-        hours_since_created = (timezone.now() - created_at).total_seconds() / 3600
-        if hours_since_created <= 24:
-            return True
-        return self.edit_count < 5
+        # 作者可不限时间、不限次数维护自己的帖子；编辑历史仍完整保留。
+        return self.author_id == user_id
 
     def record_edit(self, editor_id):
         self.edit_count += 1

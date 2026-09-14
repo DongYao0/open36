@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 @Repository
 public interface AssignmentAllocationRepository extends JpaRepository<AssignmentAllocation, Long> {
@@ -59,5 +60,17 @@ public interface AssignmentAllocationRepository extends JpaRepository<Assignment
      */
     List<AssignmentAllocation> findByStudentIdOrderByAssignedAtDesc(Long studentId);
 
-    long countByStudentIdAndReadAtIsNull(Long studentId);
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM assignment_allocations aa
+            JOIN assignments a ON a.id = aa.assignment_id
+            LEFT JOIN assignment_submissions s
+              ON s.assignment_id = aa.assignment_id AND s.student_id = aa.student_id
+            WHERE aa.student_id = :studentId
+              AND a.status = 'active'
+              AND a.deadline > :now
+              AND (s.id IS NULL OR s.status <> 'submitted')
+            """, nativeQuery = true)
+    long countPendingActionable(@Param("studentId") Long studentId,
+                                @Param("now") LocalDateTime now);
 }

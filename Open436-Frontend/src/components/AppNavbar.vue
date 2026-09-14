@@ -12,12 +12,12 @@
       <div v-else class="navbar-user" @click.stop="dropdownOpen = !dropdownOpen">
         <span class="avatar-wrap">
           <img :src="avatar" class="user-avatar" :alt="displayName" />
-          <span v-if="assignmentStore.unreadCount" class="assignment-badge" :aria-label="`${assignmentStore.unreadCount} 个未读作业`">{{ assignmentStore.unreadCount > 99 ? '99+' : assignmentStore.unreadCount }}</span>
+          <span v-if="assignmentStore.unreadCount" class="assignment-badge" :aria-label="`${assignmentStore.unreadCount} 个待完成作业`">{{ assignmentStore.unreadCount > 99 ? '99+' : assignmentStore.unreadCount }}</span>
         </span>
         <span>{{ displayName }}</span>
         <div class="navbar-dropdown" :class="{ active: dropdownOpen }">
           <router-link to="/mine" class="dropdown-item" @click="dropdownOpen = false">个人中心</router-link>
-          <router-link v-if="assignmentStore.unreadCount" to="/mine" class="dropdown-item assignment-entry" @click="dropdownOpen = false">未读作业 {{ assignmentStore.unreadCount }}</router-link>
+          <router-link v-if="assignmentStore.unreadCount" to="/mine" class="dropdown-item assignment-entry" @click="dropdownOpen = false">待完成作业 {{ assignmentStore.unreadCount }}</router-link>
           <button class="dropdown-item danger" @click="handleLogout">{{ auth.isVisitor ? '退出游客模式' : '退出登录' }}</button>
         </div>
       </div>

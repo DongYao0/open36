@@ -93,7 +93,7 @@
             v-for="item in assignments"
             :key="item.id"
             class="assignment-item"
-            :class="{ unread: !item.read }"
+            :class="{ unread: isAssignmentPending(item) }"
             @click="readAssignment(item)"
           >
             <div class="assignment-icon">
@@ -109,7 +109,7 @@
                 <span v-else class="assignment-status pending">待提交</span>
               </div>
             </div>
-            <div v-if="!item.read" class="unread-dot"></div>
+            <div v-if="isAssignmentPending(item)" class="unread-dot"></div>
           </div>
         </div>
       </div>
@@ -227,7 +227,7 @@ import { useRouter } from 'vue-router'
 import AppNavbar from '@/components/AppNavbar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
-import { useAssignmentStore } from '@/stores/assignment'
+import { isAssignmentPending, useAssignmentStore } from '@/stores/assignment'
 import { getUserProfile, getUserStatistics, getUserPosts, getUserReplies, getUserResources, getMyAssignments } from '@/api/user'
 import { deletePost } from '@/api/post'
 import { getMyFavorites, toggleFavorite } from '@/api/interaction'
@@ -410,10 +410,6 @@ async function loadAssignments() {
 }
 
 function readAssignment(item) {
-  if (!item.read) {
-    item.read = true
-    assignmentStore.markOneRead()
-  }
   router.push(`/assignment/${item.assignmentId}`)
 }
 

@@ -97,11 +97,13 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import AppNavbar from '@/components/AppNavbar.vue'
 import { useUIStore } from '@/stores/ui'
+import { useAssignmentStore } from '@/stores/assignment'
 import { getMyAssignmentDetail, submitAssignment } from '@/api/user'
 
 const router = useRouter()
 const route = useRoute()
 const ui = useUIStore()
+const assignmentStore = useAssignmentStore()
 
 const assignmentId = route.params.id
 const loading = ref(true)
@@ -152,6 +154,7 @@ async function handleSubmit() {
     ui.showToast('作业提交成功', 'success')
     editMode.value = false
     await loadAssignment() // 重新加载
+    await assignmentStore.refresh(true)
   } catch (e) {
     const msg = e?.response?.data?.message || e?.message || '提交失败'
     ui.showToast(msg, 'error')

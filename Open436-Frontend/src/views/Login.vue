@@ -1,7 +1,7 @@
 <template>
   <div class="auth-page">
     <div class="auth-left">
-      <div class="brand"><img class="brand-logo" src="@/assets/logo.svg" alt="Open436 logo"/><span>Open436</span></div>
+      <div class="brand"><img class="brand-logo" src="@/assets/logo.png" alt="Open436 logo"/><span>Open436</span></div>
       <div class="hero-title">
         <code class="code-line">
           <span class="token-class">System</span><span class="token-dot">.</span><span class="token-method">out</span><span class="token-dot">.</span><span class="token-method">print</span><span class="token-paren">(</span><span class="token-string">"Hello 0436!"</span><span class="token-paren">)</span><span class="token-semicolon">;</span><span class="cursor">|</span>
@@ -69,7 +69,7 @@
       <div class="bg-grid"/><div class="bg-orb o1"/><div class="bg-orb o2"/><div class="bg-orb o3"/>
     </div>
     <div class="auth-right">
-      <div class="mobile-brand"><img class="brand-logo" src="@/assets/logo.svg" alt="Open436 logo"/><span>Open436</span></div>
+      <div class="mobile-brand"><img class="brand-logo" src="@/assets/logo.png" alt="Open436 logo"/><span>Open436</span></div>
       <div class="form-box">
         <div class="form-tabs">
           <button :class="{ active: !isEnroll }" @click="setMode(false)">登录</button>
@@ -122,11 +122,13 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
+import { useAutoDraft } from '@/composables/useAutoDraft'
 
 const R = useRoute(), router = useRouter(), auth = useAuthStore(), ui = useUIStore()
 const isEnroll = ref(R.query.mode === 'register')
 const ld = ref(false), err = ref(''), showP = ref(false), showForgot = ref(false)
 const f = reactive({ u: '', p: '', cp: '', n: '', sid: '', rn: '', ph: '', mj: '', r: false })
+const authDraft = useAutoDraft('auth:form', f, { include: ['u', 'sid', 'ph', 'mj', 'r'] })
 
 const focusedType = ref(null)
 const mx = ref(0), my = ref(0)
@@ -135,7 +137,11 @@ const pR = ref(null), bR = ref(null), oR = ref(null), yR = ref(null)
 const pb = ref(false), bb = ref(false)
 
 function onMove(e) { mx.value = e.clientX; my.value = e.clientY }
-onMounted(() => window.addEventListener('mousemove', onMove))
+onMounted(() => {
+  window.addEventListener('mousemove', onMove)
+  const restored = authDraft.restoreDraft()
+  if (restored) ui.showToast('已恢复上次未提交的表单内容', 'info')
+})
 onUnmounted(() => window.removeEventListener('mousemove', onMove))
 
 const targetPt = computed(() => {
@@ -230,9 +236,7 @@ function onBlur() {
 function setMode(enroll, syncRoute = true) {
   isEnroll.value = enroll
   err.value = ''
-  if (!enroll) {
-    Object.assign(f, { cp: '', n: '', sid: '', rn: '', ph: '', mj: '' })
-  }
+  if (!enroll) Object.assign(f, { cp: '', n: '', rn: '' })
   if (syncRoute) {
     const query = { ...R.query }
     if (enroll) query.mode = 'register'
@@ -286,6 +290,7 @@ async function onSubmit() {
         idempotencyKey: enrollIdemKey.value
       })
       if (res.success) {
+        authDraft.clearDraft()
         ui.showToast(res.message || '报名成功', 'success')
         newEnrollIdemKey() // 本轮报名结束，下一次是新会话
         router.push('/')
@@ -298,6 +303,7 @@ async function onSubmit() {
     } else {
       const r = await auth.login(username, password)
       if (r.success) {
+        authDraft.clearDraft()
         ui.showToast('登录成功！', 'success')
         try {
           await router.push(R.query.redirect || '/')

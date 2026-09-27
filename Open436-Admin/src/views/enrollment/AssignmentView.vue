@@ -168,6 +168,7 @@ import {
   getAssignmentMembers, allocateStudents, removeAllocation as apiRemoveAllocation,
   batchRemoveAllocations, getStudentPool
 } from '@/api/assignment'
+import { useAutoDraft } from '@/composables/useAutoDraft'
 
 const loading = ref(false)
 const assignments = ref([])
@@ -192,6 +193,7 @@ const formData = ref({
   description: '',
   deadline: null
 })
+const { restoreDraft, clearDraft } = useAutoDraft('assignment:create', formData)
 
 // 学生池数据（从后端获取）
 const allStudents = ref([])
@@ -355,6 +357,7 @@ async function submitForm() {
       description: formData.value.description,
       deadline: formData.value.deadline
     })
+    clearDraft()
     ElMessage.success('作业已发布')
     showCreateDialog.value = false
     formData.value = { title: '', description: '', deadline: null }
@@ -399,6 +402,10 @@ function openAssignDialog() {
 }
 
 onMounted(() => {
+  if (restoreDraft(draft => ({
+    ...draft,
+    deadline: draft.deadline ? new Date(draft.deadline) : null
+  }))) ElMessage.info('已恢复上次未发布的作业草稿')
   loadStats()
   loadList()
 })

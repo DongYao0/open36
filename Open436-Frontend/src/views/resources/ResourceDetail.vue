@@ -33,6 +33,7 @@
       </template>
     </PostDetailContent>
     <CommentSection
+      :key="post.id"
       :post-id="post.id"
       :can-post="auth.canPost"
       style="margin-top: var(--s-base)"

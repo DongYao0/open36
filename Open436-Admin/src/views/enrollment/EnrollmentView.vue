@@ -20,12 +20,12 @@
 
     <!-- 筛选与操作 -->
     <div class="toolbar">
-      <el-input v-model="keyword" placeholder="搜索姓名/学号/专业" clearable style="width:240px" @input="loadList">
+      <el-input v-model="keyword" placeholder="搜索姓名/学号/专业" clearable style="width:240px" @input="reloadFromFirstPage">
         <template #prefix>
           <el-icon><Search /></el-icon>
         </template>
       </el-input>
-      <el-radio-group v-model="statusFilter" @change="loadList">
+      <el-radio-group v-model="statusFilter" @change="reloadFromFirstPage">
         <el-radio-button value="">全部</el-radio-button>
         <el-radio-button value="pending">待审核</el-radio-button>
         <el-radio-button value="approved">已通过</el-radio-button>
@@ -39,9 +39,12 @@
         end-placeholder="结束日期"
         value-format="YYYY-MM-DD"
         style="width:220px"
-        @change="loadList"
+        @change="reloadFromFirstPage"
       />
-      <el-button v-if="dateRange" link @click="dateRange = null; loadList()">清除日期</el-button>
+      <el-button v-if="dateRange" link @click="dateRange = null; reloadFromFirstPage()">清除日期</el-button>
+      <el-button type="primary" plain :disabled="!selectedRows.length" :loading="exporting" @click="exportApplications">
+        <el-icon><Download /></el-icon>导出选中 ({{ selectedRows.length }})
+      </el-button>
       <el-button type="success" :disabled="!selectedIds.length" @click="handleBatchReview('approved')">
         <el-icon><CircleCheck /></el-icon>批量通过 ({{ selectedIds.length }})
       </el-button>
@@ -51,9 +54,11 @@
     </div>
 
     <!-- 数据表格 -->
-    <el-table :data="applications" stripe v-loading="loading" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="50" />
-      <el-table-column prop="id" label="ID" width="60" />
+    <el-table ref="tableRef" :data="applications" row-key="id" stripe v-loading="loading" @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="50" reserve-selection />
+      <el-table-column label="序号" width="70">
+        <template #default="scope">{{ (page - 1) * pageSize + scope.$index + 1 }}</template>
+      </el-table-column>
       <el-table-column prop="realName" label="姓名" width="100" />
       <el-table-column prop="studentId" label="学号" width="130" />
       <el-table-column prop="major" label="专业" width="180" />
@@ -76,7 +81,14 @@
     </el-table>
 
     <div style="display:flex;justify-content:flex-end;margin-top:16px">
-      <el-pagination v-model:current-page="page" :page-size="10" :total="total" layout="total, prev, pager, next" @current-change="loadList" />
+      <el-pagination
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 30, 50]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @change="loadList"
+      />
     </div>
 
     <!-- 详情弹窗 -->
@@ -98,7 +110,7 @@
 
     <!-- 拒绝原因对话框 -->
     <el-dialog v-model="showRejectReason" title="拒绝原因" width="400px">
-      <el-input v-model="rejectReason" type="textarea" :rows="3" placeholder="请输入拒绝原因（可选）" />
+      <el-input v-model="rejectForm.reason" type="textarea" :rows="3" placeholder="请输入拒绝原因（可选）" />
       <template #footer>
         <el-button @click="showRejectReason = false">取消</el-button>
         <el-button type="danger" @click="confirmReject">确定拒绝</el-button>
@@ -110,23 +122,30 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Download, Search } from '@element-plus/icons-vue'
 import StatCard from '@/components/StatCard.vue'
 import { getApplicationList, reviewApplication, batchReview, getEnrollmentStatistics } from '@/api/enrollment'
+import { downloadCsv, exportDateStamp } from '@/utils/exportCsv'
+import { useAutoDraft } from '@/composables/useAutoDraft'
 
 const loading = ref(false)
+const exporting = ref(false)
+const tableRef = ref(null)
 const applications = ref([])
 const total = ref(0)
 const page = ref(1)
+const pageSize = ref(10)
 const keyword = ref('')
 const statusFilter = ref('')
 const dateRange = ref(null)
 const selectedIds = ref([])
+const selectedRows = ref([])
 const stats = ref({ total: 0, pending: 0, approved: 0, rejected: 0, approvalRate: 0 })
 const dialogVisible = ref(false)
 const currentItem = ref(null)
 const showRejectReason = ref(false)
-const rejectReason = ref('')
+const rejectForm = ref({ applicationId: null, reason: '' })
+const rejectDraft = useAutoDraft('enrollment:reject', rejectForm)
 
 const statusLabels = { pending: '待审核', approved: '已通过', rejected: '已拒绝' }
 const statusTagType = { pending: 'warning', approved: 'success', rejected: 'danger' }
@@ -157,7 +176,7 @@ async function loadList() {
   try {
     const params = {
       page: page.value,
-      size: 10,
+      size: pageSize.value,
       status: statusFilter.value,
       keyword: keyword.value,
       startDate: dateRange.value?.[0] || '',
@@ -171,7 +190,35 @@ async function loadList() {
   }
 }
 
+function reloadFromFirstPage() {
+  tableRef.value?.clearSelection()
+  page.value = 1
+  loadList()
+}
+
+async function exportApplications() {
+  exporting.value = true
+  try {
+    const rows = selectedRows.value
+    const columns = [
+      { label: '序号', value: (_, index) => index + 1 },
+      { label: '姓名', key: 'realName' },
+      { label: '学号', key: 'studentId' },
+      { label: '专业', key: 'major' },
+      { label: '联系方式', key: 'phone' },
+      { label: '提交时间', value: row => formatDate(row.submittedAt) }
+    ]
+    downloadCsv(`报名管理-${exportDateStamp()}.csv`, columns, rows)
+    ElMessage.success(`已导出 ${rows.length} 条报名记录`)
+  } catch {
+    ElMessage.error('导出报名记录失败')
+  } finally {
+    exporting.value = false
+  }
+}
+
 function handleSelectionChange(rows) {
+  selectedRows.value = rows
   selectedIds.value = rows.filter(r => r.status === 'pending').map(r => r.id)
 }
 
@@ -183,6 +230,8 @@ function openDetail(row) {
 async function handleReview(row, status) {
   if (status === 'rejected') {
     currentItem.value = row
+    rejectForm.value = { applicationId: row.id, reason: '' }
+    rejectDraft.restoreDraft(draft => draft.applicationId === row.id ? draft : {})
     showRejectReason.value = true
     return
   }
@@ -197,10 +246,11 @@ async function handleReview(row, status) {
 
 async function confirmReject() {
   if (!currentItem.value) return
-  await reviewApplication(currentItem.value.id, { status: 'rejected', reason: rejectReason.value })
+  await reviewApplication(currentItem.value.id, { status: 'rejected', reason: rejectForm.value.reason })
+  rejectDraft.clearDraft()
   ElMessage.success('已拒绝')
   showRejectReason.value = false
-  rejectReason.value = ''
+  rejectForm.value = { applicationId: null, reason: '' }
   dialogVisible.value = false
   loadList()
   loadStats()
@@ -212,7 +262,7 @@ async function handleBatchReview(status) {
     await ElMessageBox.confirm(`确定批量${label} ${selectedIds.value.length} 条申请？`, '确认', { type: status === 'approved' ? 'success' : 'warning' })
     await batchReview({ ids: selectedIds.value, status })
     ElMessage.success(`批量${label}成功`)
-    selectedIds.value = []
+    tableRef.value?.clearSelection()
     loadList()
     loadStats()
   } catch {}

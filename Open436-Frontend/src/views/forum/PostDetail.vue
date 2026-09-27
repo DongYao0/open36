@@ -36,6 +36,7 @@
         />
       </div>
       <CommentSection
+        :key="post.id"
         :post-id="post.id"
         :can-post="auth.canPost"
       />

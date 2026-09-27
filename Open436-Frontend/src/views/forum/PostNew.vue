@@ -87,6 +87,7 @@ import { useAuthStore } from '@/stores/auth'
 import { markdownToHtml } from '@/utils/format'
 import { createPost, getPost, updatePost } from '@/api/post'
 import { uploadFile } from '@/api/file'
+import { useAutoDraft } from '@/composables/useAutoDraft'
 
 const router = useRouter()
 const route = useRoute()
@@ -97,6 +98,10 @@ const submitting = ref(false)
 const imageUploading = ref(false)
 const imageFileInput = ref(null)
 const form = ref({ title: '', summary: '', section: 'tech', resourceUrl: '', content: '' })
+const draftKey = route.name === 'PostEdit'
+  ? `forum-post:edit:${route.params.id}`
+  : `forum-post:new:${route.query.type === 'share' ? 'share' : 'tech'}`
+const { restoreDraft, clearDraft } = useAutoDraft(draftKey, form)
 const isEditing = computed(() => route.name === 'PostEdit')
 const isResource = computed(() => route.query.type === 'share' || form.value.section === 'share')
 const targetPath = computed(() => isResource.value ? '/forum/share' : '/forum/tech')
@@ -120,6 +125,7 @@ onMounted(async () => {
   await sectionStore.fetchSections()
   if (!isEditing.value) {
     form.value.section = route.query.type === 'share' ? 'share' : 'tech'
+    if (restoreDraft()) ui.showToast('已恢复上次未发布的草稿', 'info')
     return
   }
   try {
@@ -134,9 +140,14 @@ onMounted(async () => {
       if (match) { resourceUrl = match[1]; content = content.slice(match[0].length) }
     }
     form.value = { title: raw.title || '', summary: raw.summary || '', section: slug, resourceUrl, content }
+    if (restoreDraft()) ui.showToast('已恢复上次未保存的修改', 'info')
   } catch (e) {
-    ui.showToast(e?.response?.data?.message || e.message || '帖子加载失败', 'error')
-    router.push('/mine')
+    if (restoreDraft()) {
+      ui.showToast('网络异常，已恢复本地帖子草稿', 'warning')
+    } else {
+      ui.showToast(e?.response?.data?.message || e.message || '帖子加载失败', 'error')
+      router.push('/mine')
+    }
   }
 })
 
@@ -192,6 +203,7 @@ async function submitPost() {
     const payload = { title: form.value.title.trim(), summary: form.value.summary.trim(), content, section_id: sectionId }
     if (isEditing.value) await updatePost(route.params.id, payload)
     else await createPost(payload)
+    clearDraft()
     ui.showToast(isEditing.value ? '修改已保存' : '发布成功！', 'success')
     router.push(isEditing.value ? `/forum/post/${route.params.id}` : '/forum/' + (form.value.section || 'tech'))
   } catch (e) {

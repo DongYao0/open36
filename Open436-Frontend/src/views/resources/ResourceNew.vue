@@ -36,6 +36,7 @@ import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { markdownToHtml } from '@/utils/format'
 import { createPost } from '@/api/post'
+import { useAutoDraft } from '@/composables/useAutoDraft'
 
 const router = useRouter()
 const sectionStore = useSectionStore()
@@ -43,6 +44,7 @@ const ui = useUIStore()
 const auth = useAuthStore()
 const submitting = ref(false)
 const form = ref({ title: '', summary: '', content: '' })
+const { restoreDraft, clearDraft } = useAutoDraft('resource:new', form)
 
 const toolbar = [
   { label: '加粗', syntax: '**粗体文本**', icon: '<b>B</b>' },
@@ -63,6 +65,7 @@ onMounted(() => {
     router.push('/login')
     return
   }
+  if (restoreDraft()) ui.showToast('已恢复上次未发布的资源草稿', 'info')
   sectionStore.fetchSections()
 })
 
@@ -91,6 +94,7 @@ async function submitPost() {
       section_id: sid
     }
     await createPost(payload)
+    clearDraft()
     ui.showToast('发布成功！', 'success')
     router.push('/resources')
   } catch (e) {

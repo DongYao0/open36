@@ -157,6 +157,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getSections, createSection, updateSection, deleteSection, toggleSectionStatus } from '@/api/sections'
 import { getPosts, deletePost, pinPost, unpinPost } from '@/api/posts'
 import { getComments, deleteComment } from '@/api/comments'
+import { useAutoDraft } from '@/composables/useAutoDraft'
 
 const route = useRoute()
 const activeTab = ref(route.query.tab || 'posts')
@@ -181,6 +182,9 @@ async function loadPosts() {
       params.status = 'deleted'
     } else if (postStatusFilter.value === 'normal') {
       params.status = 'published'
+    } else {
+      // 普通论坛即使登录管理员也只展示 published；管理后台显式请求全部状态。
+      params.status = 'all'
     }
     if (postKw.value) {
       params.search = postKw.value
@@ -314,7 +318,8 @@ const sectionSubmitting = ref(false)
 const editingSection = ref(null)
 const sectionFormRef = ref(null)
 
-const sectionForm = reactive({ slug: '', name: '', description: '', color: '#1976D2', sortOrder: 1, icon: '📚' })
+const sectionForm = reactive({ editingId: null, slug: '', name: '', description: '', color: '#1976D2', sortOrder: 1, icon: '📚' })
+const sectionDraft = useAutoDraft('forum:section', sectionForm)
 const sectionRules = {
   slug: [{ required: true, message: '请输入标识', trigger: 'blur' }, { min: 3, max: 20, message: '3-20字符', trigger: 'blur' }],
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }]
@@ -336,11 +341,13 @@ async function loadSections() {
 function openSectionDialog(row) {
   if (row) {
     editingSection.value = row
-    Object.assign(sectionForm, { slug: row.slug, name: row.name, description: row.description || '', color: row.color || '#1976D2', sortOrder: row.sortOrder || 1, icon: row.icon || '📚' })
+    Object.assign(sectionForm, { editingId: row.id, slug: row.slug, name: row.name, description: row.description || '', color: row.color || '#1976D2', sortOrder: row.sortOrder || 1, icon: row.icon || '📚' })
   } else {
     editingSection.value = null
-    Object.assign(sectionForm, { slug: '', name: '', description: '', color: '#1976D2', sortOrder: 1, icon: '📚' })
+    Object.assign(sectionForm, { editingId: null, slug: '', name: '', description: '', color: '#1976D2', sortOrder: 1, icon: '📚' })
   }
+  const targetId = row?.id ?? null
+  sectionDraft.restoreDraft(draft => draft.editingId === targetId ? draft : {})
   sectionDialogVisible.value = true
 }
 
@@ -357,6 +364,7 @@ async function handleSubmitSection() {
       await createSection(data)
       ElMessage.success('创建成功')
     }
+    sectionDraft.clearDraft()
     sectionDialogVisible.value = false
     loadSections()
   } catch (e) {

@@ -99,6 +99,7 @@ import AppNavbar from '@/components/AppNavbar.vue'
 import { useUIStore } from '@/stores/ui'
 import { useAssignmentStore } from '@/stores/assignment'
 import { getMyAssignmentDetail, submitAssignment } from '@/api/user'
+import { useAutoDraft } from '@/composables/useAutoDraft'
 
 const router = useRouter()
 const route = useRoute()
@@ -114,6 +115,7 @@ const assignment = ref({})
 const form = reactive({
   content: ''
 })
+const { restoreDraft, clearDraft } = useAutoDraft(`assignment-submit:${assignmentId}`, form)
 
 const isExpired = computed(() => {
   if (!assignment.value.deadline) return false
@@ -132,9 +134,18 @@ async function loadAssignment() {
     const res = await getMyAssignmentDetail(assignmentId)
     assignment.value = res.data || {}
     form.content = assignment.value.content || ''
+    if (restoreDraft()) {
+      editMode.value = true
+      ui.showToast('已恢复上次未提交的作业内容', 'info')
+    }
   } catch (e) {
     console.error('加载作业失败:', e)
-    ui.showToast('加载作业失败', 'error')
+    if (restoreDraft()) {
+      editMode.value = true
+      ui.showToast('网络异常，已恢复本地作业草稿', 'warning')
+    } else {
+      ui.showToast('加载作业失败', 'error')
+    }
   } finally {
     loading.value = false
   }
@@ -151,6 +162,7 @@ async function handleSubmit() {
     await submitAssignment(assignmentId, {
       content: form.content.trim()
     })
+    clearDraft()
     ui.showToast('作业提交成功', 'success')
     editMode.value = false
     await loadAssignment() // 重新加载

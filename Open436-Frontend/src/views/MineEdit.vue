@@ -75,6 +75,7 @@ import AppNavbar from '@/components/AppNavbar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 import { getUserProfile, updateUserProfile, uploadAvatar as uploadAvatarApi } from '@/api/user'
+import { useAutoDraft } from '@/composables/useAutoDraft'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -87,6 +88,9 @@ const saving = ref(false)
 const form = reactive({
   bio: '',
   avatarUrl: ''
+})
+const { restoreDraft, clearDraft } = useAutoDraft(`profile:${auth.user?.id || 'current'}`, form, {
+  include: ['bio']
 })
 
 const counts = reactive({
@@ -105,11 +109,12 @@ async function loadProfile() {
       form.bio = res.data.bio || ''
       form.avatarUrl = res.data.avatarUrl || ''
       auth.mergeUserProfile(res.data)
-      updateCount('bio')
     }
   } catch (e) {
     console.error('加载资料失败:', e)
   }
+  if (restoreDraft()) ui.showToast('已恢复未保存的个人简介', 'info')
+  updateCount('bio')
 }
 
 function triggerUpload() {
@@ -148,6 +153,7 @@ async function saveProfile() {
       bio: form.bio.trim()
     })
     if (res.code === 200) {
+      clearDraft()
       // 更新本地用户信息
       auth.setUser({
         ...auth.user,

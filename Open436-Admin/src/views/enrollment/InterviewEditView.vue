@@ -64,6 +64,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getInterviewDetail, recordInterview } from '@/api/interview'
+import { useAutoDraft } from '@/composables/useAutoDraft'
 
 const route = useRoute()
 const router = useRouter()
@@ -76,6 +77,11 @@ const form = ref({
   direction: '',
   summary: ''
 })
+const { restoreDraft, clearDraft } = useAutoDraft(
+  `interview:${route.params.enrollmentId}`,
+  form,
+  { include: ['enrollmentId', 'direction', 'summary'] }
+)
 
 const statusLabels = { pending: '待面试', passed: '已通过', failed: '未通过' }
 const statusTagType = { pending: 'warning', passed: 'success', failed: 'danger' }
@@ -91,9 +97,14 @@ async function loadDetail() {
       direction: res.data.direction || '',
       summary: res.data.summary || ''
     }
+    if (restoreDraft()) ElMessage.info('已恢复上次未保存的面试记录')
   } catch {
-    ElMessage.error('加载数据失败')
-    goBack()
+    if (restoreDraft()) {
+      ElMessage.warning('网络异常，已恢复本地面试草稿，可继续填写')
+    } else {
+      ElMessage.error('加载数据失败')
+      goBack()
+    }
   } finally {
     loading.value = false
   }
@@ -111,6 +122,7 @@ async function submitForm() {
       direction: form.value.direction,
       summary: form.value.summary
     })
+    clearDraft()
     ElMessage.success('保存成功')
     goBack()
   } catch {

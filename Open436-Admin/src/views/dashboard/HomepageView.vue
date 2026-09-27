@@ -233,6 +233,7 @@ import { getHomepageModule, saveHomepageModule, resetHomepageModule } from '@/ap
 import { uploadFile } from '@/api/files'
 import * as landingAssets from '../../../../Open436-Landing/src/assets/index.js'
 import { defaultHonorProjects, honorGallery, sortHonorGallery } from '../../../../Open436-Landing/src/data/honorGallery.js'
+import { useAutoDraft } from '@/composables/useAutoDraft'
 
 const props = defineProps({
   module: { type: String, default: 'about' }
@@ -314,6 +315,24 @@ const experiencesMeta = ref({ subText: '核心优势', headText: '实验室功�
 const technologies = ref([])
 const works = ref(null)
 const feedbacks = ref(null)
+const homepageState = computed(() => ({
+  about: about.value,
+  experiences: experiences.value,
+  experiencesMeta: experiencesMeta.value,
+  technologies: technologies.value,
+  works: works.value,
+  feedbacks: feedbacks.value
+}))
+const homepageDraft = useAutoDraft('homepage:content', homepageState, {
+  apply: draft => {
+    if (draft.about) about.value = draft.about
+    if (draft.experiences) experiences.value = draft.experiences
+    if (draft.experiencesMeta) experiencesMeta.value = draft.experiencesMeta
+    if (draft.technologies) technologies.value = draft.technologies
+    if (draft.works) works.value = draft.works
+    if (draft.feedbacks) feedbacks.value = draft.feedbacks
+  }
+})
 
 const aboutServices = computed(() => about.value?.services || [])
 const worksItems = computed(() => works.value?.items || [])
@@ -443,6 +462,7 @@ async function loadAll() {
   } catch (e) {
     ElMessage.error('加载首页内容失败')
   } finally {
+    if (homepageDraft.restoreDraft()) ElMessage.info('已恢复首页内容的未保存草稿')
     loading.value = false
   }
 }
@@ -463,6 +483,7 @@ async function save() {
     } else if (activeTab.value === 'feedbacks') {
       await saveHomepageModule('feedbacks', { ...feedbacks.value, items: feedbackItems.value })
     }
+    homepageDraft.clearDraft()
     ElMessage.success('保存成功，前台刷新即生效')
     await loadAll()
   } catch (e) {
@@ -482,6 +503,7 @@ async function reset() {
   } catch { return }
   try {
     await resetHomepageModule(module)
+    homepageDraft.clearDraft()
     ElMessage.success('已重置')
     await loadAll()
   } catch (e) {

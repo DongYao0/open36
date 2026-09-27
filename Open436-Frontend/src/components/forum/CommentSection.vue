@@ -77,6 +77,7 @@ import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/utils/format'
 import { getReplies, createReply, deleteReply, toggleReplyLike } from '@/api/comment'
+import { useAutoDraft } from '@/composables/useAutoDraft'
 
 const props = defineProps({
   postId: { type: [String, Number], required: true },
@@ -88,6 +89,7 @@ const emit = defineEmits(['count-change'])
 const ui = useUIStore()
 const auth = useAuthStore()
 const newComment = ref('')
+const { restoreDraft, clearDraft } = useAutoDraft(`forum-comment:${props.postId}`, newComment)
 const flatComments = ref([])
 const commentTree = ref([])
 const replyTo = ref(null)
@@ -204,6 +206,7 @@ async function submitComment() {
     const payload = { post_id: props.postId, content: newComment.value.trim() }
     if (replyTo.value) payload.parent_id = replyTo.value.id
     await createReply(payload)
+    clearDraft()
     newComment.value = ''
     replyTo.value = null
     ui.showToast(isReply ? '回复成功' : '评论成功', 'success')
@@ -217,6 +220,7 @@ async function submitComment() {
 }
 
 onMounted(() => {
+  if (restoreDraft()) ui.showToast('已恢复未发送的评论', 'info')
   if (props.postId) fetchReplies(props.postId)
 })
 

@@ -318,12 +318,12 @@ PyPy3、Rust、C# 当前已从 `language.yml` 中移除**，避免提交后在�
 
 ```bash
 MAX_JUDGE_RESTARTS=0 bash deploy/prod/scripts/hoj-contest-preflight.sh \
-  --problem-ids 1001,1002,1003
+  --contest-id 1
 ```
 
 若 Judge 在本轮部署前已有可解释的历史重启，可把 `MAX_JUDGE_RESTARTS` 设置为
 当前基线；比赛开始后重启次数不得继续增长。只有汇总 `FAIL=0` 才能开放比赛。
-脚本会检查咱平台容器健康、Judge OOM/重启、主机容量，以及每道题在 MySQL 中的
+脚本会从比赛ID自动读取题目，并检查咱平台容器健康、Judge OOM/重启、主机容量，以及每道题在 MySQL 中的
 可用测试点和 `/judge/test_case/problem_<ID>` 输入输出文件。缺少题目数据时应在
 咱平台管理端重新上传并完成一次标准答案试判，禁止从其他独立 HOJ 实例直接取数。
 

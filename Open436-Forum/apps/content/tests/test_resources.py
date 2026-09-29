@@ -5,6 +5,7 @@
   - section 过滤生效（只返回 share 板块）
 """
 import pytest
+from unittest.mock import patch
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.test import override_settings
@@ -155,6 +156,54 @@ class ResourceViewSetTests(APITestCase):
     def test_posts_list_rejects_invalid_author_id(self):
         resp = self.client.get('/api/posts/?author_id=not-a-number')
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch('apps.core.middleware._get_verified_user')
+    def test_admin_posts_list_defaults_to_published(self, verify_user):
+        verify_user.return_value = {
+            'user_id': 3, 'username': 'admin', 'role': 'admin', 'status': 'active'
+        }
+        Post.objects.create(id=204, title='Visible', summary='', content='x',
+                            author_id=100, section_id=2, status='published')
+        Post.objects.create(id=205, title='Deleted', summary='', content='x',
+                            author_id=100, section_id=2, status='deleted')
+
+        resp = self.client.get('/api/posts/', HTTP_TOKEN='admin-token')
+        ids = {item['id'] for item in resp.json()['data']['results']}
+
+        self.assertIn(204, ids)
+        self.assertNotIn(205, ids)
+
+    @patch('apps.core.middleware._get_verified_user')
+    def test_admin_posts_list_all_requires_explicit_opt_in(self, verify_user):
+        verify_user.return_value = {
+            'user_id': 3, 'username': 'admin', 'role': 'admin', 'status': 'active'
+        }
+        Post.objects.create(id=206, title='Visible', summary='', content='x',
+                            author_id=100, section_id=2, status='published')
+        Post.objects.create(id=207, title='Deleted', summary='', content='x',
+                            author_id=100, section_id=2, status='deleted')
+
+        resp = self.client.get('/api/posts/?status=all', HTTP_TOKEN='admin-token')
+        ids = {item['id'] for item in resp.json()['data']['results']}
+
+        self.assertIn(206, ids)
+        self.assertIn(207, ids)
+
+    @patch('apps.core.middleware._get_verified_user')
+    def test_admin_resources_list_defaults_to_published(self, verify_user):
+        verify_user.return_value = {
+            'user_id': 3, 'username': 'admin', 'role': 'admin', 'status': 'active'
+        }
+        Post.objects.create(id=208, title='Visible', summary='', content='x',
+                            author_id=100, section_id=1, status='published')
+        Post.objects.create(id=209, title='Deleted', summary='', content='x',
+                            author_id=100, section_id=1, status='deleted')
+
+        resp = self.client.get('/api/resources/', HTTP_TOKEN='admin-token')
+        ids = {item['id'] for item in resp.json()['data']['results']}
+
+        self.assertIn(208, ids)
+        self.assertNotIn(209, ids)
 
     def test_post_author_can_edit_without_time_or_count_limit(self):
         post = Post.objects.create(id=203, title='Editable', summary='', content='x',

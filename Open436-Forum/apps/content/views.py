@@ -28,6 +28,17 @@ logger = logging.getLogger(__name__)
 RESOURCE_SECTION_SLUG = 'share'
 
 
+def _filter_list_status(queryset, request):
+    """公共列表默认只展示已发布内容；管理员需显式请求管理视图。"""
+    status_filter = request.query_params.get('status')
+    if getattr(request, 'is_admin', False):
+        if status_filter == 'all':
+            return queryset
+        if status_filter in (Post.STATUS_PUBLISHED, Post.STATUS_DELETED):
+            return queryset.filter(status=status_filter)
+    return queryset.filter(status=Post.STATUS_PUBLISHED)
+
+
 def _serializer_context(request, posts):
     return {'request': request, 'author_profiles': get_author_profiles(posts)}
 
@@ -98,15 +109,7 @@ class PostViewSet(viewsets.GenericViewSet):
 
     def list(self, request):
         """帖子列表（支持板块筛选、管理员全量查询）"""
-        is_admin = getattr(request, 'is_admin', False)
-        queryset = self.get_queryset()
-
-        if not is_admin:
-            queryset = queryset.filter(status=Post.STATUS_PUBLISHED)
-        else:
-            status_filter = request.query_params.get('status')
-            if status_filter:
-                queryset = queryset.filter(status=status_filter)
+        queryset = _filter_list_status(self.get_queryset(), request)
 
         search = request.query_params.get('search', '').strip()
         # 阶段4.5：限制搜索词长度（超长截断，不产生异常 SQL）
@@ -403,10 +406,7 @@ class ResourceViewSet(viewsets.GenericViewSet):
         return []
 
     def list(self, request):
-        is_admin = getattr(request, 'is_admin', False)
-        queryset = self.get_queryset()
-        if not is_admin:
-            queryset = queryset.filter(status=Post.STATUS_PUBLISHED)
+        queryset = _filter_list_status(self.get_queryset(), request)
 
         author_id = request.query_params.get('author_id')
         if author_id:

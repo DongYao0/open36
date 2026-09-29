@@ -57,7 +57,7 @@ def main():
     app_assets = assets_from_html(base, app_html)[:8]
     # /honors/ 目录无 autoindex；从部署 dist 固定采样真实图片
     honors_imgs = [
-        '/honors/baidu/01.jpg', '/honors/lanqiao/01.jpg',
+        '/honors/baidu/01.jpg', '/honors/lanqiao-20260914/01.jpg',
         '/honors/team/01.jpg', '/honors/mati/01.jpg',
     ]
     for probe in list(honors_imgs):

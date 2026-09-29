@@ -4,7 +4,7 @@
 #    - 独立项目名：open436-prod（dev: open436-dev）
 #    - 独立网络：open436-prod-internal（172.29.0.0/16）
 #    - 独立卷：open436-prod-*（dev: open436-dev-*）
-#    - 仅 ADMIN_BIND_IP:ADMIN_BIND_PORT 与 public-web 通过 cloudflared 暴露
+#    - Admin 保留 LAN 端口；public-web 与 Admin 均可通过 cloudflared 公网访问
 #    - 其余服务全部仅暴露在 Docker 内部网络
 #
 #  启动顺序：
@@ -287,7 +287,7 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
-    mem_limit: 2g  # 压测实测随负载线性涨：200VU=1007M/500VU=1240M/1000VU=1485M
+    mem_limit: ${KONG_MEM_LIMIT:-4g}  # 留出插件/LuaJIT 峰值余量，避免常态贴近 cgroup 上限
     cpus: 2
     build:
       context: ./kong
@@ -669,6 +669,7 @@ services:
       # 仅在数据卷首次初始化时执行；HOJ 原始 schema/seed 后接生产加固脚本。
       - ../../Open436-hoj/sqlAndsetting/hoj.sql:/docker-entrypoint-initdb.d/10-hoj.sql:ro
       - ./hoj/20-production-hardening.sql:/docker-entrypoint-initdb.d/20-production-hardening.sql:ro
+      - ../../Open436-hoj/sqlAndsetting/open436-user-admin-extension.sql:/docker-entrypoint-initdb.d/30-user-admin-extension.sql:ro
     healthcheck:
       # mysqladmin ping 在首次导入尚未结束时也会成功；查询业务表才能证明冷启动初始化完成。
       test: ["CMD-SHELL", "mysql -h localhost -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" -Nse 'SELECT COUNT(*) FROM hoj.role' | grep -Eq '^[1-9][0-9]*$'"]
@@ -692,15 +693,15 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
-    mem_limit: 1g
+    mem_limit: ${HOJ_NACOS_MEM_LIMIT:-2g}
     cpus: 1
     image: nacos/nacos-server:v2.3.2
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-hoj-nacos
     profiles: [hoj]
     environment:
       MODE: standalone
-      JVM_XMS: 512m
-      JVM_XMX: 512m
+      JVM_XMS: ${HOJ_NACOS_JVM_XMS:-512m}
+      JVM_XMX: ${HOJ_NACOS_JVM_XMX:-1024m}
     volumes: [nacos-data:/home/nacos/data]
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8848/nacos/actuator/health >/dev/null || exit 1"]
@@ -834,11 +835,24 @@ services:
       HOJ_DB_POOL_MAX_ACTIVE: ${HOJ_JUDGE_DB_POOL_MAX_ACTIVE:-20}
       HOJ_DB_POOL_MIN_IDLE: ${HOJ_JUDGE_DB_POOL_MIN_IDLE:-5}
       HOJ_DB_POOL_MAX_WAIT: ${HOJ_JUDGE_DB_POOL_MAX_WAIT:-3000}
-    entrypoint: ["/bin/sh", "-c", "exec java -jar app.jar"]
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        attempts=0
+        until curl -fsS http://hoj-nacos:8848/nacos/actuator/health >/dev/null 2>&1; do
+          attempts=$$((attempts + 1))
+          if [ "$$attempts" -ge 60 ]; then
+            echo "Nacos readiness timeout after 120 seconds" >&2
+            exit 1
+          fi
+          sleep 2
+        done
+        exec java -jar app.jar
     depends_on:
       hoj-mysql: { condition: service_healthy }
       hoj-nacos: { condition: service_healthy }
-      go-judge: { condition: service_started }
+      go-judge: { condition: service_healthy }
     volumes:
       - hoj-testcase:/judge/test_case
     networks: [internal]
@@ -1018,7 +1032,7 @@ services:
       auth: { condition: service_healthy }
       enrollment: { condition: service_healthy }
       file-service: { condition: service_healthy }
-    networks: [internal]
+    networks: [internal, edge]
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:80/ >/dev/null"]
       interval: 15s
@@ -1043,18 +1057,58 @@ services:
     mem_limit: 256m
     cpus: 0.5
     build: { context: ./cloudflared }
-    image: open436/cloudflared-url-publisher:2024.12.2
+    image: open436/cloudflared-url-publisher:2026.9.1
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-cloudflared
     profiles: [tunnel]
     # 包装镜像保留固定 cloudflared 版本，并把当前客户端 URL 原子发布到共享卷。
     # Quick Tunnel 自动从日志捕获随机 URL；Named Tunnel 使用 PUBLIC_CLIENT_URL。
-    # --protocol http2：QUIC(UDP) 在校园网环境反复超时导致 quick tunnel 被
-    # Cloudflare 注销（NXDOMAIN）。http2 走 TCP 更稳。
+    # 2026-09-26 实测 HTTP/2/TCP Edge 连接反复断开且公网握手延迟 6s；
+    # QUIC 四连接探针全部通过，正式 Named Tunnel 改用 QUIC。
     environment:
       CLOUDFLARE_TUNNEL_ARGS: ${CLOUDFLARE_TUNNEL_ARGS:-}
       PUBLIC_CLIENT_URL: ${PUBLIC_CLIENT_URL:-}
+      TUNNEL_METRICS: 0.0.0.0:20241
+      PROMETHEUS_TARGETS_ENABLED: "true"
+      TUNNEL_WATCHDOG_ENABLED: ${TUNNEL_WATCHDOG_ENABLED:-false}
+      TUNNEL_WATCHDOG_INTERVAL_SECONDS: ${TUNNEL_WATCHDOG_INTERVAL_SECONDS:-15}
+      TUNNEL_WATCHDOG_FAILURE_THRESHOLD: ${TUNNEL_WATCHDOG_FAILURE_THRESHOLD:-6}
+      TUNNEL_WATCHDOG_STARTUP_GRACE_SECONDS: ${TUNNEL_WATCHDOG_STARTUP_GRACE_SECONDS:-60}
+      TUNNEL_WATCHDOG_COOLDOWN_SECONDS: ${TUNNEL_WATCHDOG_COOLDOWN_SECONDS:-900}
+      TUNNEL_WATCHDOG_PROBE_TIMEOUT_SECONDS: ${TUNNEL_WATCHDOG_PROBE_TIMEOUT_SECONDS:-10}
+      TUNNEL_WATCHDOG_RESTART_GRACE_SECONDS: ${TUNNEL_WATCHDOG_RESTART_GRACE_SECONDS:-5}
     volumes:
       - tunnel-runtime:/runtime
+    networks: [edge]
+    restart: unless-stopped
+
+  # Admin 独立公网入口：Quick Tunnel 生成单独 HTTPS 地址，不公开宿主机管理端口。
+  admin-cloudflared:
+    init: true
+    stop_grace_period: 30s
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    mem_limit: 256m
+    cpus: 0.5
+    build: { context: ./cloudflared }
+    image: open436/cloudflared-url-publisher:2026.9.1
+    container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-admin-cloudflared
+    profiles: [tunnel]
+    environment:
+      CLOUDFLARE_TUNNEL_ARGS: ${ADMIN_CLOUDFLARE_TUNNEL_ARGS:-}
+      PUBLIC_CLIENT_URL: ${PUBLIC_ADMIN_URL:-}
+      TUNNEL_METRICS: 0.0.0.0:20241
+      PROMETHEUS_TARGETS_ENABLED: "false"
+      TUNNEL_ORIGIN_URL: http://admin:80
+      RUNTIME_FILE_NAME: admin-url.json
+      TUNNEL_WATCHDOG_ENABLED: "false"
+    volumes:
+      - tunnel-runtime:/runtime
+    depends_on:
+      admin: { condition: service_healthy }
     networks: [edge]
     restart: unless-stopped
 
@@ -1070,6 +1124,7 @@ services:
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - tunnel-runtime:/runtime:ro
       - prometheus-data:/prometheus
     ports:
       - "${ADMIN_BIND_IP:-172.20.193.162}:9090:9090"
@@ -1083,7 +1138,24 @@ services:
         max-file: "5"
     mem_limit: 1g
     cpus: "1"
+    networks: [internal, edge]
+    restart: unless-stopped
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-blackbox-exporter
+    profiles: [monitoring]
+    command: ["--config.file=/etc/blackbox_exporter/config.yml"]
+    volumes:
+      - ./monitoring/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    init: true
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    mem_limit: 128m
+    cpus: "0.25"
     networks: [internal]
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:10.4.5
@@ -1109,6 +1181,7 @@ services:
     mem_limit: 512m
     cpus: "1"
     networks: [internal]
+    restart: unless-stopped
 
   node-exporter:
     image: prom/node-exporter:v1.8.1

@@ -1,20 +1,20 @@
-// 场景D：HOJ 150 人比赛
-//   - 浏览线程：150 VU 浏览题目/提交列表（登录态，3~8s 停顿）；
-//   - 提交线程：恒定速率提交（SUBMIT_RATE/秒，默认 5，可 10/20）；
+// 场景D：HOJ 300 人比赛
+//   - 浏览线程：默认 300 VU 浏览题目/提交列表（登录态，3~8s 停顿）；
+//   - 提交线程：恒定速率提交（SUBMIT_RATE/秒，默认 40）；
 //   - 提交必须进入队列（HTTP 200 受理），不允许 5xx 丢任务。
 //
 // 账号要求（压测前置修正）：
-//   HOJ 单账号提交间隔 defaultSubmitInterval=8s。20 提交/秒时，账号 i 再次
-//   提交需间隔 N/Rate 秒 → N ≥ 8×Rate → 20/s 需 ≥160 个账号。
+//   HOJ 单账号提交间隔 defaultSubmitInterval=8s。40 提交/秒时，账号 i 再次
+//   提交需间隔 N/Rate 秒 → N ≥ 8×Rate → 40/s 需 ≥320 个账号。
 //   脚本强制校验 ACCOUNTS ≥ ceil(8×Rate)+8 余量，且按迭代序号轮询取号，
 //   杜绝随机取号造成的"同账号 8 秒内重复提交 403"。
 //
 // 准备（Windows，对 LAN）：
 //   python deploy/prod/loadtest/gen-hoj-accounts.py --base http://172.20.193.162:8080 \
-//       --count 170 --prefix ltc --password 'LtHoj#0436' --out hoj-accounts.txt
+//       --count 330 --prefix ltc --password 'LtHoj#0436' --out hoj-accounts.txt
 // 运行：
 //   k6 run -e BASE_URL=... -e HOJ_ACCOUNTS_FILE=hoj-accounts.txt \
-//          -e SUBMIT_RATE=20 hoj-submit.js
+//          -e SUBMIT_RATE=40 hoj-submit.js
 // （HOJ_ACCOUNTS_FILE 每行 user:pass；也可用 HOJ_ACCOUNTS=u:p,u:p 内联。）
 
 import http from 'k6/http';
@@ -23,7 +23,8 @@ import exec from 'k6/execution';
 import { Trend, Rate, Counter } from 'k6/metrics';
 import { BASE_URL, makeSummary } from './common.js';
 
-const SUBMIT_RATE = parseInt(__ENV.SUBMIT_RATE || '5', 10);
+const HOJ_BROWSE_VUS = parseInt(__ENV.HOJ_BROWSE_VUS || '300', 10);
+const SUBMIT_RATE = parseInt(__ENV.SUBMIT_RATE || '40', 10);
 
 // ── 账号装载（文件优先于内联）──
 function loadAccounts() {
@@ -67,8 +68,8 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '1m', target: 150 },
-        { duration: '5m', target: 150 },
+        { duration: '1m', target: HOJ_BROWSE_VUS },
+        { duration: '5m', target: HOJ_BROWSE_VUS },
         { duration: '1m', target: 0 },
       ],
       gracefulRampDown: '30s',

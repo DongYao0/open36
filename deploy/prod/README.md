@@ -24,7 +24,7 @@
    Postgres │ Redis │ Milvus/etcd │ Consul │ MinIO │ Kong │ HOJ*
                   （全部仅 Docker 内部网络）
 
-        Admin (LAN 绑定，仅 ${ADMIN_BIND_IP}:3001，不进 Cloudflare)
+        Admin (LAN ${ADMIN_BIND_IP}:3001 + 独立 Cloudflare HTTPS 入口)
 ```
 
 ## 前置条件
@@ -117,6 +117,10 @@ Tunnel 重启并生成新域名后无需人工修改；可以直接复制或打�
 ```bash
 docker logs open436-prod-cloudflared 2>&1 \
   | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
+
+# 管理端独立 HTTPS 地址
+docker logs open436-prod-admin-cloudflared 2>&1 \
+  | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
 ```
 
 public-web 会把同源 API 请求的 `Origin` 清除后再转发到内部服务，因此随机网址
@@ -125,17 +129,19 @@ public-web 会把同源 API 请求的 `Origin` 清除后再转发到内部服务
 切换 Named Tunnel 时，在 `.env.production` 同时设置稳定的公开地址：
 
 ```dotenv
-CLOUDFLARE_TUNNEL_ARGS=tunnel --no-autoupdate --protocol http2 run --token <TOKEN>
+CLOUDFLARE_TUNNEL_ARGS=tunnel --no-autoupdate --protocol quic run --token <TOKEN>
 PUBLIC_CLIENT_URL=https://open436.example.com
+ADMIN_CLOUDFLARE_TUNNEL_ARGS=tunnel --no-autoupdate --protocol quic run --token <ADMIN_TOKEN>
+PUBLIC_ADMIN_URL=https://admin.open436.example.com
 ```
 
 修改 Admin 展示或地址发布器后，只需增量重建两个服务：
 
 ```bash
 docker compose --env-file deploy/prod/.env.production \
-  -f deploy/prod/compose.yml --profile tunnel build admin cloudflared
+  -f deploy/prod/compose.yml --profile tunnel build admin cloudflared admin-cloudflared
 docker compose --env-file deploy/prod/.env.production \
-  -f deploy/prod/compose.yml --profile tunnel up -d admin cloudflared
+  -f deploy/prod/compose.yml --profile tunnel up -d admin cloudflared admin-cloudflared
 ```
 
 ## 健康检查
@@ -156,7 +162,8 @@ docker exec open436-prod-public-web curl -fsS http://localhost/app/
 # 再使用上节日志中得到的 Quick Tunnel 地址做公网端到端检查
 curl -fsS https://<random>.trycloudflare.com/
 curl -fsS https://<random>.trycloudflare.com/app/
-#   Admin（仅 LAN）
+# Admin：公网随机地址与 LAN 地址均可验证
+curl -fsS https://<admin-random>.trycloudflare.com/
 curl -fsS http://${ADMIN_BIND_IP}:${ADMIN_BIND_PORT}/
 ```
 
@@ -303,6 +310,22 @@ docker compose --env-file deploy/prod/.env.production \
 C / C++ / Python3 / PHP / Ruby / Node.js / Java / Go 可用；**Python2、PyPy2、
 PyPy3、Rust、C# 当前已从 `language.yml` 中移除**，避免提交后在生产选了该
 语言却执行失败。
+
+### HOJ 比赛前体检
+
+比赛题发布前必须对 `open436-prod-*` 执行只读体检；脚本不会访问或修改其他
+独立 HOJ 实例。将本场比赛的数据库题目 ID 全部传入：
+
+```bash
+MAX_JUDGE_RESTARTS=0 bash deploy/prod/scripts/hoj-contest-preflight.sh \
+  --problem-ids 1001,1002,1003
+```
+
+若 Judge 在本轮部署前已有可解释的历史重启，可把 `MAX_JUDGE_RESTARTS` 设置为
+当前基线；比赛开始后重启次数不得继续增长。只有汇总 `FAIL=0` 才能开放比赛。
+脚本会检查咱平台容器健康、Judge OOM/重启、主机容量，以及每道题在 MySQL 中的
+可用测试点和 `/judge/test_case/problem_<ID>` 输入输出文件。缺少题目数据时应在
+咱平台管理端重新上传并完成一次标准答案试判，禁止从其他独立 HOJ 实例直接取数。
 
 
 ---

@@ -1,4 +1,4 @@
-// 场景C：报名集中提交（三档：20 / 100 / 300 并发）
+// 场景C：报名集中提交（三档：40 / 200 / 600 并发）
 //
 // 每个虚拟用户：
 //   1. 生成唯一测试用户名/学号/幂等键（前缀 lt，便于压测后清理）；
@@ -8,20 +8,23 @@
 //   4. 同 Key 提交不同内容（fingerprint 漂移）应得到 409，而不是复用旧结果。
 //
 // 运行（在实验室局域网，压测电脑直连天元 5G）：
-//   k6 run -e BASE_URL=http://172.20.193.162:8080 -e TIER=20  enrollment.js
-//   k6 run -e BASE_URL=... -e TIER=100 enrollment.js
-//   k6 run -e BASE_URL=... -e TIER=300 enrollment.js   # 短时突发
+//   k6 run -e BASE_URL=http://172.20.193.162:8080 -e TIER=40  enrollment.js
+//   k6 run -e BASE_URL=... -e TIER=200 enrollment.js
+//   k6 run -e BASE_URL=... -e TIER=600 enrollment.js   # 短时突发
 //
 // 阶段5 落地前，服务端会忽略幂等键，本脚本的第 3/4 步会如实暴露重复创建
 // ——这是预期行为：改造前红、改造后绿。
 
 import exec from 'k6/execution';
+import http from 'k6/http';
 import { sleep } from 'k6';
 import { Rate, Trend, Counter } from 'k6/metrics';
-import { postApi, BASE_URL, makeSummary } from './common.js';
+import { postApi, recordDynamic, BASE_URL, makeSummary } from './common.js';
 
-const TIER = parseInt(__ENV.TIER || '20', 10);
-const DURATION = __ENV.TIER_DURATION || (TIER >= 300 ? '2m' : '10m');
+const TIER = parseInt(__ENV.TIER || '40', 10);
+const DURATION = __ENV.TIER_DURATION || (TIER >= 600 ? '2m' : '10m');
+const RAMP = __ENV.TIER_RAMP || '30s';
+const RAMP_DOWN = __ENV.TIER_RAMP_DOWN || '30s';
 
 const enrollDuration = new Trend('enroll_duration', true);
 const enrollFailRate = new Rate('enroll_fail_rate');
@@ -34,9 +37,9 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '30s', target: TIER },
+        { duration: RAMP, target: TIER },
         { duration: DURATION, target: TIER },
-        { duration: '30s', target: 0 },
+        { duration: RAMP_DOWN, target: 0 },
       ],
       gracefulRampDown: '20s',
     },
@@ -54,14 +57,21 @@ function uniqueName(iter, runId) {
   return `lt${TIER}r${runId}u${iter.toString(36)}`;
 }
 
+function numericRunId(runId) {
+  let hash = 0;
+  for (const ch of runId) hash = (hash * 31 + ch.charCodeAt(0)) % 100000;
+  return hash;
+}
+
 function applyBody(iter, runId) {
+  const serial = (numericRunId(runId) * 100000 + (iter % 100000)) % 10000000000;
   return {
     username: uniqueName(iter, runId),
     password: 'LtTest#0436',
-    studentId: `LT${TIER}${runId}${String(iter).padStart(7, '0')}`,
-    realName: `压测用户${iter}`,
+    studentId: `20${String(serial).padStart(10, '0')}`,
+    realName: '压测用户',
     phone: `170${String(10000000 + (iter % 89999999))}`,
-    major: 'loadtest',
+    major: '软件工程',
     selfIntro: '',
     skills: '',
   };
@@ -113,8 +123,13 @@ export default function (data) {
   enrollHalfSuccess.add(!consistent || statuses.size > 1);
 
   // ── 步骤4：同 Key 不同内容 → 必须 409，不得静默复用旧结果 ──
-  const drifted = Object.assign({}, body, { realName: `压测用户${iter}DRIFT` });
-  const driftRes = postApi('/api/enrollment/apply', drifted, { 'X-Idempotency-Key': idemKey });
+  const drifted = Object.assign({}, body, { realName: '压测异名' });
+  const driftRes = http.post(`${BASE_URL}/api/enrollment/apply`, JSON.stringify(drifted), {
+    tags: { type: 'api', expected: '409' },
+    headers: { 'Content-Type': 'application/json', 'X-Idempotency-Key': idemKey },
+  });
+  recordDynamic(driftRes.status === 409, driftRes.timings.duration,
+    { path: '/api/enrollment/apply', expected: '409' }, driftRes.status);
   // 阶段5 前服务端忽略 Key，会返回"用户名已存在"类 4xx——同样不可接受为 5xx
   if (driftRes.status >= 500) enrollServerErrors.add(1);
 

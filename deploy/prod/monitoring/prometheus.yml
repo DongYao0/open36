@@ -22,6 +22,33 @@ scrape_configs:
     static_configs:
       - targets: ['cadvisor:8080']
 
+  - job_name: cloudflared
+    scrape_interval: 5s
+    scrape_timeout: 4s
+    static_configs:
+      - targets: ['cloudflared:20241']
+        labels: { connector: public }
+      - targets: ['admin-cloudflared:20241']
+        labels: { connector: admin }
+
+  # cloudflared 会把 Named/Quick Tunnel 当前公网地址原子写入共享卷。
+  - job_name: public-endpoint
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    file_sd_configs:
+      - files: ['/runtime/prometheus-public-targets.json']
+        refresh_interval: 15s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
   - job_name: postgres
     static_configs:
       - targets: ['postgres-exporter:9187']

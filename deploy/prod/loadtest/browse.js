@@ -6,18 +6,23 @@
 //   污染静态失败率口径。
 //
 // 环境变量：
-//   BROWSE_VUS（默认1000）BROWSE_HOLD（默认10m）BROWSE_RAMP（默认3m）
+//   BROWSE_VUS（默认2000）BROWSE_HOLD（默认10m）
+//   BROWSE_RAMP（默认3m）BROWSE_RAMP_DOWN（默认2m）
+//   BROWSER_CACHE（默认true；每个 VU 的静态资产只下载一次）
 // 运行：k6 run -e BASE_URL=http://172.20.193.162:8080 browse.js
 
 import http from 'k6/http';
 import { BASE_URL, getApi, think, baseThresholds, makeSummary,
          recordStatic } from './common.js';
 
-const VUS = parseInt(__ENV.BROWSE_VUS || '1000', 10);
+const VUS = parseInt(__ENV.BROWSE_VUS || '2000', 10);
 const HOLD = __ENV.BROWSE_HOLD || '10m';
 const RAMP = __ENV.BROWSE_RAMP || '3m';
+const RAMP_DOWN = __ENV.BROWSE_RAMP_DOWN || '2m';
+const BROWSER_CACHE = (__ENV.BROWSER_CACHE || 'true').toLowerCase() !== 'false';
 
 export const options = {
+  discardResponseBodies: true,
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
   scenarios: {
     browse: {
@@ -26,7 +31,7 @@ export const options = {
       stages: [
         { duration: RAMP, target: VUS },
         { duration: HOLD, target: VUS },
-        { duration: '2m', target: 0 },
+        { duration: RAMP_DOWN, target: 0 },
       ],
       gracefulRampDown: '30s',
     },
@@ -58,7 +63,7 @@ const PAGE_SKELETON = [
   { name: 'resources', weight: 15, htmlPath: '/app/resources', api: ['/api/posts/?section=share&page=1&page_size=20'] },
   { name: 'contests', weight: 10, htmlPath: '/app/contests', api: ['/api/sections/'] },
   { name: 'honors', weight: 10, htmlPath: null,
-    fixedStatic: ['/honors/baidu/01.jpg', '/honors/lanqiao/01.jpg',
+    fixedStatic: ['/honors/baidu/01.jpg', '/honors/lanqiao-20260914/01.jpg',
                   '/honors/team/01.jpg', '/honors/mati/01.jpg'], api: [] },
 ];
 
@@ -66,7 +71,7 @@ export function setup() {
   const groups = PAGE_SKELETON.map(s => {
     let staticUrls = s.fixedStatic || [];
     if (s.htmlPath) {
-      const res = http.get(`${BASE_URL}${s.htmlPath}`);
+      const res = http.get(`${BASE_URL}${s.htmlPath}`, { responseType: 'text' });
       const assets = res.status === 200 ? assetsFromHtml(res.body, 8) : [];
       staticUrls = [s.htmlPath].concat(assets);
     }
@@ -78,6 +83,11 @@ export function setup() {
 }
 
 const TOTAL_WEIGHT = PAGE_SKELETON.reduce((s, g) => s + g.weight, 0);
+const cachedStatic = Object.create(null);
+
+function isAsset(path) {
+  return /\.(js|css|png|jpe?g|svg|webp|glb)(\?|$)/i.test(path);
+}
 
 export default function (data) {
   const groups = (data && data.groups) || [];
@@ -93,8 +103,12 @@ export default function (data) {
   // 天元5G AP 对并发连接数敏感（500VU×batch≈3000连接时整段断流），
   // 顺序模式连接数=VU数，施压链路稳定；页面资源总量语义不变
   for (const u of group.static) {
+    const cacheable = BROWSER_CACHE && isAsset(u);
+    if (cacheable && cachedStatic[u]) continue;
     const res = http.get(`${BASE_URL}${u}`, { tags: { type: 'static', page: group.name } });
-    recordStatic(res.status >= 200 && res.status < 400,
+    const ok = res.status >= 200 && res.status < 400;
+    if (cacheable && ok) cachedStatic[u] = true;
+    recordStatic(ok,
                  res.timings.duration, { page: group.name, url: res.url }, res.status);
   }
   for (const api of group.api) {

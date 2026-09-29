@@ -125,6 +125,11 @@ export function makeSummary(name) {
       test_duration_s: r2(data.state.testRunDurationMs / 1000),
       http_reqs: m.http_reqs ? m.http_reqs.values.count : 0,
       actual_rps: m.http_reqs ? r2(m.http_reqs.values.rate) : 0,
+      iterations: m.iterations ? m.iterations.values.count : 0,
+      vus_max: m.vus_max ? (m.vus_max.values.max || m.vus_max.values.value || 0) : 0,
+      data_received_mb: m.data_received ? r2(m.data_received.values.count / 1024 / 1024) : 0,
+      receive_mbps: m.data_received ? r2(m.data_received.values.rate * 8 / 1000 / 1000) : 0,
+      data_sent_mb: m.data_sent ? r2(m.data_sent.values.count / 1024 / 1024) : 0,
       static: { duration: pct('static_req_duration'), fail_rate: m.static_fail_rate ? r4(m.static_fail_rate.values.rate) : null },
       dynamic: { duration: pct('dynamic_req_duration'), fail_rate: m.dynamic_fail_rate ? r4(m.dynamic_fail_rate.values.rate) : null },
       http_req_duration: pct('http_req_duration'),
@@ -132,13 +137,13 @@ export function makeSummary(name) {
       checks: m.checks ? { rate: r4(m.checks.values.rate), passes: m.checks.values.passes } : null,
       scenario_state: data.state ? { testRunDurationMs: data.state.testRunDurationMs } : null,
     };
-    // 状态码分布（从 counters 里找 http_reqs 之外的 http_resp_status*）
-    const codes = {};
+    // 状态码分布：按静态/动态分类读取预声明的 resp_<kind>_<code> counters。
+    const codes = { static: {}, dynamic: {} };
     for (const [k, v] of Object.entries(m)) {
-      const mm = k.match(/^http_resp_status_(\d{3})$/);
-      if (mm && v.values) codes[mm[1]] = v.values.count;
+      const mm = k.match(/^resp_(static|dyn)_(\d{3})$/);
+      if (mm && v.values) codes[mm[1] === 'static' ? 'static' : 'dynamic'][mm[2]] = v.values.count;
     }
-    if (Object.keys(codes).length) summary.status_codes = codes;
+    if (Object.keys(codes.static).length || Object.keys(codes.dynamic).length) summary.status_codes = codes;
     return {
       stdout: textBlock(name, summary),
       [`${name}-summary.json`]: JSON.stringify(summary, null, 2),
@@ -152,7 +157,8 @@ const r4 = (x) => (typeof x === 'number' ? Math.round(x * 10000) / 10000 : x);
 function textBlock(name, s) {
   return [
     `==== ${name} summary ====`,
-    `duration_s=${s.test_duration_s}  reqs=${s.http_reqs}  rps=${s.actual_rps}`,
+    `duration_s=${s.test_duration_s}  vus_max=${s.vus_max}  iterations=${s.iterations}`,
+    `reqs=${s.http_reqs}  rps=${s.actual_rps}  rx=${s.receive_mbps}Mbps (${s.data_received_mb}MB)`,
     `static:  fail=${s.static.fail_rate}  p95=${s.static.duration.p95}ms  p99=${s.static.duration.p99}ms`,
     `dynamic: fail=${s.dynamic.fail_rate}  p95=${s.dynamic.duration.p95}ms  p99=${s.dynamic.duration.p99}ms`,
     s.status_codes ? `codes: ${JSON.stringify(s.status_codes)}` : '',

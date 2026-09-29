@@ -1,4 +1,4 @@
-FROM cloudflare/cloudflared:2024.12.2 AS cloudflared
+FROM cloudflare/cloudflared:2026.9.1 AS cloudflared
 
 FROM alpine:3.21.3
 RUN apk add --no-cache ca-certificates \

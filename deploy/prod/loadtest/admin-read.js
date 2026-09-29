@@ -1,4 +1,4 @@
-// 管理端只读压测：约 200 名在线管理员，查询为主。
+// 管理端只读压测：默认 400 名在线管理员，查询为主。
 // Admin 直接监听 LAN 的 3001 端口，不经 public-web/隧道。
 //
 // 运行：k6 run -e ADMIN_URL=http://172.20.193.162:3001 \
@@ -11,7 +11,7 @@ import { Trend, Rate } from 'k6/metrics';
 import { makeSummary } from './common.js';
 
 const ADMIN_URL = __ENV.ADMIN_URL || 'http://172.20.193.162:3001';
-const ADMIN_VUS = parseInt(__ENV.ADMIN_VUS || '200', 10);
+const ADMIN_VUS = parseInt(__ENV.ADMIN_VUS || '400', 10);
 const ADMIN_RAMP = __ENV.ADMIN_RAMP || '2m';
 const ADMIN_HOLD = __ENV.ADMIN_HOLD || '10m';
 const ADMIN_RAMP_DOWN = __ENV.ADMIN_RAMP_DOWN || '1m';

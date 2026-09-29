@@ -20,6 +20,7 @@
 | Subdomain | Domain | Service |
 |---|---|---|
 | www（或 @） | 你的域名 | `http://public-web:80` |
+| admin | 你的域名 | `http://admin:80` |
 
 Tunnel 与 public-web 在同一 Docker 网络，用服务名直连。
 
@@ -28,7 +29,10 @@ Tunnel 与 public-web 在同一 Docker 网络，用服务名直连。
 ```bash
 # /home/sunrise-ssh/open436/deploy/prod/.env.production
 # 镜像无 shell，参数整体替换（tunnel 子命令 + token）
-CLOUDFLARE_TUNNEL_ARGS=tunnel --no-autoupdate --protocol http2 run --token eyJh...（你的 Token）
+CLOUDFLARE_TUNNEL_ARGS=tunnel --no-autoupdate --protocol quic run --token eyJh...（你的 Token）
+PUBLIC_CLIENT_URL=https://www.你的域名
+ADMIN_CLOUDFLARE_TUNNEL_ARGS=tunnel --no-autoupdate --protocol quic run --token eyJh...（管理端 Tunnel Token）
+PUBLIC_ADMIN_URL=https://admin.你的域名
 ```
 
 重启隧道：
@@ -37,7 +41,10 @@ CLOUDFLARE_TUNNEL_ARGS=tunnel --no-autoupdate --protocol http2 run --token eyJh.
 cd ~/open436/deploy/prod
 docker compose --env-file .env.production -f compose.yml \
   --profile tunnel up -d cloudflared
-docker logs open436-prod-cloudflared   # 确认 registered + 协议 http2
+docker compose --env-file .env.production -f compose.yml \
+  --profile tunnel up -d admin-cloudflared
+docker logs open436-prod-cloudflared         # 客户端：registered + quic
+docker logs open436-prod-admin-cloudflared   # 管理端：registered + quic
 ```
 
 未配置 Token 时自动回退 Quick Tunnel（日志有明确提示）。
@@ -72,6 +79,7 @@ Edge TTL 跟随源站 Cache-Control（已配置 immutable 1 年 / 7 天+SWR）�
 ## 6. 验收清单
 
 - [ ] 域名 HTTPS 打开首页，证书正常
+- [ ] `admin.域名` 打开管理端，登录与 API 请求正常
 - [ ] `/api/users/homepage/public` 响应头 `Cache-Control: public, max-age=60`
 - [ ] 登录/报名 POST 不命中 CF 缓存（DevTools 看 cf-cache-status: BYPASS/DYNAMIC）
 - [ ] AI 流式对话逐字输出（SSE 通畅）

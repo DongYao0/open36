@@ -23,23 +23,26 @@ docker compose --env-file .env.production \
 
 | 文件 | 场景 | 命令 |
 |---|---|---|
-| browse.js | A：0→200→500→1000 VU 爬坡，保持10分钟 | `k6 run -e BASE_URL=http://172.20.193.162:8080 browse.js` |
-| forum-read.js | B：300 并发，80%列表/20%详情+回复 | `k6 run -e BASE_URL=... forum-read.js`（`-e POST_ID_MAX=实际最大帖子id`） |
-| enrollment.js | C：报名 20/100/300 并发+幂等验证 | `k6 run -e BASE_URL=... -e TIER=20 enrollment.js`（TIER=100 / 300） |
-| admin-read.js | 管理端 200 只读 | `k6 run -e ADMIN_URL=http://172.20.193.162:3001 -e ADMIN_USER=.. -e ADMIN_PASS=.. admin-read.js` |
-| hoj-submit.js | D：150浏览 + 20提交/s×3min | `k6 run -e BASE_URL=... -e HOJ_ACCOUNTS="u1:p1,u2:p2,..." hoj-submit.js` |
+| browse.js | A：0→2000 VU 爬坡，保持10分钟 | `k6 run -e BASE_URL=http://172.20.193.162:8080 browse.js` |
+| forum-read.js | B：600 并发，80%列表/20%详情+回复；自动发现有效帖子 ID | `k6 run -e BASE_URL=... forum-read.js` |
+| enrollment.js | C：报名 40/200/600 并发+幂等验证 | `k6 run -e BASE_URL=... -e TIER=40 enrollment.js`（TIER=200 / 600） |
+| admin-read.js | 管理端 400 只读 | `k6 run -e ADMIN_URL=http://172.20.193.162:3001 -e ADMIN_USER=.. -e ADMIN_PASS=.. admin-read.js` |
+| hoj-submit.js | D：300浏览 + 40提交/s×3min | `k6 run -e BASE_URL=... -e HOJ_ACCOUNTS_FILE=hoj-accounts.txt hoj-submit.js` |
+
+`browse.js` 默认模拟浏览器缓存：HTML 每次导航都会请求，JS/CSS/图片等静态资产每个 VU
+只下载一次。需要专门压静态带宽时传入 `-e BROWSER_CACHE=false`。
 
 ## HOJ 压测账号准备（场景D前置，压测前置修正）
 
 HOJ 单账号提交间隔 8s（defaultSubmitInterval）。恒定 R 提交/秒时，
-同账号两次提交间隔 = N/R 秒 ≥ 8s → **20/s 至少需要 160 个账号**
+同账号两次提交间隔 = N/R 秒 ≥ 8s → **40/s 至少需要 320 个账号**
 （脚本按 ⌈8×R⌉+8 强制校验，且按迭代轮询取号，不用随机取号）。
 
 ```bash
 # Windows 生成（走公开注册接口，重跑幂等，已存在自动跳过）：
-python deploy/prod/loadtest/gen-hoj-accounts.py   --base http://172.20.193.162:8080 --count 170   --prefix ltc --password 'LtHoj#0436' --out deploy/prod/loadtest/hoj-accounts.txt
+python deploy/prod/loadtest/gen-hoj-accounts.py   --base http://172.20.193.162:8080 --count 330   --prefix ltc --password 'LtHoj#0436' --out deploy/prod/loadtest/hoj-accounts.txt
 
-k6 run -e BASE_URL=http://172.20.193.162:8080   -e HOJ_ACCOUNTS_FILE=hoj-accounts.txt -e SUBMIT_RATE=20 hoj-submit.js
+k6 run -e BASE_URL=http://172.20.193.162:8080   -e HOJ_ACCOUNTS_FILE=hoj-accounts.txt -e SUBMIT_RATE=40 hoj-submit.js
 ```
 **账号文件与密码只在本地（hoj-accounts.txt 已 gitignore），不入库不入仓。**
 

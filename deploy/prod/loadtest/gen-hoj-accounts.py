@@ -4,7 +4,7 @@
 
 用法（Windows 本机）：
   HOJ_ADMIN_USER=root HOJ_ADMIN_PASS=*** python gen-hoj-accounts.py \
-      --base http://172.20.193.162:8080 --count 170 \
+      --base http://172.20.193.162:8080 --count 330 \
       --prefix ltc --password 'LtHoj#0436' --out hoj-accounts.txt
 
 行格式（HOJ AdminUserManager.addNewUser）：

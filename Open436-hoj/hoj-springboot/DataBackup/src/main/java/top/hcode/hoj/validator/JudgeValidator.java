@@ -55,8 +55,18 @@ public class JudgeValidator {
             accessValidator.validateAccess(HOJAccessEnum.PUBLIC_JUDGE);
         }
 
-        if (!submitJudgeDto.getIsRemote() && !HOJ_LANGUAGE_LIST.contains(submitJudgeDto.getLanguage())) {
+        if (StringUtils.isEmpty(submitJudgeDto.getLanguage())) {
+            throw new StatusFailException("提交的编程语言不可为空！");
+        }
+
+        // isRemote 可能缺省（Boolean 为 null）；用 TRUE.equals 避免拆箱 NPE（曾导致提交接口 500）
+        if (!Boolean.TRUE.equals(submitJudgeDto.getIsRemote())
+                && !HOJ_LANGUAGE_LIST.contains(submitJudgeDto.getLanguage())) {
             throw new StatusFailException("提交的代码的语言错误！请使用" + HOJ_LANGUAGE_LIST + "中之一的语言！");
+        }
+
+        if (StringUtils.isEmpty(submitJudgeDto.getCode())) {
+            throw new StatusFailException("提交的代码不可为空！");
         }
 
         if (submitJudgeDto.getCode().length() < 50

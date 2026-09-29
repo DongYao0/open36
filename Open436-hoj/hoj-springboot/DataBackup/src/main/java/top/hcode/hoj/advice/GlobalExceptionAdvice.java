@@ -257,8 +257,9 @@ public class GlobalExceptionAdvice {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(SQLException.class)
     public CommonResult<Void> handleSQLException(SQLException e) {
+        // 完整堆栈只进日志；响应体不得回传原始 JDBC 文本（会暴露列名/SQL 片段等内部信息）
         log.error("操作数据库出现异常-------------->{}", getMessage(e));
-        return CommonResult.errorResponse("Operation failed! Error message: " + e.getMessage(), ResultStatus.SYSTEM_ERROR);
+        return CommonResult.errorResponse("Server Error! Please try Again later!", ResultStatus.SYSTEM_ERROR);
     }
 
     /**

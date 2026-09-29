@@ -537,7 +537,14 @@ export default {
     },
     displayErrorMessage() {
       if (this.isSE && !this.isAdminRole) {
-        return "评测服务异常，本次提交已保存。请联系管理员并提供当前提交编号；修复后将统一重新评测。";
+        // 面向用户：只给安全信息 + 可定位的提交编号，绝不暴露异常堆栈/内部路径。
+        // 不承诺"自动重新评测"——当前不会自动重试，避免误导用户"稍后查看"。
+        const submitId = this.submission.submitId || "未知";
+        return (
+          "评测服务异常，本次提交已保存（提交编号：" +
+          submitId +
+          "）。请联系管理员并提供该编号；修复后可重新评测。"
+        );
       }
       return this.submission.errorMessage;
     },

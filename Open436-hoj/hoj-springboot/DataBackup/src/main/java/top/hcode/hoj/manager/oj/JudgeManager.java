@@ -150,7 +150,7 @@ public class JudgeManager {
         }
 
         // 将提交加入任务队列
-        if (judgeDto.getIsRemote()) { // 如果是远程oj判题
+        if (Boolean.TRUE.equals(judgeDto.getIsRemote())) { // 缺省值按本地判题处理，避免 Boolean 拆箱 NPE
             remoteJudgeDispatcher.sendTask(judge.getSubmitId(),
                     judge.getPid(),
                     judge.getDisplayPid(),

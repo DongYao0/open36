@@ -342,8 +342,8 @@ else
     fail "试判账号登录失败（检查 HOJ_E2E_USER/PASS 与 /api/login）"
   else
     ok "试判账号登录成功"
-    # 必须携带 isRemote（前端 Problem.vue 固定发送）；缺省时 JudgeValidator:58
-    # 会因 Boolean 为 null 触发 NPE → 500。cid 非比赛提交传 0。
+    # 显式携带 isRemote，与前端 Problem.vue 的真实请求保持一致；
+    # 后端同时兼容该字段缺省并按本地判题处理。cid 非比赛提交传 0。
     submit_raw="$(timeout "$E2E_TIMEOUT_SECONDS" docker exec "$PUBLIC_WEB_CT" sh -c \
       "curl -s -X POST 'http://localhost/api/submit-problem-judge' \
        -H 'Content-Type: application/json' -H 'Authorization: $token' \

@@ -8,6 +8,7 @@ MAX_JUDGE_RESTARTS="${MAX_JUDGE_RESTARTS:-0}"
 FAIL=0
 WARN=0
 PROBLEM_IDS=()
+CONTEST_ID=""
 CONTAINERS=(
   "${PREFIX}-redis" "${PREFIX}-hoj-mysql" "${PREFIX}-hoj-nacos"
   "${PREFIX}-go-judge" "${PREFIX}-hoj-backend" "${PREFIX}-hoj-judge"
@@ -15,7 +16,7 @@ CONTAINERS=(
 )
 
 usage() {
-  echo "用法: bash $0 [--problem-ids 1001,1002] [problem_id ...]"
+  echo "用法: bash $0 [--contest-id 1] [--problem-ids 1001,1002] [problem_id ...]"
   echo "环境变量: PREFLIGHT_TIMEOUT_SECONDS=15 MAX_JUDGE_RESTARTS=0"
 }
 fail() { echo "[FAIL] $*"; FAIL=$((FAIL + 1)); }
@@ -26,6 +27,11 @@ run() { timeout "${TIMEOUT_SECONDS}s" "$@"; }
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
+    --contest-id)
+      [ "$#" -ge 2 ] || { echo "[FATAL] --contest-id 缺少值" >&2; exit 2; }
+      CONTEST_ID="$2"
+      shift 2
+      ;;
     --problem-ids)
       [ "$#" -ge 2 ] || { echo "[FATAL] --problem-ids 缺少值" >&2; exit 2; }
       IFS=',' read -r -a parsed_ids <<< "$2"
@@ -46,6 +52,14 @@ command -v docker >/dev/null 2>&1 || { echo "[FATAL] 未找到 docker" >&2; exit
 command -v timeout >/dev/null 2>&1 || { echo "[FATAL] 未找到 timeout" >&2; exit 2; }
 [[ "$TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || { echo "[FATAL] 超时必须为正整数" >&2; exit 2; }
 [[ "$MAX_JUDGE_RESTARTS" =~ ^[0-9]+$ ]] || { echo "[FATAL] 重启阈值必须为非负整数" >&2; exit 2; }
+[[ -z "$CONTEST_ID" || "$CONTEST_ID" =~ ^[1-9][0-9]*$ ]] || { echo "[FATAL] 非法 contest ID: $CONTEST_ID" >&2; exit 2; }
+
+if [ -n "$CONTEST_ID" ]; then
+  contest_ids="$(run docker exec "${PREFIX}-hoj-mysql" sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -Nse "SELECT pid FROM hoj.contest_problem WHERE cid=$1 ORDER BY display_id"' sh "$CONTEST_ID" 2>/dev/null)" || contest_ids=""
+  [ -n "$contest_ids" ] || { echo "[FATAL] 比赛 $CONTEST_ID 不存在题目或数据库查询失败" >&2; exit 2; }
+  while IFS= read -r pid; do [ -n "$pid" ] && PROBLEM_IDS+=("$pid"); done <<< "$contest_ids"
+  echo "比赛 $CONTEST_ID 题目: ${PROBLEM_IDS[*]}"
+fi
 for pid in "${PROBLEM_IDS[@]}"; do
   [[ "$pid" =~ ^[1-9][0-9]*$ ]] || { echo "[FATAL] 非法 problem ID: $pid" >&2; exit 2; }
 done

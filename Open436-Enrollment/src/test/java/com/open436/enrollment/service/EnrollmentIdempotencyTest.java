@@ -59,6 +59,11 @@ class EnrollmentIdempotencyTest {
         // 内存版 repository：save 即持久化到 rowsByKey
         when(repository.findByIdempotencyKey(anyString()))
                 .thenAnswer(inv -> Optional.ofNullable(rowsByKey.get(inv.getArgument(0))));
+        when(repository.findFirstByRequestFingerprintAndProcessingStatus(anyString(), anyString()))
+                .thenAnswer(inv -> rowsByKey.values().stream()
+                        .filter(r -> inv.getArgument(0).equals(r.getRequestFingerprint()))
+                        .filter(r -> inv.getArgument(1).equals(r.getProcessingStatus()))
+                        .findFirst());
         when(repository.findByAuthUserId(any()))
                 .thenAnswer(inv -> rowsByKey.values().stream()
                         .filter(r -> inv.getArgument(0).equals(r.getAuthUserId())).findFirst());
@@ -109,6 +114,21 @@ class EnrollmentIdempotencyTest {
         EnrollmentApplication row = rowsByKey.get("key-1");
         assertEquals(EnrollmentApplication.PS_PENDING, row.getProcessingStatus());
         assertEquals(42L, row.getAuthUserId());
+    }
+
+    /** 成功响应丢失后即使客户端换了 Key，完全相同的报名也复用原成功行。 */
+    @Test
+    void sameRequestWithNewKey_ReusesSuccessfulEnrollment() {
+        mockAuthSuccess(42L);
+        ApplyRequest req = request("stu001", "S001");
+
+        Long firstId = service.apply(req, "key-original");
+        Long retryId = service.apply(req, "key-retry");
+
+        assertEquals(firstId, retryId);
+        assertEquals(1, rowsByKey.size());
+        verify(restTemplate, times(1)).exchange(anyString(), eq(HttpMethod.POST),
+                any(HttpEntity.class), eq(Map.class));
     }
 
     /** 2. 同 Key 不同内容 → 409，且不打 Auth */

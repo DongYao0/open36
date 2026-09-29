@@ -18,6 +18,9 @@ public interface EnrollmentRepository extends JpaRepository<EnrollmentApplicatio
 
     Optional<EnrollmentApplication> findByIdempotencyKey(String idempotencyKey);
 
+    Optional<EnrollmentApplication> findFirstByRequestFingerprintAndProcessingStatus(
+            String requestFingerprint, String processingStatus);
+
     /** 对账用：中间状态滞留超过阈值的报名（CREATING_USER/USER_CREATED 等） */
     @org.springframework.data.jpa.repository.Query("""
             SELECT a FROM EnrollmentApplication a
@@ -27,9 +30,31 @@ public interface EnrollmentRepository extends JpaRepository<EnrollmentApplicatio
     java.util.List<EnrollmentApplication> findStuckIntermediate(
             @org.springframework.data.repository.query.Param("threshold") java.time.LocalDateTime threshold);
 
-    List<EnrollmentApplication> findByStatus(String status);
+    List<EnrollmentApplication> findByProcessingStatus(String processingStatus);
 
-    Page<EnrollmentApplication> findByStatus(String status, Pageable pageable);
+    Page<EnrollmentApplication> findByProcessingStatus(String processingStatus, Pageable pageable);
 
-    long countByStatus(String status);
+    long countByProcessingStatus(String processingStatus);
+
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT a FROM EnrollmentApplication a
+             WHERE a.status = :status AND a.processingStatus = 'PENDING'
+            """)
+    List<EnrollmentApplication> findByStatus(
+            @org.springframework.data.repository.query.Param("status") String status);
+
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT a FROM EnrollmentApplication a
+             WHERE a.status = :status AND a.processingStatus = 'PENDING'
+            """)
+    Page<EnrollmentApplication> findByStatus(
+            @org.springframework.data.repository.query.Param("status") String status,
+            Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT COUNT(a) FROM EnrollmentApplication a
+             WHERE a.status = :status AND a.processingStatus = 'PENDING'
+            """)
+    long countByStatus(
+            @org.springframework.data.repository.query.Param("status") String status);
 }

@@ -93,6 +93,15 @@ public class EnrollmentService {
     private EnrollmentApplication findOrInsertRow(String key, String fingerprint, ApplyRequest request) {
         EnrollmentApplication existing = enrollmentRepository.findByIdempotencyKey(key).orElse(null);
         if (existing == null) {
+            // 浏览器在成功响应丢失后可能生成新 Key 重试；按完整身份指纹复用成功报名，
+            // 避免 Auth 返回“用户名已存在”并留下一个失败空壳。
+            existing = enrollmentRepository
+                    .findFirstByRequestFingerprintAndProcessingStatus(
+                            fingerprint, EnrollmentApplication.PS_PENDING)
+                    .orElse(null);
+            if (existing != null) {
+                return existing;
+            }
             EnrollmentApplication inserted = EnrollmentApplication.builder()
                     .idempotencyKey(key)
                     .requestFingerprint(fingerprint)
@@ -304,7 +313,8 @@ public class EnrollmentService {
                     Sort.by(Sort.Direction.DESC, "submittedAt"));
             Page<EnrollmentApplication> appPage = status != null && !status.isBlank()
                     ? enrollmentRepository.findByStatus(status, pageable)
-                    : enrollmentRepository.findAll(pageable);
+                    : enrollmentRepository.findByProcessingStatus(
+                            EnrollmentApplication.PS_PENDING, pageable);
             Map<Long, Map<String, Object>> userMap = batchFetchUserInfo(appPage.getContent(), token);
             List<ApplicationListResponse> content = appPage.getContent().stream()
                     .map(app -> toResponse(app, userMap.get(app.getAuthUserId())))
@@ -317,7 +327,7 @@ public class EnrollmentService {
         if (status != null && !status.isEmpty()) {
             apps = enrollmentRepository.findByStatus(status);
         } else {
-            apps = enrollmentRepository.findAll();
+            apps = enrollmentRepository.findByProcessingStatus(EnrollmentApplication.PS_PENDING);
         }
 
         // 2. 按提交时间筛选 submittedAt
@@ -424,7 +434,7 @@ public class EnrollmentService {
 
     @Transactional(readOnly = true)
     public StatisticsResponse statistics() {
-        long total = enrollmentRepository.count();
+        long total = enrollmentRepository.countByProcessingStatus(EnrollmentApplication.PS_PENDING);
         long pending = enrollmentRepository.countByStatus("pending");
         long approved = enrollmentRepository.countByStatus("approved");
         long rejected = enrollmentRepository.countByStatus("rejected");

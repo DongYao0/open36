@@ -42,8 +42,9 @@ HOJ 单账号提交间隔 8s（defaultSubmitInterval）。恒定 R 提交/秒时
 # Windows 生成（走公开注册接口，重跑幂等，已存在自动跳过）：
 python deploy/prod/loadtest/gen-hoj-accounts.py   --base http://172.20.193.162:8080 --count 330   --prefix ltc --password 'LtHoj#0436' --out deploy/prod/loadtest/hoj-accounts.txt
 
-k6 run -e BASE_URL=http://172.20.193.162:8080   -e HOJ_ACCOUNTS_FILE=hoj-accounts.txt -e SUBMIT_RATE=40 hoj-submit.js
+k6 run -e BASE_URL=http://172.20.193.162:8080   -e HOJ_ACCOUNTS_FILE=hoj-accounts.txt -e HOJ_PROBLEM_ID=JC1 -e SUBMIT_RATE=40 hoj-submit.js
 ```
+`HOJ_PROBLEM_ID` 必须指向已经通过赛前体检并完成标准答案试判的题目。
 **账号文件与密码只在本地（hoj-accounts.txt 已 gitignore），不入库不入仓。**
 
 ## 验收线（判定通过/失败）

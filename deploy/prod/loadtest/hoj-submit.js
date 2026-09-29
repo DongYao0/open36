@@ -25,6 +25,7 @@ import { BASE_URL, makeSummary } from './common.js';
 
 const HOJ_BROWSE_VUS = parseInt(__ENV.HOJ_BROWSE_VUS || '300', 10);
 const SUBMIT_RATE = parseInt(__ENV.SUBMIT_RATE || '40', 10);
+const PROBLEM_ID = __ENV.HOJ_PROBLEM_ID || 'JC1';
 
 // ── 账号装载（文件优先于内联）──
 function loadAccounts() {
@@ -111,7 +112,7 @@ export function browse() {
   const r = Math.random();
   let path;
   if (r < 0.5) path = '/api/get-problem-list?limit=20&currentPage=1';
-  else if (r < 0.8) path = '/api/get-problem?problemId=JC1';
+  else if (r < 0.8) path = `/api/get-problem?problemId=${encodeURIComponent(PROBLEM_ID)}`;
   else path = '/api/get-submission-list?limit=20&currentPage=1&onlyMine=false';
   const res = http.get(`${BASE_URL}${path}`, { headers });
   hojApiDuration.add(res.timings.duration, { path });
@@ -125,7 +126,7 @@ export function submit() {
   const token = ensureToken(acc);
   if (!token) { submitAccepted.add(false); submitLost.add(1); return; }
   const res = http.post(`${BASE_URL}/api/submit-problem-judge`,
-    JSON.stringify({ pid: 'JC1', cid: null, gid: null, tid: null, language: 'C++', code: CODE, isRemote: false }),
+    JSON.stringify({ pid: PROBLEM_ID, cid: null, gid: null, tid: null, language: 'C++', code: CODE, isRemote: false }),
     { headers: { 'Content-Type': 'application/json', Authorization: token } });
   hojApiDuration.add(res.timings.duration, { path: '/api/submit-problem-judge' });
   const ok = res.status === 200;

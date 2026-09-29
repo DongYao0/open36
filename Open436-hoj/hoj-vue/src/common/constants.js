@@ -70,7 +70,7 @@ export const JUDGE_STATUS = {
     rgb:'#ed3f14'
   },
   '4': {
-    name: 'System Error',
+    name: '评测服务异常',
     short: 'SE',
     color: 'gray',
     type: 'info',

@@ -23,7 +23,7 @@
             v-if="isCE || isSE || isSF"
             class="content"
           >
-            <pre>{{ submission.errorMessage }}</pre>
+            <pre>{{ displayErrorMessage }}</pre>
           </div>
           <div
             v-else
@@ -534,6 +534,12 @@ export default {
     },
     isSF() {
       return this.submission.status === JUDGE_STATUS_RESERVE.sf;
+    },
+    displayErrorMessage() {
+      if (this.isSE && !this.isAdminRole) {
+        return "评测服务异常，本次提交已保存。请联系管理员并提供当前提交编号；修复后将统一重新评测。";
+      }
+      return this.submission.errorMessage;
     },
     isAdminRole() {
       return this.$store.getters.isAdminRole;

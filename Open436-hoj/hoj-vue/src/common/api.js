@@ -1360,12 +1360,15 @@ const adminApi = {
   },
 
   // 获取用户列表
-  admin_getUserList(currentPage, limit, keyword, onlyAdmin) {
+  admin_getUserList(currentPage, limit, keyword, onlyAdmin, createdStart, createdEnd, createdOrder) {
     let params = { currentPage, limit }
     if (keyword) {
       params.keyword = keyword
     }
     params.onlyAdmin = onlyAdmin
+    if (createdStart) params.createdStart = createdStart
+    if (createdEnd) params.createdEnd = createdEnd
+    params.createdOrder = createdOrder || 'desc'
     return ajax('/api/admin/user/get-user-list', 'get', {
       params: params
     })
@@ -1379,6 +1382,16 @@ const adminApi = {
   admin_deleteUsers(ids) {
     return ajax('/api/admin/user/delete-user', 'delete', {
       data: { ids }
+    })
+  },
+  admin_resetSolved(ids) {
+    return ajax('/api/admin/user/reset-solved', 'put', {
+      data: { ids }
+    })
+  },
+  admin_setUsersHidden(ids, hidden) {
+    return ajax('/api/admin/user/set-hidden', 'put', {
+      data: { ids, hidden }
     })
   },
   admin_importUsers(users) {

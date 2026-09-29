@@ -53,7 +53,7 @@ usage() {
   echo "  MIN_TUNNEL_CONNECTIONS=2       隧道最低活跃连接数"
   echo "  DISK_MAX_PERCENT=85 INODE_MAX_PERCENT=85 MIN_FREE_MEM_MB=8192"
   echo "  PREFLIGHT_E2E=1                开启端到端试判（需下面三项）"
-  echo "  HOJ_E2E_USER= HOJ_E2E_PASS= HOJ_E2E_PID= [HOJ_E2E_LANG=C++]"
+  echo "  HOJ_E2E_USER= HOJ_E2E_PASS= HOJ_E2E_PID=公开题号 [HOJ_E2E_LANG=C++]"
 }
 fail() { echo "[FAIL] $*"; FAIL=$((FAIL + 1)); }
 warn() { echo "[WARN] $*"; WARN=$((WARN + 1)); }
@@ -347,7 +347,7 @@ else
     submit_raw="$(timeout "$E2E_TIMEOUT_SECONDS" docker exec "$PUBLIC_WEB_CT" sh -c \
       "curl -s -X POST 'http://localhost/api/submit-problem-judge' \
        -H 'Content-Type: application/json' -H 'Authorization: $token' \
-       -d '{\"pid\":$E2E_PID,\"cid\":0,\"language\":\"$E2E_LANG\",\"isRemote\":false,\"code\":\"$e2e_code\"}'" 2>/dev/null)"
+       -d '{\"pid\":\"$(jq_esc "$E2E_PID")\",\"cid\":0,\"language\":\"$E2E_LANG\",\"isRemote\":false,\"code\":\"$e2e_code\"}'" 2>/dev/null)"
     submit_id="$(printf '%s' "$submit_raw" | sed -n 's/.*"submitId":\([0-9]\{1,\}\).*/\1/p' | head -1)"
     if [ -z "$submit_id" ]; then
       fail "试判提交失败（pid=$E2E_PID）：$(printf '%s' "$submit_raw" | head -c 200)"

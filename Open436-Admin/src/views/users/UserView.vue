@@ -6,17 +6,20 @@
 
     <!-- 工具栏 -->
     <div class="toolbar">
-      <el-input v-model="keyword" placeholder="搜索用户名/昵称/学号" clearable style="width:240px" prefix-icon="Search" @input="handleSearch" />
-      <el-select v-model="roleFilter" placeholder="角色筛选" clearable style="width:140px" @change="handleSearch">
+      <el-input v-model="keyword" placeholder="搜索用户名/真实姓名/学号" clearable style="width:240px" prefix-icon="Search" @keyup.enter="handleSearch" />
+      <el-radio-group v-model="statusFilter" @change="handleSearch">
+        <el-radio-button value="">全部</el-radio-button>
+        <el-radio-button value="pending">待审核</el-radio-button>
+        <el-radio-button value="active">已通过</el-radio-button>
+        <el-radio-button value="disabled">已禁用</el-radio-button>
+      </el-radio-group>
+      <el-select v-model="roleFilter" placeholder="全部角色" clearable style="width:140px" @change="handleSearch">
         <el-option label="管理员" value="admin" />
-        <el-option label="用户" value="user" />
-        <el-option label="浏览" value="viewer" />
+        <el-option label="普通用户" value="user" />
+        <el-option label="浏览用户" value="viewer" />
       </el-select>
-      <el-select v-model="statusFilter" placeholder="状态筛选" clearable style="width:140px" @change="handleSearch">
-        <el-option label="待审核" value="pending" />
-        <el-option label="已通过" value="active" />
-        <el-option label="未通过" value="rejected" />
-      </el-select>
+      <el-button type="primary" @click="handleSearch">查询</el-button>
+      <el-button @click="handleResetFilters">重置</el-button>
       <div style="flex:1"></div>
       <el-button type="success" :disabled="!selectedIds.length" @click="handleBatchApprove">
         <el-icon><Check /></el-icon>审核通过
@@ -36,7 +39,7 @@
     </div>
 
     <!-- 表格 -->
-    <el-table :data="filteredUsers" stripe v-loading="loading" @selection-change="handleSelectionChange">
+    <el-table ref="tableRef" :data="users" stripe v-loading="loading" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" />
       <el-table-column prop="id" label="ID" width="60" />
       <el-table-column label="用户" min-width="180">
@@ -74,10 +77,11 @@
     <div style="display:flex;justify-content:flex-end;margin-top:16px">
       <el-pagination
         v-model:current-page="page"
-        :page-size="pageSize"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 30, 50]"
         :total="total"
-        layout="total, prev, pager, next"
-        @current-change="loadUsers"
+        layout="total, sizes, prev, pager, next, jumper"
+        @change="loadUsers"
       />
     </div>
 
@@ -127,18 +131,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUserList, updateUserStatus, updateUserRole, resetPassword, deleteUser, batchDeleteUsers, batchUpdateUserStatus } from '@/api/users'
 
 const loading = ref(false)
 const submitting = ref(false)
+const tableRef = ref(null)
 const users = ref([])
 const keyword = ref('')
 const roleFilter = ref('')
 const statusFilter = ref('')
 const page = ref(1)
-const pageSize = 10
+const pageSize = ref(10)
 const total = ref(0)
 const selectedIds = ref([])
 
@@ -158,8 +163,8 @@ const resetRules = {
 
 const roleLabels = { admin: '管理员', user: '用户', viewer: '浏览' }
 const roleTagType = { admin: 'danger', user: '', viewer: 'info' }
-const statusLabels = { pending: '待审核', active: '已通过', rejected: '未通过' }
-const statusTagType = { pending: 'warning', active: 'success', rejected: 'info' }
+const statusLabels = { pending: '待审核', active: '已通过', disabled: '已禁用' }
+const statusTagType = { pending: 'warning', active: 'success', disabled: 'info' }
 
 function formatDate(dateStr) {
   if (!dateStr) return '-'
@@ -174,29 +179,29 @@ function handleSelectionChange(rows) {
   selectedIds.value = rows.map(r => r.id)
 }
 
-const filteredUsers = computed(() => {
-  let list = users.value
-  if (keyword.value) {
-    const kw = keyword.value.toLowerCase()
-    list = list.filter(u =>
-      (u.username || '').toLowerCase().includes(kw) ||
-      (u.nickname || '').toLowerCase().includes(kw) ||
-      (u.studentId || '').includes(kw)
-    )
-  }
-  if (roleFilter.value) list = list.filter(u => u.role === roleFilter.value)
-  if (statusFilter.value) list = list.filter(u => u.status === statusFilter.value)
-  return list
-})
-
 function handleSearch() {
+  tableRef.value?.clearSelection()
   page.value = 1
+  loadUsers()
+}
+
+function handleResetFilters() {
+  keyword.value = ''
+  roleFilter.value = ''
+  statusFilter.value = ''
+  handleSearch()
 }
 
 async function loadUsers() {
   loading.value = true
   try {
-    const res = await getUserList({ page: page.value, size: pageSize })
+    const res = await getUserList({
+      page: page.value,
+      size: pageSize.value,
+      keyword: keyword.value.trim(),
+      role: roleFilter.value,
+      status: statusFilter.value
+    })
     const data = res.data || res
     users.value = data.list || data.records || data || []
     total.value = data.total || users.value.length
@@ -224,7 +229,7 @@ async function handleBatchApprove() {
 async function handleBatchDisable() {
   try {
     await ElMessageBox.confirm(`确定禁用选中的 ${selectedIds.value.length} 位用户？`, '禁用确认', { type: 'warning' })
-    await batchUpdateUserStatus(selectedIds.value, { status: 'rejected' })
+    await batchUpdateUserStatus(selectedIds.value, { status: 'disabled' })
     ElMessage.success('已禁用')
     selectedIds.value = []
     loadUsers()

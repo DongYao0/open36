@@ -14,6 +14,11 @@ public class Open436SyncDTO implements Serializable {
 
     private String username;
 
+    /**
+     * 已绑定的 HOJ 用户 UUID。首次同步为空，后续同步必须以此作为身份依据。
+     */
+    private String hojUid;
+
     private String nickname;
 
     private String avatar;

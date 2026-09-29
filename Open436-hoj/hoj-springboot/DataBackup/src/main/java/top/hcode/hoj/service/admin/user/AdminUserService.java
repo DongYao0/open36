@@ -15,7 +15,13 @@ import java.util.Map;
  */
 public interface AdminUserService {
 
-    public CommonResult<IPage<UserRolesVO>> getUserList(Integer limit, Integer currentPage, Boolean onlyAdmin, String keyword);
+    CommonResult<IPage<UserRolesVO>> getUserList(Integer limit, Integer currentPage, Boolean onlyAdmin,
+                                                  String keyword, Long createdStart, Long createdEnd,
+                                                  String createdOrder);
+
+    CommonResult<Void> resetSolved(List<String> userIds);
+
+    CommonResult<Void> setHidden(List<String> userIds, Boolean hidden);
 
     public CommonResult<Void> editUser(AdminEditUserDTO adminEditUserDto);
 

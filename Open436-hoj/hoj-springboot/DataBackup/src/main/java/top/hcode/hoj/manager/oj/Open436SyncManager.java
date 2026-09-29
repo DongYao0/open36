@@ -46,9 +46,18 @@ public class Open436SyncManager {
         }
 
         String username = dto.getUsername().trim();
-        QueryWrapper<UserInfo> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", username);
-        UserInfo userInfo = userInfoEntityService.getOne(queryWrapper, false);
+        String mappedUid = dto.getHojUid() == null ? null : dto.getHojUid().trim();
+        UserInfo userInfo = null;
+        if (mappedUid != null && !mappedUid.isEmpty()) {
+            userInfo = userInfoEntityService.getById(mappedUid);
+            if (userInfo == null) {
+                throw new StatusFailException("已绑定的 HOJ 账户不存在，请联系管理员修复账户映射");
+            }
+        } else {
+            QueryWrapper<UserInfo> usernameQuery = new QueryWrapper<>();
+            usernameQuery.eq("username", username);
+            userInfo = userInfoEntityService.getOne(usernameQuery, false);
+        }
 
         // 映射 Open436 角色到 HOJ 角色：admin->1000(超级管理员), 其他->1002(普通用户)
         Long roleId = "admin".equals(dto.getRole()) ? 1000L : 1002L;
@@ -65,6 +74,7 @@ public class Open436SyncManager {
             newUser.setAvatar(dto.getAvatar());
             newUser.setStatus(0);
             userInfoEntityService.save(newUser);
+            userInfo = newUser;
 
             userRoleEntityService.save(new UserRole().setRoleId(roleId).setUid(uid));
             userRecordEntityService.save(new UserRecord().setUid(uid));
@@ -96,9 +106,9 @@ public class Open436SyncManager {
 
         UserInfoVO vo = new UserInfoVO();
         vo.setUid(uid);
-        vo.setUsername(username);
-        vo.setNickname(dto.getNickname());
-        vo.setAvatar(dto.getAvatar());
+        vo.setUsername(userInfo.getUsername());
+        vo.setNickname(userInfo.getNickname());
+        vo.setAvatar(userInfo.getAvatar());
         return vo;
     }
 }

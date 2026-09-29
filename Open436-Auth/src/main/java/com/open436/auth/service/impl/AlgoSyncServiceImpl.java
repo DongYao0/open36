@@ -84,6 +84,15 @@ public class AlgoSyncServiceImpl implements AlgoSyncService {
         body.put("avatar", null);
         body.put("apiKey", hojApiKey);
         body.put("role", role);
+        String mappedHojUid = null;
+        if (authUserId != null) {
+            mappedHojUid = hojUserMappingRepository.findByAuthUserId(authUserId)
+                    .map(HojUserMapping::getHojUuid)
+                    .orElse(null);
+            if (mappedHojUid != null) {
+                body.put("hojUid", mappedHojUid);
+            }
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -104,9 +113,12 @@ public class AlgoSyncServiceImpl implements AlgoSyncService {
                 return ApiResponse.error(500, "HOJ 同步失败：未返回 Token");
             }
 
-            // 解析 HOJ 返回的 uid，保存映射关系
-            if (authUserId != null && response.getBody() != null) {
-                extractAndSaveHojMapping(authUserId, response.getBody());
+            // HOJ uid 是跨系统的不可变身份；用户名/昵称只用于展示。
+            if (authUserId != null) {
+                if (response.getBody() == null) {
+                    throw new IllegalStateException("HOJ 同步响应缺少用户数据");
+                }
+                extractAndSaveHojMapping(authUserId, mappedHojUid, response.getBody());
             }
 
             log.info("HOJ 同步成功: username={}, authUserId={}", username, authUserId);
@@ -121,23 +133,24 @@ public class AlgoSyncServiceImpl implements AlgoSyncService {
      * 从 HOJ 响应中提取 uid 并保存映射
      */
     @SuppressWarnings("unchecked")
-    private void extractAndSaveHojMapping(Long authUserId, Map<String, Object> responseBody) {
-        try {
-            Object data = responseBody.get("data");
-            if (data instanceof Map) {
-                Map<String, Object> dataMap = (Map<String, Object>) data;
-                Object uid = dataMap.get("uid");
-                if (uid != null) {
-                    String hojUuid = uid.toString();
-                    HojUserMapping mapping = new HojUserMapping();
-                    mapping.setAuthUserId(authUserId);
-                    mapping.setHojUuid(hojUuid);
-                    hojUserMappingRepository.save(mapping);
-                    log.info("HOJ 映射保存成功: authUserId={}, hojUuid={}", authUserId, hojUuid);
-                }
-            }
-        } catch (Exception e) {
-            log.warn("解析 HOJ uid 失败: authUserId={}, error={}", authUserId, e.getMessage());
+    private void extractAndSaveHojMapping(Long authUserId, String mappedHojUid,
+                                          Map<String, Object> responseBody) {
+        Object data = responseBody.get("data");
+        if (!(data instanceof Map)) {
+            throw new IllegalStateException("HOJ 同步响应缺少用户数据");
         }
+        Object uid = ((Map<String, Object>) data).get("uid");
+        if (uid == null || uid.toString().trim().isEmpty()) {
+            throw new IllegalStateException("HOJ 同步响应缺少 uid");
+        }
+        String hojUuid = uid.toString();
+        if (mappedHojUid != null && !mappedHojUid.equals(hojUuid)) {
+            throw new IllegalStateException("HOJ 返回 uid 与已绑定账户不一致");
+        }
+        HojUserMapping mapping = new HojUserMapping();
+        mapping.setAuthUserId(authUserId);
+        mapping.setHojUuid(hojUuid);
+        hojUserMappingRepository.save(mapping);
+        log.info("HOJ 映射保存成功: authUserId={}, hojUuid={}", authUserId, hojUuid);
     }
 }

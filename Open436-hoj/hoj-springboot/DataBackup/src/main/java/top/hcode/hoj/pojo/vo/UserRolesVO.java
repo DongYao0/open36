@@ -74,6 +74,9 @@ public class UserRolesVO implements Serializable {
     @ApiModelProperty(value = "0可用，1不可用")
     private int status;
 
+    @ApiModelProperty(value = "是否在客户端排行榜隐藏")
+    private Boolean isHidden;
+
     @ApiModelProperty(value = "创建时间")
     private Date gmtCreate;
 

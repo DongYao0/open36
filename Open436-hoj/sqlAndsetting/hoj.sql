@@ -776,6 +776,7 @@ CREATE TABLE `user_info` (
   `title_name` varchar(255) DEFAULT NULL COMMENT '头衔、称号',
   `title_color` varchar(255) DEFAULT NULL COMMENT '头衔、称号的颜色',
   `status` int(11) NOT NULL DEFAULT '0' COMMENT '0可用，1不可用',
+  `is_hidden` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否在客户端排行榜隐藏：0显示，1隐藏',
   `gmt_create` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `gmt_modified` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
   PRIMARY KEY (`uuid`),

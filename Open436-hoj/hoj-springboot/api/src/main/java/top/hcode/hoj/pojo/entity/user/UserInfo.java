@@ -91,6 +91,10 @@ public class UserInfo implements Serializable {
     @ApiModelProperty(value = "0可用，-1不可用")
     private int status;
 
+    @TableField("is_hidden")
+    @ApiModelProperty(value = "是否在客户端排行榜隐藏")
+    private Boolean isHidden;
+
 //    @ApiModelProperty(value = "是否为比赛账号")
 //    private Boolean isContest;
 

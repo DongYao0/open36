@@ -34,10 +34,13 @@ public class UserController {
     @SaCheckRole("admin")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUserList(
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        log.info("获取用户列表请求: status={}, page={}, size={}", status, page, size);
-        Page<UserInfoResponse> users = userService.getUserPage(status, page, size);
+        log.info("获取用户列表请求: status={}, role={}, keyword={}, page={}, size={}",
+                status, role, keyword, page, size);
+        Page<UserInfoResponse> users = userService.getUserPage(status, role, keyword, page, size);
         return ResponseEntity.ok(
             ApiResponse.<Map<String, Object>>builder()
                 .code(200)

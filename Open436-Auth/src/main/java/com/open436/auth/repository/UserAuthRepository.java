@@ -43,6 +43,31 @@ public interface UserAuthRepository extends JpaRepository<UserAuth, Long> {
 
     Page<UserAuth> findByStatus(String status, Pageable pageable);
 
+    @org.springframework.data.jpa.repository.Query(
+        value = """
+            SELECT DISTINCT u FROM UserAuth u LEFT JOIN u.roles r
+            WHERE (:status IS NULL OR u.status = :status)
+              AND (:role IS NULL OR r.code = :role)
+              AND (:keyword IS NULL
+                   OR LOWER(u.username) LIKE :keyword
+                   OR LOWER(COALESCE(u.realName, '')) LIKE :keyword
+                   OR LOWER(COALESCE(u.studentId, '')) LIKE :keyword)
+            """,
+        countQuery = """
+            SELECT COUNT(DISTINCT u.id) FROM UserAuth u LEFT JOIN u.roles r
+            WHERE (:status IS NULL OR u.status = :status)
+              AND (:role IS NULL OR r.code = :role)
+              AND (:keyword IS NULL
+                   OR LOWER(u.username) LIKE :keyword
+                   OR LOWER(COALESCE(u.realName, '')) LIKE :keyword
+                   OR LOWER(COALESCE(u.studentId, '')) LIKE :keyword)
+            """)
+    Page<UserAuth> searchPage(
+            @org.springframework.data.repository.query.Param("status") String status,
+            @org.springframework.data.repository.query.Param("role") String role,
+            @org.springframework.data.repository.query.Param("keyword") String keyword,
+            Pageable pageable);
+
     @Override
     Page<UserAuth> findAll(Pageable pageable);
 

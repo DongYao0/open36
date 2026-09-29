@@ -19,6 +19,7 @@
         <result column="title_name" property="titleName"></result>
         <result column="title_color" property="titleColor"></result>
         <result column="status" property="status"></result>
+        <result column="is_hidden" property="isHidden"></result>
         <result column="avatar" property="avatar"></result>
         <result column="gmt_create" property="gmtCreate"></result>
         <result column="gmt_modified" property="gmtModified"></result>
@@ -69,6 +70,7 @@
         <result column="email" property="email"></result>
         <result column="signature" property="signature"></result>
         <result column="status" property="status"></result>
+        <result column="is_hidden" property="isHidden"></result>
         <result column="avatar" property="avatar"></result>
         <result column="title_name" property="titleName"></result>
         <result column="title_color" property="titleColor"></result>
@@ -85,12 +87,19 @@
         SELECT u.* FROM user_info u
         <where>
             <if test="keyword!=null and keyword!=''">
-                u.username like CONCAT("%",#{keyword},"%")
+                (u.username like CONCAT("%",#{keyword},"%")
                 or u.email like CONCAT("%",#{keyword},"%")
-                or u.realname like CONCAT("%",#{keyword},"%")
+                or u.realname like CONCAT("%",#{keyword},"%"))
+            </if>
+            <if test="createdStart!=null">
+                AND u.gmt_create &gt;= FROM_UNIXTIME(#{createdStart} / 1000)
+            </if>
+            <if test="createdEnd!=null">
+                AND u.gmt_create &lt;= FROM_UNIXTIME(#{createdEnd} / 1000)
             </if>
         </where>
-        order by u.gmt_create desc, u.uuid desc
+        ORDER BY u.gmt_create
+        <choose><when test="createdOrder == 'asc'">ASC</when><otherwise>DESC</otherwise></choose>, u.uuid DESC
     </select>
 
     <!-- 子查询 -->
@@ -109,8 +118,15 @@
                 or u.email like CONCAT("%",#{keyword},"%")
                 or u.realname like CONCAT("%",#{keyword},"%"))
             </if>
+            <if test="createdStart!=null">
+                and u.gmt_create &gt;= FROM_UNIXTIME(#{createdStart} / 1000)
+            </if>
+            <if test="createdEnd!=null">
+                and u.gmt_create &lt;= FROM_UNIXTIME(#{createdEnd} / 1000)
+            </if>
         </where>
-        order by u.gmt_create desc, u.uuid desc
+        ORDER BY u.gmt_create
+        <choose><when test="createdOrder == 'asc'">ASC</when><otherwise>DESC</otherwise></choose>, u.uuid DESC
     </select>
 
 </mapper>

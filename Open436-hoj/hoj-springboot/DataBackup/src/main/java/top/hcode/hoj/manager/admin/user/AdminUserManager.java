@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import top.hcode.hoj.common.exception.StatusFailException;
 import top.hcode.hoj.dao.user.UserInfoEntityService;
+import top.hcode.hoj.dao.user.UserAcproblemEntityService;
 import top.hcode.hoj.dao.user.UserRecordEntityService;
 import top.hcode.hoj.dao.user.UserRoleEntityService;
 import top.hcode.hoj.manager.msg.AdminNoticeManager;
@@ -53,15 +54,74 @@ public class AdminUserManager {
     private UserRecordEntityService userRecordEntityService;
 
     @Autowired
+    private UserAcproblemEntityService userAcproblemEntityService;
+
+    @Autowired
     private RedisUtils redisUtils;
 
-    public IPage<UserRolesVO> getUserList(Integer limit, Integer currentPage, Boolean onlyAdmin, String keyword) {
+    public IPage<UserRolesVO> getUserList(Integer limit, Integer currentPage, Boolean onlyAdmin, String keyword,
+                                           Long createdStart, Long createdEnd, String createdOrder) {
         if (currentPage == null || currentPage < 1) currentPage = 1;
         if (limit == null || limit < 1) limit = 10;
         if (keyword != null) {
             keyword = keyword.trim();
         }
-        return userRoleEntityService.getUserList(limit, currentPage, keyword, onlyAdmin);
+        if (createdStart != null && createdEnd != null && createdStart > createdEnd) {
+            long temp = createdStart;
+            createdStart = createdEnd;
+            createdEnd = temp;
+        }
+        String safeOrder = "asc".equalsIgnoreCase(createdOrder) ? "asc" : "desc";
+        return userRoleEntityService.getUserList(limit, currentPage, keyword, Boolean.TRUE.equals(onlyAdmin),
+                createdStart, createdEnd, safeOrder);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void resetSolved(List<String> userIds) throws StatusFailException {
+        List<String> ids = normalizeUserIds(userIds);
+        userAcproblemEntityService.remove(new QueryWrapper<top.hcode.hoj.pojo.entity.user.UserAcproblem>()
+                .in("uid", ids));
+        clearRankCache();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void setHidden(List<String> userIds, Boolean hidden) throws StatusFailException {
+        if (hidden == null) {
+            throw new StatusFailException("客户端显示状态不能为空");
+        }
+        List<String> ids = normalizeUserIds(userIds);
+        boolean updated = userInfoEntityService.update(new UpdateWrapper<UserInfo>()
+                .in("uuid", ids).set("is_hidden", Boolean.TRUE.equals(hidden) ? 1 : 0));
+        if (!updated) {
+            throw new StatusFailException("未找到可更新的用户");
+        }
+        clearRankCache();
+    }
+
+    private List<String> normalizeUserIds(List<String> userIds) throws StatusFailException {
+        if (userIds == null) {
+            throw new StatusFailException("请选择至少一个用户");
+        }
+        List<String> ids = userIds.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(id -> !id.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
+        if (ids.isEmpty()) {
+            throw new StatusFailException("请选择至少一个用户");
+        }
+        return ids;
+    }
+
+    private void clearRankCache() {
+        try {
+            redisUtils.del(redisUtils.keys(Constants.Account.ACM_RANK_CACHE.getCode()));
+            redisUtils.del(redisUtils.keys(Constants.Account.OI_RANK_CACHE.getCode()));
+            redisUtils.del(redisUtils.keys(Constants.Account.GROUP_RANK_CACHE.getCode()));
+        } catch (Exception e) {
+            log.warn("用户排行榜缓存清理失败，将在缓存过期后自动生效", e);
+        }
     }
 
     public void editUser(AdminEditUserDTO adminEditUserDto) throws StatusFailException {

@@ -14,6 +14,33 @@
             </el-button>
           </span>
           <span>
+            <el-button
+              type="warning"
+              icon="el-icon-refresh-left"
+              size="small"
+              :loading="batchAction === 'reset'"
+              @click="resetSolved"
+            >{{ $t('m.Reset_Solved') }}</el-button>
+          </span>
+          <span>
+            <el-button
+              type="info"
+              icon="el-icon-view"
+              size="small"
+              :loading="batchAction === 'hide'"
+              @click="setClientHidden(true)"
+            >{{ $t('m.Hide_From_Client') }}</el-button>
+          </span>
+          <span>
+            <el-button
+              type="success"
+              icon="el-icon-view"
+              size="small"
+              :loading="batchAction === 'show'"
+              @click="setClientHidden(false)"
+            >{{ $t('m.Show_In_Client') }}</el-button>
+          </span>
+          <span>
             <vxe-input
               v-model="keyword"
               :placeholder="$t('m.Enter_keyword')"
@@ -32,6 +59,36 @@
               :inactive-text="$t('m.All')"
             >
             </el-switch>
+          </span>
+          <span>
+            <el-date-picker
+              v-model="createdRange"
+              type="daterange"
+              size="small"
+              unlink-panels
+              :default-time="['00:00:00', '23:59:59']"
+              :start-placeholder="$t('m.Created_Start_Date')"
+              :end-placeholder="$t('m.Created_End_Date')"
+              :range-separator="$t('m.To')"
+              @change="filterByCreated"
+            ></el-date-picker>
+          </span>
+          <span>
+            <el-select
+              v-model="createdOrder"
+              size="small"
+              class="created-order"
+              @change="filterByCreated"
+            >
+              <el-option
+                :label="$t('m.Latest_First')"
+                value="desc"
+              ></el-option>
+              <el-option
+                :label="$t('m.Oldest_First')"
+                value="asc"
+              ></el-option>
+            </el-select>
           </span>
         </div>
       </div>
@@ -108,6 +165,20 @@
             <el-tag effect="dark" color="#ed3f14" v-else>{{
               $t('m.Disable')
             }}</el-tag>
+          </template>
+        </vxe-table-column>
+        <vxe-table-column
+          field="isHidden"
+          :title="$t('m.Client_Display')"
+          min-width="110"
+        >
+          <template v-slot="{ row }">
+            <el-tag v-if="row.isHidden" type="info" effect="plain">
+              {{ $t('m.Hidden') }}
+            </el-tag>
+            <el-tag v-else type="success" effect="plain">
+              {{ $t('m.Visible') }}
+            </el-tag>
           </template>
         </vxe-table-column>
         <vxe-table-column :title="$t('m.Option')" min-width="150">
@@ -595,6 +666,9 @@ export default {
       // 是否显示用户对话框
       showUserDialog: false,
       onlyAdmin: false,
+      createdRange: null,
+      createdOrder: 'desc',
+      batchAction: '',
 
       // 当前用户model
       selectUser: {
@@ -723,6 +797,9 @@ export default {
     filterByAdmin() {
       this.currentChange(1);
     },
+    filterByCreated() {
+      this.currentChange(1);
+    },
     getRole(roles) {
       return roles[0]['id'];
     },
@@ -743,8 +820,22 @@ export default {
     // 获取用户列表
     getUserList(page) {
       this.loadingTable = true;
+      const createdStart = this.createdRange
+        ? this.createdRange[0].getTime()
+        : undefined;
+      const createdEnd = this.createdRange
+        ? this.createdRange[1].getTime()
+        : undefined;
       api
-        .admin_getUserList(page, this.pageSize, this.keyword, this.onlyAdmin)
+        .admin_getUserList(
+          page,
+          this.pageSize,
+          this.keyword,
+          this.onlyAdmin,
+          createdStart,
+          createdEnd,
+          this.createdOrder
+        )
         .then(
           (res) => {
             this.loadingTable = false;
@@ -755,6 +846,60 @@ export default {
             this.loadingTable = false;
           }
         );
+    },
+    resetSolved() {
+      if (!this.requireSelectedUsers() || this.batchAction) return;
+      this.$confirm(
+        this.$i18n.t('m.Reset_Solved_Tips'),
+        this.$i18n.t('m.Tips'),
+        {
+          confirmButtonText: this.$i18n.t('m.OK'),
+          cancelButtonText: this.$i18n.t('m.Cancel'),
+          type: 'warning',
+        }
+      ).then(() => {
+        this.batchAction = 'reset';
+        api
+          .admin_resetSolved(this.selectedUsers)
+          .then(() => {
+            myMessage.success(this.$i18n.t('m.Reset_Solved_Success'));
+            this.selectedUsers = [];
+            this.getUserList(this.currentPage);
+          })
+          .finally(() => {
+            this.batchAction = '';
+          });
+      }).catch(() => {});
+    },
+    requireSelectedUsers() {
+      if (this.selectedUsers.length > 0) return true;
+      myMessage.warning(
+        this.$i18n.t('m.The_number_of_users_selected_cannot_be_empty')
+      );
+      return false;
+    },
+    setClientHidden(hidden) {
+      if (!this.requireSelectedUsers() || this.batchAction) return;
+      const tipKey = hidden ? 'm.Hide_From_Client_Tips' : 'm.Show_In_Client_Tips';
+      this.$confirm(this.$i18n.t(tipKey), this.$i18n.t('m.Tips'), {
+        confirmButtonText: this.$i18n.t('m.OK'),
+        cancelButtonText: this.$i18n.t('m.Cancel'),
+        type: 'warning',
+      }).then(() => {
+        this.batchAction = hidden ? 'hide' : 'show';
+        api
+          .admin_setUsersHidden(this.selectedUsers, hidden)
+          .then(() => {
+            myMessage.success(
+              this.$i18n.t(hidden ? 'm.Hide_From_Client_Success' : 'm.Show_In_Client_Success')
+            );
+            this.selectedUsers = [];
+            this.getUserList(this.currentPage);
+          })
+          .finally(() => {
+            this.batchAction = '';
+          });
+      }).catch(() => {});
     },
     deleteUsers(ids) {
       if (!ids) {
@@ -911,6 +1056,16 @@ export default {
 }
 .filter-row {
   margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.filter-row span {
+  margin-right: 0 !important;
+}
+.created-order {
+  width: 120px;
 }
 @media screen and (max-width: 768px) {
   .filter-row span {

@@ -26,8 +26,9 @@ public interface UserService {
      */
     List<UserInfoResponse> getUserList(String status);
 
-    /** 分页获取用户，避免管理端在大数据量下拉取全部用户。 */
-    Page<UserInfoResponse> getUserPage(String status, int page, int size);
+    /** 分页筛选用户，避免管理端在大数据量下拉取全部用户。 */
+    Page<UserInfoResponse> getUserPage(
+            String status, String role, String keyword, int page, int size);
 
     /**
      * 根据ID查询用户

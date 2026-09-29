@@ -144,6 +144,23 @@ class UserControllerTest extends BaseApiTest {
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.code").value(40301003));
     }
+
+    @Test
+    void testGetUserList_WithServerSideFilters_ReturnsMatchingPage() throws Exception {
+        String adminToken = loginAsAdmin();
+
+        mockMvc.perform(get("/api/auth/users")
+                .header("token", adminToken)
+                .param("status", "active")
+                .param("role", "user")
+                .param("keyword", "test_user")
+                .param("page", "1")
+                .param("size", "1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.total").value(1))
+            .andExpect(jsonPath("$.data.list.length()").value(1))
+            .andExpect(jsonPath("$.data.list[0].username").value("test_user"));
+    }
     
     @Test
     void testUpdatePassword_Success_Returns200() throws Exception {

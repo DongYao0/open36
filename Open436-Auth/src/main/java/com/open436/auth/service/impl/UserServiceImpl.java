@@ -20,10 +20,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -131,14 +133,30 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<UserInfoResponse> getUserPage(String status, int page, int size) {
+    public Page<UserInfoResponse> getUserPage(
+            String status, String role, String keyword, int page, int size) {
         int safePage = Math.max(1, page);
         int safeSize = Math.min(Math.max(1, size), 100);
-        PageRequest pageable = PageRequest.of(safePage - 1, safeSize);
-        Page<UserAuth> users = status != null && !status.isBlank()
-                ? userAuthRepository.findByStatus(status, pageable)
-                : userAuthRepository.findAll(pageable);
+        PageRequest pageable = PageRequest.of(
+                safePage - 1,
+                safeSize,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+                        .and(Sort.by(Sort.Direction.DESC, "id")));
+        String normalizedKeyword = normalizeFilter(keyword);
+        if (normalizedKeyword != null) {
+            normalizedKeyword = "%" + normalizedKeyword.toLowerCase(Locale.ROOT) + "%";
+        }
+        Page<UserAuth> users = userAuthRepository.searchPage(
+                normalizeFilter(status),
+                normalizeFilter(role),
+                normalizedKeyword,
+                pageable);
         return users.map(this::toUserInfoResponse);
+    }
+
+    private String normalizeFilter(String value) {
+        if (value == null || value.isBlank()) return null;
+        return value.trim();
     }
 
     private UserInfoResponse toUserInfoResponse(UserAuth user) {

@@ -8,7 +8,7 @@
         (SELECT COUNT(uid) FROM judge WHERE uid=u.uuid AND cid=0 AND gid is null) AS total
         FROM user_info u
         <where>
-            u.status = 0
+            u.status = 0 AND COALESCE(u.is_hidden, 0) = 0
             <if test="uidList!=null">
                 AND u.uuid in
                 <foreach collection="uidList" item="uid" open="(" separator="," close=")">
@@ -23,7 +23,7 @@
         SELECT u.uuid as uid,u.nickname,u.username,u.avatar,u.title_name,u.title_color,
         (SELECT COUNT( DISTINCT pid ) FROM user_acproblem WHERE uid =u.uuid
         and DATE(gmt_create) >= DATE_SUB(CURDATE(),INTERVAL 7 DAY)) AS ac
-        FROM user_info u WHERE u.status = 0
+        FROM user_info u WHERE u.status = 0 AND COALESCE(u.is_hidden, 0) = 0
         ORDER BY ac DESC,u.gmt_create DESC LIMIT 10
     </select>
 
@@ -49,11 +49,11 @@
                         GROUP BY pid, uid
                     ) s
                 ON s.uid = u.uuid
-                WHERE u.status = 0
+                WHERE u.status = 0 AND COALESCE(u.is_hidden, 0) = 0
                 GROUP BY u.uuid
             ) ss
         <where>
-            ss.uid = ui.uuid
+            ss.uid = ui.uuid AND COALESCE(ui.is_hidden, 0) = 0
             <if test="uidList!=null">
                 AND ui.uuid in
                 <foreach collection="uidList" item="uid" open="(" separator="," close=")">
@@ -129,7 +129,7 @@
             ) s
             ON s.uid = u.uuid
             <where>
-                u.status = 0
+                u.status = 0 AND COALESCE(u.is_hidden, 0) = 0
                 <if test="uidList!=null">
                     AND u.uuid in
                     <foreach collection="uidList" item="uid" open="(" separator="," close=")">
@@ -140,6 +140,7 @@
             GROUP BY u.uuid
         ) ss
         on ss.uid = ui.uuid
+        WHERE COALESCE(ui.is_hidden, 0) = 0
         <if test="rankType == 'ACM'">
             ORDER BY ac DESC, total ASC
         </if>

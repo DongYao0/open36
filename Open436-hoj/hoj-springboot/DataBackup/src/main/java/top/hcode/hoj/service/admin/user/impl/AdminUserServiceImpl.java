@@ -25,8 +25,31 @@ public class AdminUserServiceImpl implements AdminUserService {
     private AdminUserManager adminUserManager;
 
     @Override
-    public CommonResult<IPage<UserRolesVO>> getUserList(Integer limit, Integer currentPage, Boolean onlyAdmin, String keyword) {
-        return CommonResult.successResponse(adminUserManager.getUserList(limit, currentPage, onlyAdmin, keyword));
+    public CommonResult<IPage<UserRolesVO>> getUserList(Integer limit, Integer currentPage, Boolean onlyAdmin,
+                                                         String keyword, Long createdStart, Long createdEnd,
+                                                         String createdOrder) {
+        return CommonResult.successResponse(adminUserManager.getUserList(limit, currentPage, onlyAdmin, keyword,
+                createdStart, createdEnd, createdOrder));
+    }
+
+    @Override
+    public CommonResult<Void> resetSolved(List<String> userIds) {
+        try {
+            adminUserManager.resetSolved(userIds);
+            return CommonResult.successResponse();
+        } catch (StatusFailException e) {
+            return CommonResult.errorResponse(e.getMessage());
+        }
+    }
+
+    @Override
+    public CommonResult<Void> setHidden(List<String> userIds, Boolean hidden) {
+        try {
+            adminUserManager.setHidden(userIds, hidden);
+            return CommonResult.successResponse();
+        } catch (StatusFailException e) {
+            return CommonResult.errorResponse(e.getMessage());
+        }
     }
 
     @Override

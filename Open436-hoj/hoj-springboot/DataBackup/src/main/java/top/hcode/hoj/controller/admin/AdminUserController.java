@@ -34,8 +34,26 @@ public class AdminUserController {
     public CommonResult<IPage<UserRolesVO>> getUserList(@RequestParam(value = "limit", required = false) Integer limit,
                                                         @RequestParam(value = "currentPage", required = false) Integer currentPage,
                                                         @RequestParam(value = "onlyAdmin", defaultValue = "false") Boolean onlyAdmin,
-                                                        @RequestParam(value = "keyword", required = false) String keyword) {
-        return adminUserService.getUserList(limit, currentPage, onlyAdmin, keyword);
+                                                        @RequestParam(value = "keyword", required = false) String keyword,
+                                                        @RequestParam(value = "createdStart", required = false) Long createdStart,
+                                                        @RequestParam(value = "createdEnd", required = false) Long createdEnd,
+                                                        @RequestParam(value = "createdOrder", defaultValue = "desc") String createdOrder) {
+        return adminUserService.getUserList(limit, currentPage, onlyAdmin, keyword,
+                createdStart, createdEnd, createdOrder);
+    }
+
+    @PutMapping("/reset-solved")
+    @RequiresPermissions("user_admin")
+    @RequiresAuthentication
+    public CommonResult<Void> resetSolved(@RequestBody Map<String, Object> params) {
+        return adminUserService.resetSolved((List<String>) params.get("ids"));
+    }
+
+    @PutMapping("/set-hidden")
+    @RequiresPermissions("user_admin")
+    @RequiresAuthentication
+    public CommonResult<Void> setHidden(@RequestBody Map<String, Object> params) {
+        return adminUserService.setHidden((List<String>) params.get("ids"), (Boolean) params.get("hidden"));
     }
 
     @PutMapping("/edit-user")

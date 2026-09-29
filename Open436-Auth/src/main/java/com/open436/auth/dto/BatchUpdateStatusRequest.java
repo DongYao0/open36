@@ -26,9 +26,9 @@ public class BatchUpdateStatusRequest {
     private List<Long> ids;
 
     /**
-     * 状态：active-已通过，rejected-未通过，pending-待审核
+     * 状态：active-已通过，disabled-已禁用，pending-待审核
      */
     @NotBlank(message = "状态不能为空")
-    @Pattern(regexp = "^(active|rejected|pending)$", message = "状态值无效")
+    @Pattern(regexp = "^(active|disabled|pending)$", message = "状态值无效")
     private String status;
 }

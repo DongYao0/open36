@@ -38,7 +38,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M6</version>
                 <configuration>
-                    <skipTests>true</skipTests>
+                    <skipTests>${skipTests}</skipTests>
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
@@ -51,6 +51,7 @@
         <maven.compiler.sourse>8</maven.compiler.sourse>
         <maven.compiler.target>8</maven.compiler.target>
         <junit.version>4.12</junit.version>
+        <skipTests>true</skipTests>
         <lombok.version>1.18.30</lombok.version>
         <oshi.version>5.6.1</oshi.version>
         <hutool.version>5.8.8</hutool.version>

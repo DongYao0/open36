@@ -89,9 +89,19 @@ public class InterviewService {
         // 5. 按 status 过滤
         List<InterviewListResponse> filtered = responses;
         if (status != null && !status.isEmpty()) {
-            filtered = responses.stream()
-                    .filter(r -> status.equals(r.getStatus()))
-                    .toList();
+            if ("pending".equals(status)) {
+                filtered = responses.stream()
+                        .filter(r -> r.getId() == null)
+                        .toList();
+            } else if ("interviewed".equals(status)) {
+                filtered = responses.stream()
+                        .filter(r -> r.getId() != null)
+                        .toList();
+            } else {
+                filtered = responses.stream()
+                        .filter(r -> status.equals(r.getStatus()))
+                        .toList();
+            }
         }
 
         // 6. 按面试时间 interviewDate 过滤

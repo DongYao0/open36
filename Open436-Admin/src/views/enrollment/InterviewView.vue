@@ -20,10 +20,11 @@
 
     <!-- 筛选与操作 -->
     <div class="toolbar">
-      <el-input v-model="keyword" placeholder="搜索姓名/学号/专业" clearable style="width:240px" prefix-icon="Search" @input="loadList" />
-      <el-radio-group v-model="statusFilter" @change="loadList">
+      <el-input v-model="keyword" placeholder="搜索姓名/学号/专业" clearable style="width:240px" prefix-icon="Search" @input="reloadFromFirstPage" />
+      <el-radio-group v-model="statusFilter" @change="reloadFromFirstPage">
         <el-radio-button value="">全部</el-radio-button>
         <el-radio-button value="pending">待面试</el-radio-button>
+        <el-radio-button value="interviewed">已面试</el-radio-button>
         <el-radio-button value="passed">已通过</el-radio-button>
         <el-radio-button value="failed">未通过</el-radio-button>
       </el-radio-group>
@@ -35,9 +36,12 @@
         end-placeholder="结束日期"
         value-format="YYYY-MM-DD"
         style="width:220px"
-        @change="loadList"
+        @change="reloadFromFirstPage"
       />
-      <el-button v-if="dateRange" link @click="dateRange = null; loadList()">清除日期</el-button>
+      <el-button v-if="dateRange" link @click="dateRange = null; reloadFromFirstPage()">清除日期</el-button>
+      <el-button type="primary" plain :disabled="!selectedRows.length" :loading="exporting" @click="exportInterviews">
+        <el-icon><Download /></el-icon>导出选中 ({{ selectedRows.length }})
+      </el-button>
       <el-button type="success" :disabled="!selectedIds.length" @click="handleBatchStatus('passed')">
         <el-icon><CircleCheck /></el-icon>批量通过 ({{ selectedIds.length }})
       </el-button>
@@ -47,8 +51,8 @@
     </div>
 
     <!-- 数据表格 -->
-    <el-table :data="list" stripe v-loading="loading" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="50" />
+    <el-table ref="tableRef" :data="list" row-key="enrollmentId" stripe v-loading="loading" @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="50" reserve-selection />
       <el-table-column prop="enrollmentId" label="报名ID" width="80" />
       <el-table-column prop="realName" label="姓名" width="100" />
       <el-table-column prop="studentId" label="学号" width="140" />
@@ -103,7 +107,14 @@
     </el-table>
 
     <div style="display:flex;justify-content:flex-end;margin-top:16px">
-      <el-pagination v-model:current-page="page" :page-size="10" :total="total" layout="total, prev, pager, next" @current-change="loadList" />
+      <el-pagination
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 30, 50]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @change="loadList"
+      />
     </div>
 
     <!-- 详情抽屉 -->
@@ -156,19 +167,25 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import StatCard from '@/components/StatCard.vue'
 import { getInterviewList, getInterviewDetail, updateInterviewStatus, batchUpdateInterviewStatus, getInterviewStatistics } from '@/api/interview'
+import { downloadCsv, exportDateStamp } from '@/utils/exportCsv'
 
 const router = useRouter()
 
 const loading = ref(false)
+const exporting = ref(false)
+const tableRef = ref(null)
 const list = ref([])
 const total = ref(0)
 const page = ref(1)
+const pageSize = ref(10)
 const keyword = ref('')
 const statusFilter = ref('')
 const dateRange = ref(null)
 const selectedIds = ref([])
+const selectedRows = ref([])
 const stats = ref({ total: 0, pending: 0, passed: 0, failed: 0, passRate: 0 })
 
 const drawerVisible = ref(false)
@@ -209,7 +226,7 @@ async function loadList() {
   try {
     const res = await getInterviewList({
       page: page.value,
-      size: 10,
+      size: pageSize.value,
       status: statusFilter.value,
       keyword: keyword.value,
       startDate: dateRange.value?.[0] || '',
@@ -219,6 +236,52 @@ async function loadList() {
     total.value = res.data.total
   } finally {
     loading.value = false
+  }
+}
+
+function reloadFromFirstPage() {
+  tableRef.value?.clearSelection()
+  page.value = 1
+  loadList()
+}
+
+async function exportInterviews() {
+  exporting.value = true
+  try {
+    const candidates = selectedRows.value
+    const rows = candidates.flatMap(candidate => {
+      const rounds = candidate.rounds?.length ? candidate.rounds : [null]
+      return rounds.map(round => ({
+        ...candidate,
+        interviewId: round?.id ?? candidate.id,
+        round: round?.round ?? candidate.round,
+        status: round?.status ?? candidate.status,
+        interviewDate: round?.interviewDate ?? candidate.interviewDate,
+        interviewer: round?.interviewer ?? candidate.interviewer,
+        score: round?.score ?? candidate.score,
+        summary: round?.summary ?? candidate.summary,
+        strengths: round?.strengths ?? candidate.strengths,
+        weaknesses: round?.weaknesses ?? candidate.weaknesses,
+        direction: round?.direction ?? candidate.direction,
+        recordCreatedAt: round?.createdAt ?? candidate.createdAt
+      }))
+    })
+    const columns = [
+      { label: '序号', value: (_, index) => index + 1 },
+      { label: '姓名', key: 'realName' },
+      { label: '学号', key: 'studentId' },
+      { label: '专业', key: 'major' },
+      { label: '联系方式', key: 'phone' },
+      { label: '提交时间', value: row => formatDate(row.submittedAt) },
+      { label: '面试总结', key: 'summary' },
+      { label: '方向', key: 'direction' }
+    ]
+    downloadCsv(`面试管理-${exportDateStamp()}.csv`, columns, rows)
+    ElMessage.success(`已导出 ${candidates.length} 人、${rows.length} 条面试记录`)
+  } catch {
+    ElMessage.error('导出面试记录失败')
+  } finally {
+    exporting.value = false
   }
 }
 
@@ -254,6 +317,7 @@ async function handleStatusUpdate(row, status) {
 }
 
 function handleSelectionChange(rows) {
+  selectedRows.value = rows
   selectedIds.value = rows.filter(r => r.status === 'pending' && r.id).map(r => r.id)
 }
 
@@ -265,7 +329,7 @@ async function handleBatchStatus(status) {
     })
     await batchUpdateInterviewStatus({ ids: selectedIds.value, status })
     ElMessage.success(`批量${label}成功`)
-    selectedIds.value = []
+    tableRef.value?.clearSelection()
     loadList()
     loadStats()
   } catch {}

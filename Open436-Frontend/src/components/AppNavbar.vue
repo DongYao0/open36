@@ -2,7 +2,7 @@
   <header class="app-navbar">
     <nav class="navbar-inner" aria-label="主导航">
       <a class="navbar-brand" href="/" aria-label="Open436 首页">
-        <img src="@/assets/logo.svg" alt="Open436" />
+        <img src="@/assets/logo.png" alt="Open436" />
         <span>OPEN436</span><em>技术社区</em>
       </a>
       <div class="navbar-tabs">

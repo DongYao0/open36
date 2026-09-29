@@ -44,6 +44,8 @@ const FeedbackCard = ({
         <img
           src={image || noimg}
           alt={`feedback_by-${name || 'user'}`}
+          loading='lazy'
+          decoding='async'
           className='w-10 h-10 rounded-full object-cover'
         />
       </div>

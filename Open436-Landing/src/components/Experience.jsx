@@ -29,6 +29,8 @@ const ExperienceCard = ({ experience }) => {
           <img
             src={experience.icon || noimg}
             alt={experience.company_name || experience.title || 'card'}
+            loading='lazy'
+            decoding='async'
             className='w-[60%] h-[60%] object-contain'
           />
         </div>

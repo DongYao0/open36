@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import Hero from "./components/Hero";
 import Navbar from "./components/Navbar";
+import DeferredRender from "./components/DeferredRender";
 
 const About = lazy(() => import("./components/About"));
 const Contact = lazy(() => import("./components/Contact"));
@@ -19,17 +20,29 @@ const Home = () => (
       <Navbar />
       <Hero />
     </div>
-    <Suspense fallback={<div className='min-h-[420px]' />}>
+    <Suspense fallback={<div className='min-h-[520px]' />}>
       <About />
-      <Experience />
-      <Tech />
-      <Works />
-      <Feedbacks />
-      <div className='relative z-0'>
-        <Contact />
-        <StarsCanvas />
-      </div>
     </Suspense>
+    <DeferredRender minHeight='900px'>
+      <Suspense fallback={<div className='min-h-[900px]' />}><Experience /></Suspense>
+    </DeferredRender>
+    <DeferredRender minHeight='650px'>
+      <Suspense fallback={<div className='min-h-[650px]' />}><Tech /></Suspense>
+    </DeferredRender>
+    <DeferredRender minHeight='760px'>
+      <Suspense fallback={<div className='min-h-[760px]' />}><Works /></Suspense>
+    </DeferredRender>
+    <DeferredRender minHeight='560px'>
+      <Suspense fallback={<div className='min-h-[560px]' />}><Feedbacks /></Suspense>
+    </DeferredRender>
+    <DeferredRender minHeight='720px'>
+      <Suspense fallback={<div className='min-h-[720px]' />}>
+        <div className='relative z-0'>
+          <Contact />
+          <StarsCanvas />
+        </div>
+      </Suspense>
+    </DeferredRender>
   </div>
 );
 

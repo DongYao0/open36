@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { styles } from "../styles";
 import { SectionWrapper } from "../hoc";
 import { useHomepage } from "../context/HomepageContext";
-import { defaultHonorProjects, honorGallery, withHonorAlbums } from "../data/honorGallery";
+import { defaultHonorProjects, honorGallery, honorPreviewUrl, withHonorAlbums } from "../data/honorGallery";
 import { fadeIn, textVariant } from "../utils/motion";
 import noimg from "../assets/noimg.svg";
 
@@ -28,7 +28,7 @@ const ProjectCard = ({
   onOpen,
   albumCount,
 }) => {
-  const cardImage = image?.replace(/(\/honors\/[^/]+\/)(\d+\.jpg)$/i, "$1thumbs/$2");
+  const cardImage = honorPreviewUrl(image);
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -53,9 +53,9 @@ const ProjectCard = ({
           <img
             src={cardImage || image || noimg}
             alt={name || 'project'}
-            loading={index === 0 ? "eager" : "lazy"}
+            loading='lazy'
             decoding='async'
-            fetchPriority={index === 0 ? "high" : "low"}
+            fetchPriority='low'
             onError={(event) => {
               const node = event.currentTarget;
               if (node.dataset.fallback !== "full" && image && cardImage !== image) {

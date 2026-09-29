@@ -112,7 +112,7 @@ const Navbar = () => {
             window.scrollTo(0, 0);
           }}
         >
-          <img src={logo} alt='logo' className='w-9 h-9 object-contain' />
+          <img src={logo} alt='Open436' width='36' height='36' className='w-9 h-9 object-contain' />
           <p className='text-white-100 text-[18px] font-bold cursor-pointer flex '>
             OPEN&nbsp;
             <span className='sm:block hidden'> | 436 技术社区</span>

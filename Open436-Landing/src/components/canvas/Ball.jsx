@@ -1,6 +1,6 @@
 import React, { Suspense, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { Decal, Float, Preload } from "@react-three/drei";
+import { Decal, Float } from "@react-three/drei";
 
 import CanvasLoader from "../Loader";
 import { useIconTextures } from "./useIconTextures";
@@ -87,16 +87,17 @@ const TechBalls = ({ technologies }) => {
 const TechBallsCanvas = ({ technologies }) => {
   return (
     <Canvas
-      dpr={[1, 1.5]}
+      dpr={[1, 1.25]}
       orthographic
       camera={{ position: [0, 0, 10], zoom: 60 }}
+      gl={{ powerPreference: "high-performance" }}
+      performance={{ min: 0.5 }}
       // 手机端纵向手势交给页面滚动；横向拖动仍由球体的 pointer 事件处理。
       style={{ touchAction: "pan-y" }}
     >
       <Suspense fallback={<CanvasLoader />}>
         <TechBalls technologies={technologies} />
       </Suspense>
-      <Preload all />
     </Canvas>
   );
 };

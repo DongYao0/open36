@@ -1,7 +1,20 @@
+import { lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 
 import { styles } from "../styles";
-import ComputersCanvas from "./canvas/Computers";
+import DeferredRender from "./DeferredRender";
+
+const ComputersCanvas = lazy(() => import("./canvas/Computers"));
+
+const ComputerPlaceholder = () => (
+  <div className='absolute inset-0 flex items-center justify-center pt-32' aria-hidden='true'>
+    <div className='relative h-40 w-64 animate-pulse rounded-2xl border border-violet-300/20 bg-violet-500/5 shadow-[0_0_80px_rgba(145,94,255,0.14)] sm:h-52 sm:w-80'>
+      <div className='absolute inset-3 rounded-xl border border-white/5 bg-gradient-to-br from-violet-400/10 to-transparent' />
+      <div className='absolute -bottom-7 left-1/2 h-7 w-2 -translate-x-1/2 bg-violet-300/15' />
+      <div className='absolute -bottom-9 left-1/2 h-2 w-20 -translate-x-1/2 rounded-full bg-violet-300/15' />
+    </div>
+  </div>
+);
 
 const Hero = () => {
   return (
@@ -25,7 +38,17 @@ const Hero = () => {
         </div>
       </div>
 
-      <ComputersCanvas />
+      <DeferredRender
+        className='absolute inset-0'
+        minHeight='100vh'
+        rootMargin='0px'
+        idle
+        placeholder={<ComputerPlaceholder />}
+      >
+        <Suspense fallback={<ComputerPlaceholder />}>
+          <ComputersCanvas />
+        </Suspense>
+      </DeferredRender>
 
       <div className='absolute xs:bottom-10 bottom-32 w-full flex justify-center items-center'>
         <a href='#about'>

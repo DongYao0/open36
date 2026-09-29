@@ -4,7 +4,7 @@ import { Link, useParams } from "react-router-dom";
 
 import noimg from "../assets/noimg.svg";
 import { useHomepage } from "../context/HomepageContext";
-import { defaultHonorProjects, honorGallery, withHonorAlbums } from "../data/honorGallery";
+import { defaultHonorProjects, honorGallery, honorPreviewUrl, withHonorAlbums } from "../data/honorGallery";
 
 const HonorsGallery = () => {
   const { get } = useHomepage();
@@ -18,7 +18,10 @@ const HonorsGallery = () => {
   const project = projects[selectedIndex];
   const photos = useMemo(
     () => (project?.gallery || []).map((item, index) => ({
-      ...item, image: item.image || noimg, title: item.title || `荣誉作品 ${index + 1}`,
+      ...item,
+      image: item.image || noimg,
+      preview: honorPreviewUrl(item.image, item.thumbnail) || noimg,
+      title: item.title || `荣誉作品 ${index + 1}`,
     })),
     [project],
   );
@@ -28,6 +31,7 @@ const HonorsGallery = () => {
   const transitionTimer = useRef(null);
   const failedImages = useRef(new Set());
   const [, refreshImage] = useState(0);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const move = (step) => {
     if (photos.length < 2 || transitionLocked.current) return;
@@ -64,17 +68,18 @@ const HonorsGallery = () => {
   useEffect(() => {
     if (photos.length < 2) return;
     const next = photos[(active + 1) % photos.length];
-    if (!next?.image || failedImages.current.has(next.image)) return;
+    const nextImage = next?.preview || next?.image;
+    if (!nextImage || failedImages.current.has(nextImage)) return;
     let cancelled = false;
     const preload = new Image();
     const timer = window.setTimeout(() => {
       if (cancelled) return;
       preload.onload = null;
       preload.onerror = () => {
-        failedImages.current.add(next.image);
+        failedImages.current.add(nextImage);
         refreshImage((value) => value + 1);
       };
-      preload.src = next.image;
+      preload.src = nextImage;
     }, 120);
     return () => {
       cancelled = true;
@@ -84,6 +89,12 @@ const HonorsGallery = () => {
       preload.src = "";
     };
   }, [active, photos]);
+
+  const previewFailed = failedImages.current.has(photo?.preview);
+  const originalFailed = failedImages.current.has(photo?.image);
+  const activeImage = previewFailed ? (originalFailed ? noimg : photo?.image) : photo?.preview;
+
+  useEffect(() => setImageLoaded(false), [activeImage]);
 
   return (
     <main className='min-h-screen overflow-hidden bg-primary text-white-100'>
@@ -123,18 +134,23 @@ const HonorsGallery = () => {
                   className='grid w-full max-w-6xl items-center gap-8 px-8 sm:px-12 lg:grid-cols-[minmax(0,1fr)_330px]'
                 >
                   <div className='relative flex h-[36vh] min-h-[280px] items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-black/35 shadow-[0_30px_100px_rgba(0,0,0,.55)] sm:h-[52vh] sm:min-h-[340px]'>
+                    {!imageLoaded && (
+                      <div className='absolute inset-0 flex items-center justify-center bg-white/[0.03]'>
+                        <span className='h-10 w-10 animate-spin rounded-full border-2 border-white/15 border-t-violet-400' />
+                      </div>
+                    )}
                     <img
-                      src={failedImages.current.has(photo.image) ? noimg : photo.image}
+                      src={activeImage}
                       alt={photo.title}
                       decoding='async'
                       fetchPriority='high'
+                      onLoad={() => setImageLoaded(true)}
                       onError={(event) => {
-                        if (event.currentTarget.dataset.fallback) return;
-                        event.currentTarget.dataset.fallback = "1";
-                        failedImages.current.add(photo.image);
-                        event.currentTarget.src = noimg;
+                        failedImages.current.add(activeImage);
+                        setImageLoaded(false);
+                        refreshImage((value) => value + 1);
                       }}
-                      className='h-full w-full object-contain'
+                      className={`h-full w-full object-contain transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
                     />
                     <span className='absolute left-5 top-5 rounded-full border border-white/15 bg-black/50 px-3 py-1 text-xs tracking-widest backdrop-blur'>{String(active + 1).padStart(2, "0")} / {String(photos.length).padStart(2, "0")}</span>
                   </div>

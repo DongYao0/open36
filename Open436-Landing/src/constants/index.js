@@ -19,9 +19,6 @@ import {
   starbucks,
   tesla,
   shopify,
-  carrent,
-  jobit,
-  tripguide,
   threejs,
   java,
   spring,
@@ -33,8 +30,6 @@ import {
   kubernetes,
   linux,
 } from "../assets";
-
-import lanqiao from "../assets/lanqiao.png";
 
 import competition from "../assets/advantages/competition.png";
 import training from "../assets/advantages/training.png";
@@ -253,70 +248,4 @@ const testimonials = [
   },
 ];
 
-const projects = [
-  {
-    name: "蓝桥杯大赛",
-    description:
-      "组织实验室成员组队参与蓝桥杯竞赛，覆盖 Java、C/C++ 主流赛道，依托常态化刷题训练与赛前集中辅导，多名成员斩获省级一、二、三等奖及全国总决赛奖项，夯实算法编程核心能力。",
-    image: lanqiao,
-    tags: [
-      {
-        name: "算法竞赛",
-        color: "blue-text-gradient",
-      },
-      {
-        name: "C++",
-        color: "green-text-gradient",
-      },
-      {
-        name: "Java",
-        color: "pink-text-gradient",
-      },
-    ],
-    source_code_link: "https://github.com/",
-  },
-  {
-    name: "中国大学生计算机设计大赛",
-    description:
-      "围绕软件开发、人工智能、大数据等赛道组建参赛队伍，从选题、开发到作品打磨全程指导，往届团队斩获国家级、省级奖项，锻炼完整项目开发与作品答辩能力。",
-    tags: [
-      {
-        name: "全栈开发",
-        color: "blue-text-gradient",
-      },
-      {
-        name: "AI 项目",
-        color: "green-text-gradient",
-      },
-      {
-        name: "作品答辩",
-        color: "pink-text-gradient",
-      },
-    ],
-    image: jobit,
-    source_code_link: "https://github.com/",
-  },
-  {
-    name: "挑战杯科创竞赛",
-    description:
-      "聚焦科创创新课题，支持跨方向组队开展项目研发，配备学长全程指导项目撰写与路演准备，团队多次获得各级赛事荣誉，培养创新思维与团队协作能力。",
-    tags: [
-      {
-        name: "科创项目",
-        color: "blue-text-gradient",
-      },
-      {
-        name: "创新实践",
-        color: "green-text-gradient",
-      },
-      {
-        name: "路演备赛",
-        color: "pink-text-gradient",
-      },
-    ],
-    image: tripguide,
-    source_code_link: "https://github.com/",
-  },
-];
-
-export { services, technologies, experiences, testimonials, projects, defaultAbout };
+export { services, technologies, experiences, testimonials, defaultAbout };

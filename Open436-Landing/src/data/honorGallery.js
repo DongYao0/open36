@@ -88,6 +88,11 @@ export const sortHonorGallery = (photos = []) => [...photos].sort((a, b) => {
   return timeDiff || levelWeight(b.level) - levelWeight(a.level) || Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
 });
 
+export const honorPreviewUrl = (image, fallback = "") => {
+  const match = String(image || "").match(/^\/honors\/(.+)\/([^/]+)\.(?:jpe?g|png)$/i);
+  return match ? `/honors/${match[1]}/thumbs/${match[2]}.webp` : (fallback || image);
+};
+
 export const honorGallery = honorGallerySource.map((item, sourceIndex) => {
   const match = item.image.match(/\/honors\/([^/]+)\/(\d+)\.(?:jpg|png)$/i);
   const rawGroup = match?.[1] || "team";

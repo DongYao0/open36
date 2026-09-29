@@ -26,6 +26,8 @@ const ServiceCard = ({ index, title, icon }) => (
         <img
           src={icon || noimg}
           alt={title || 'service'}
+          loading='lazy'
+          decoding='async'
           className='w-16 h-16 object-contain'
         />
 

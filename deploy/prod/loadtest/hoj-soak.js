@@ -5,7 +5,7 @@ import http from 'k6/http';
 import { sleep } from 'k6';
 import exec from 'k6/execution';
 import { Counter, Rate, Trend } from 'k6/metrics';
-import { BASE_URL, makeSummary } from './common.js';
+import { BASE_URL, makeSummary, SUMMARY_TREND_STATS } from './common.js';
 
 const DURATION = __ENV.SOAK_DURATION || '5h';
 const BROWSE_VUS = parseInt(__ENV.HOJ_BROWSE_VUS || '60', 10);
@@ -31,6 +31,7 @@ const rateLimited = new Counter('hoj_rate_limited');
 const loginSuccess = new Rate('hoj_login_success');
 
 export const options = {
+  summaryTrendStats: SUMMARY_TREND_STATS,
   scenarios: {
     browse: { executor: 'constant-vus', vus: BROWSE_VUS, duration: DURATION, exec: 'browse' },
     submit: {
@@ -77,7 +78,7 @@ export function browse() {
   if (!token) { sleep(3); return; }
   const paths = [
     '/api/get-problem-list?limit=20&currentPage=1',
-    `/api/get-problem?problemId=${encodeURIComponent(PROBLEM_ID)}`,
+    `/api/get-problem-detail?problemId=${encodeURIComponent(PROBLEM_ID)}`,
     '/api/get-submission-list?limit=20&currentPage=1&onlyMine=false',
   ];
   const path = paths[Math.floor(Math.random() * paths.length)];

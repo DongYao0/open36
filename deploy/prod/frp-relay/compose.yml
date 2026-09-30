@@ -1,0 +1,40 @@
+services:
+  frpc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: open436/frpc:0.71.0-hardened
+    container_name: open436-relay-frpc
+    command: ["-c", "/etc/frp/frpc.toml"]
+    volumes:
+      - ./config/frpc.toml:/etc/frp/frpc.toml:ro
+      - ./config/token:/etc/frp/token:ro
+    networks:
+      - edge
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/frpc-healthcheck"]
+      interval: 5s
+      timeout: 4s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  edge:
+    external: true
+    name: open436-prod_edge

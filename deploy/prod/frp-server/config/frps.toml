@@ -1,0 +1,23 @@
+bindAddr = "0.0.0.0"
+bindPort = 7000
+proxyBindAddr = "127.0.0.1"
+
+# Keep sufficient pre-established FRP work connections for the public HOJ
+# entrance.  The client must use the same poolCount value.
+transport.tls.force = true
+transport.maxPoolCount = 20
+
+auth.method = "token"
+auth.tokenSource.type = "file"
+auth.tokenSource.file.path = "/etc/frp-open436/token"
+
+allowPorts = [
+  { start = 16022, end = 16022 },
+  { start = 18080, end = 18081 }
+]
+maxPortsPerClient = 3
+
+log.to = "console"
+log.level = "info"
+log.disablePrintColor = true
+detailedErrorsToClient = false

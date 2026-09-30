@@ -6,7 +6,7 @@ webServer.addr = "127.0.0.1"
 webServer.port = 7400
 
 transport.protocol = "tcp"
-transport.poolCount = 5
+transport.poolCount = 20
 transport.tcpMux = true
 transport.tcpMuxKeepaliveInterval = 15
 transport.heartbeatInterval = -1

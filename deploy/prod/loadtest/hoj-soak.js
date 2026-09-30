@@ -10,7 +10,8 @@ import { BASE_URL, makeSummary, SUMMARY_TREND_STATS } from './common.js';
 const DURATION = __ENV.SOAK_DURATION || '5h';
 const BROWSE_VUS = parseInt(__ENV.HOJ_BROWSE_VUS || '60', 10);
 const SUBMIT_RATE = parseInt(__ENV.SUBMIT_RATE_PER_MINUTE || '45', 10);
-const PROBLEM_ID = __ENV.HOJ_PROBLEM_ID || '1';
+const PROBLEM_IDS = (__ENV.HOJ_PROBLEM_IDS || __ENV.HOJ_PROBLEM_ID || '1')
+  .split(',').map(id => id.trim()).filter(Boolean);
 const ACCOUNTS_FILE = __ENV.HOJ_ACCOUNTS_FILE || 'hoj-soak-accounts.txt';
 const PASSWORD_FALLBACK = __ENV.HOJ_ACCOUNT_PASSWORD || '';
 const CODE = '#include <iostream>\nusing namespace std;\nint main(){int a=0,b=0;if(cin>>a>>b)cout<<a+b<<endl;else cout<<0<<endl;return 0;}';
@@ -29,6 +30,7 @@ const submitLost = new Counter('hoj_submit_lost');
 const abnormalSafe = new Rate('hoj_abnormal_safe');
 const rateLimited = new Counter('hoj_rate_limited');
 const loginSuccess = new Rate('hoj_login_success');
+const browseRead = new Rate('hoj_browse_read');
 
 export const options = {
   summaryTrendStats: SUMMARY_TREND_STATS,
@@ -48,12 +50,16 @@ export const options = {
     hoj_submit_accepted: ['rate>0.999'],
     hoj_abnormal_safe: ['rate>0.999'],
     hoj_login_success: ['rate>0.999'],
+    hoj_browse_read: ['rate>0.999'],
   },
 };
 
 const tokens = {};
 function accountFor(offset = 0) {
   return accounts[(exec.vu.idInTest - 1 + offset) % accounts.length];
+}
+function problemFor(offset = 0) {
+  return PROBLEM_IDS[(exec.vu.idInTest - 1 + offset) % PROBLEM_IDS.length];
 }
 function tokenFor(account) {
   if (tokens[account.username]) return tokens[account.username];
@@ -76,23 +82,26 @@ function record(response, path) {
 export function browse() {
   const token = tokenFor(accountFor());
   if (!token) { sleep(3); return; }
+  const problemId = problemFor();
   const paths = [
     '/api/get-problem-list?limit=20&currentPage=1',
-    `/api/get-problem-detail?problemId=${encodeURIComponent(PROBLEM_ID)}`,
+    `/api/get-problem-detail?problemId=${encodeURIComponent(problemId)}`,
     '/api/get-submission-list?limit=20&currentPage=1&onlyMine=false',
   ];
   const path = paths[Math.floor(Math.random() * paths.length)];
   const response = http.get(`${BASE_URL}${path}`, authHeaders(token));
   record(response, path);
+  browseRead.add(response.status === 200);
   sleep(3 + Math.random() * 5);
 }
 
 export function submit() {
   const account = accounts[exec.scenario.iterationInTest % BROWSE_VUS];
+  const problemId = PROBLEM_IDS[exec.scenario.iterationInTest % PROBLEM_IDS.length];
   const token = tokenFor(account);
   if (!token) { submitAccepted.add(false); submitLost.add(1); return; }
   const response = http.post(`${BASE_URL}/api/submit-problem-judge`, JSON.stringify({
-    pid: PROBLEM_ID, cid: 0, gid: null, tid: null, language: 'C++', code: CODE, isRemote: false,
+    pid: problemId, cid: 0, gid: null, tid: null, language: 'C++', code: CODE, isRemote: false,
   }), authHeaders(token));
   record(response, '/api/submit-problem-judge');
   submitAccepted.add(response.status === 200);
@@ -102,13 +111,14 @@ export function submit() {
 export function abnormal() {
   const abnormalPool = accounts.length - BROWSE_VUS;
   const account = accounts[BROWSE_VUS + ((exec.vu.idInTest - 1) % abnormalPool)];
+  const problemId = problemFor(1);
   const token = tokenFor(account);
   if (!token) { abnormalSafe.add(false); return; }
-  const valid = JSON.stringify({ pid: PROBLEM_ID, cid: 0, language: 'C++', code: CODE, isRemote: false });
+  const valid = JSON.stringify({ pid: problemId, cid: 0, language: 'C++', code: CODE, isRemote: false });
   const first = http.post(`${BASE_URL}/api/submit-problem-judge`, valid, authHeaders(token));
   const second = http.post(`${BASE_URL}/api/submit-problem-judge`, valid, authHeaders(token));
   const invalid = http.post(`${BASE_URL}/api/submit-problem-judge`, JSON.stringify({
-    pid: PROBLEM_ID, cid: 0, language: null, code: '', isRemote: null,
+    pid: problemId, cid: 0, language: null, code: '', isRemote: null,
   }), authHeaders(token));
   for (const response of [first, second, invalid]) {
     abnormalSafe.add(response.status > 0 && response.status < 500);

@@ -16,6 +16,7 @@ const ACCOUNTS_FILE = __ENV.HOJ_ACCOUNTS_FILE || 'hoj-soak-accounts.txt';
 const PASSWORD_FALLBACK = __ENV.HOJ_ACCOUNT_PASSWORD || '';
 const CODE = '#include <iostream>\nusing namespace std;\nint main(){int a=0,b=0;if(cin>>a>>b)cout<<a+b<<endl;else cout<<0<<endl;return 0;}';
 
+if (!PROBLEM_IDS.length) throw new Error('HOJ_PROBLEM_IDS 不能为空');
 const accounts = open(ACCOUNTS_FILE).split('\n')
   .map(line => line.trim()).filter(line => line && !line.startsWith('#'))
   .map(line => {
@@ -128,10 +129,31 @@ export function abnormal() {
 
 export function handleSummary(data) {
   const output = makeSummary('hoj-soak')(data);
+  const summary = JSON.parse(output['hoj-soak-summary.json']);
+  const metric = (name) => data.metrics[name] ? data.metrics[name].values : null;
+  const trend = (name) => {
+    const values = metric(name);
+    return values ? {
+      count: values.count, avg: values.avg, p95: values['p(95)'],
+      p99: values['p(99)'], max: values.max,
+    } : null;
+  };
+  const rate = (name) => {
+    const values = metric(name);
+    return values ? values.rate : null;
+  };
+  summary.hoj = {
+    api_duration_ms: trend('hoj_api_duration'),
+    login_success_rate: rate('hoj_login_success'),
+    browse_read_rate: rate('hoj_browse_read'),
+    submit_accepted_rate: rate('hoj_submit_accepted'),
+    submit_lost: metric('hoj_submit_lost') ? metric('hoj_submit_lost').count : 0,
+    abnormal_safe_rate: rate('hoj_abnormal_safe'),
+    rate_limited: metric('hoj_rate_limited') ? metric('hoj_rate_limited').count : 0,
+  };
+  const serialized = JSON.stringify(summary, null, 2);
   const target = __ENV.SUMMARY_FILE;
-  if (target) {
-    output[target] = output['hoj-soak-summary.json'];
-    delete output['hoj-soak-summary.json'];
-  }
-  return output;
+  return target
+    ? { stdout: output.stdout, [target]: serialized }
+    : { stdout: output.stdout, 'hoj-soak-summary.json': serialized };
 }

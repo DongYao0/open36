@@ -1,0 +1,39 @@
+serverAddr = "47.104.67.179"
+serverPort = 7000
+loginFailExit = false
+
+webServer.addr = "127.0.0.1"
+webServer.port = 7400
+
+transport.protocol = "tcp"
+transport.poolCount = 20
+transport.tcpMux = true
+transport.tcpMuxKeepaliveInterval = 15
+transport.heartbeatInterval = 15
+transport.heartbeatTimeout = 45
+transport.dialServerTimeout = 5
+transport.dialServerKeepalive = 30
+transport.tls.enable = true
+
+auth.method = "token"
+auth.tokenSource.type = "file"
+auth.tokenSource.file.path = "/etc/frp/token"
+
+log.to = "console"
+log.level = "info"
+log.disablePrintColor = true
+
+[[proxies]]
+name = "open436-public-web-backup"
+type = "tcp"
+localIP = "open436-prod-public-web"
+localPort = 80
+remotePort = 18082
+transport.useEncryption = true
+
+[proxies.healthCheck]
+type = "http"
+path = "/"
+intervalSeconds = 10
+timeoutSeconds = 3
+maxFailed = 3

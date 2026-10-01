@@ -16,7 +16,8 @@ map $http_upgrade $open436_ip_connection_upgrade {
 }
 
 upstream open436_ip_public_web {
-    server 127.0.0.1:18080;
+    server 127.0.0.1:18080 max_fails=1 fail_timeout=5s;
+    server 127.0.0.1:18082 backup;
     keepalive 128;
 }
 
@@ -66,8 +67,11 @@ server {
         proxy_socket_keepalive on;
         proxy_request_buffering off;
         proxy_buffering off;
-        # Never replay writes such as login, forum posts, or submissions.
-        proxy_next_upstream off;
+        # GET/HEAD may fail over to the standby tunnel. Nginx does not replay
+        # non-idempotent writes unless explicitly configured to do so.
+        proxy_next_upstream error timeout invalid_header http_502 http_503 http_504;
+        proxy_next_upstream_tries 2;
+        proxy_next_upstream_timeout 8s;
     }
 }
 

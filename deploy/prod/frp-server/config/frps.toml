@@ -16,9 +16,9 @@ auth.tokenSource.file.path = "/etc/frp-open436/token"
 
 allowPorts = [
   { start = 16022, end = 16022 },
-  { start = 18080, end = 18081 }
+  { start = 18080, end = 18082 }
 ]
-maxPortsPerClient = 3
+maxPortsPerClient = 4
 
 log.to = "console"
 log.level = "info"

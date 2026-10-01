@@ -23,7 +23,7 @@ const accounts = open(ACCOUNTS_FILE).split('\n')
     const split = line.indexOf(':');
     return { username: line.slice(0, split), password: line.slice(split + 1) || PASSWORD_FALLBACK };
   });
-if (accounts.length < BROWSE_VUS + 9) throw new Error(`账号不足：需要至少 ${BROWSE_VUS + 9}，当前 ${accounts.length}`);
+if (accounts.length < BROWSE_VUS + 3) throw new Error(`账号不足：需要至少 ${BROWSE_VUS + 3}，当前 ${accounts.length}`);
 
 const apiDuration = new Trend('hoj_api_duration', true);
 const problemListDuration = new Trend('hoj_problem_list_duration', true);

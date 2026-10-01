@@ -731,10 +731,11 @@ services:
       options:
         max-size: "100m"
         max-file: "10"
-    mem_limit: 2g
-    cpus: 2
+    mem_limit: 4g
+    cpus: 8
     build: { context: ../../Open436-hoj/hoj-springboot, dockerfile: Dockerfile.backend }
     image: open436/hoj-backend:build
+    entrypoint: ["java", "-Xms1g", "-Xmx3g", "-XX:+UseG1GC", "-XX:MaxGCPauseMillis=200", "-jar", "app.jar"]
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-hoj-backend
     profiles: [hoj]
     environment:
@@ -953,6 +954,9 @@ services:
     image: open436/crawler:build
     container_name: ${COMPOSE_PROJECT_NAME:-open436-prod}-crawler
     profiles: [crawler]
+    environment:
+      # 与 AIService 的 X-API-Key 保持一致，保护 /crawl/* 内部端点。
+      API_KEYS: ${INTERNAL_API_KEY}
     depends_on:
       searxng: { condition: service_healthy }
     networks: [internal]

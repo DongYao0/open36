@@ -4,7 +4,7 @@
     <select id="getCommonJudgeList" resultType="top.hcode.hoj.pojo.vo.JudgeVO" useCache="true">
         select j.submit_id,j.submit_time,j.display_pid,j.username,j.uid,j.pid,j.status,j.share,
             j.time,j.memory,j.score,j.oi_rank_score,j.length,j.language,j.cid,j.cpid,j.judger,j.is_manual
-            from judge j
+            from judge j FORCE INDEX (idx_judge_public_list)
             <where>
                 j.cid = 0 AND j.cpid = 0
                 <if test="username!='' and username!=null">
@@ -143,28 +143,45 @@
     </select>
 
     <select id="getProblemListCount" resultType="top.hcode.hoj.pojo.vo.ProblemCountVO">
-        SELECT pid,COUNT(IF(STATUS=-3,STATUS,NULL)) AS pe,
-        COUNT(IF(STATUS=-2,STATUS,NULL)) AS ce,
-        COUNT(IF(STATUS=-1,STATUS,NULL)) AS wa,
-        COUNT(IF(STATUS=0,STATUS,NULL)) AS ac,
-        COUNT(IF(STATUS=1,STATUS,NULL)) AS tle,
-        COUNT(IF(STATUS=2,STATUS,NULL)) AS mle,
-        COUNT(IF(STATUS=3,STATUS,NULL)) AS re,
-        COUNT(IF(STATUS=4,STATUS,NULL)) AS se,
-        COUNT(IF(STATUS=8,STATUS,NULL)) AS pa,
+        SELECT j.pid,COUNT(IF(j.STATUS=-3,j.STATUS,NULL)) AS pe,
+        COUNT(IF(j.STATUS=-2,j.STATUS,NULL)) AS ce,
+        COUNT(IF(j.STATUS=-1,j.STATUS,NULL)) AS wa,
+        COUNT(IF(j.STATUS=0,j.STATUS,NULL)) AS ac,
+        COUNT(IF(j.STATUS=1,j.STATUS,NULL)) AS tle,
+        COUNT(IF(j.STATUS=2,j.STATUS,NULL)) AS mle,
+        COUNT(IF(j.STATUS=3,j.STATUS,NULL)) AS re,
+        COUNT(IF(j.STATUS=4,j.STATUS,NULL)) AS se,
+        COUNT(IF(j.STATUS=8,j.STATUS,NULL)) AS pa,
         COUNT(*) AS total
-        FROM judge
+        FROM judge j
+        LEFT JOIN problem_stat_reset psr ON psr.pid = j.pid
         <where>
-            cid=0 AND gid is null
+            j.cid=0 AND j.gid is null
+            AND (psr.reset_submit_id IS NULL OR j.submit_id > psr.reset_submit_id)
             <if test="pidList!=null and pidList.size > 0">
-                AND pid in
+                AND j.pid in
                 <foreach collection="pidList" item="pid" open="(" separator="," close=")">
                     #{pid}
                 </foreach>
             </if>
         </where>
-        GROUP BY pid
+        GROUP BY j.pid
     </select>
+
+    <insert id="resetProblemStatistics">
+        INSERT INTO problem_stat_reset (pid, reset_submit_id, reset_time)
+        SELECT p.id, COALESCE(MAX(j.submit_id), 0), CURRENT_TIMESTAMP
+        FROM problem p
+        LEFT JOIN judge j ON j.pid = p.id AND j.cid = 0 AND j.gid IS NULL
+        WHERE p.id IN
+        <foreach collection="pidList" item="pid" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+        GROUP BY p.id
+        ON DUPLICATE KEY UPDATE
+            reset_submit_id = VALUES(reset_submit_id),
+            reset_time = VALUES(reset_time)
+    </insert>
 
     <select id="getLastYearUserJudgeList" resultType="top.hcode.hoj.pojo.entity.judge.Judge">
         select submit_time from judge

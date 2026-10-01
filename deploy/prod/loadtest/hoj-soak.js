@@ -11,6 +11,7 @@ import { solutionFor, wrongAnswerFor } from './hoj-solutions.js';
 const DURATION = __ENV.SOAK_DURATION || '5h';
 const BROWSE_VUS = parseInt(__ENV.HOJ_BROWSE_VUS || '60', 10);
 const SUBMIT_RATE = parseInt(__ENV.SUBMIT_RATE_PER_MINUTE || '45', 10);
+const ABNORMAL_RATE = parseInt(__ENV.ABNORMAL_RATE_PER_MINUTE || '5', 10);
 const PROBLEM_IDS = (__ENV.HOJ_PROBLEM_IDS || __ENV.HOJ_PROBLEM_ID || '1')
   .split(',').map(id => id.trim()).filter(Boolean);
 const ACCOUNTS_FILE = __ENV.HOJ_ACCOUNTS_FILE || 'hoj-soak-accounts.txt';
@@ -50,7 +51,7 @@ export const options = {
       preAllocatedVUs: 12, maxVUs: 40, exec: 'submit',
     },
     abnormal: {
-      executor: 'constant-arrival-rate', rate: 6, timeUnit: '1m', duration: DURATION,
+      executor: 'constant-arrival-rate', rate: ABNORMAL_RATE, timeUnit: '1m', duration: DURATION,
       preAllocatedVUs: 3, maxVUs: 10, exec: 'abnormal',
     },
   },

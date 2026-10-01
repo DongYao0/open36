@@ -444,6 +444,8 @@ CREATE TABLE `judge` (
   KEY `pid` (`pid`),
   KEY `uid` (`uid`),
   KEY `username` (`username`),
+  KEY `idx_judge_public_list` (`cid`,`cpid`,`gid`,`submit_time` DESC,`submit_id` DESC),
+  KEY `idx_judge_problem_stats` (`pid`,`cid`,`gid`,`submit_id`,`status`),
   CONSTRAINT `judge_ibfk_1` FOREIGN KEY (`pid`) REFERENCES `problem` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `judge_ibfk_2` FOREIGN KEY (`uid`) REFERENCES `user_info` (`uuid`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `judge_ibfk_3` FOREIGN KEY (`username`) REFERENCES `user_info` (`username`) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -574,6 +576,17 @@ CREATE TABLE `problem` (
   CONSTRAINT `problem_ibfk_1` FOREIGN KEY (`author`) REFERENCES `user_info` (`username`) ON DELETE NO ACTION ON UPDATE CASCADE,
   CONSTRAINT `problem_ibfk_2` FOREIGN KEY (`gid`) REFERENCES `group` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=1000 DEFAULT CHARSET=utf8;
+
+/* Public problem statistics reset marker. Submission history is preserved. */
+DROP TABLE IF EXISTS `problem_stat_reset`;
+
+CREATE TABLE `problem_stat_reset` (
+  `pid` bigint(20) unsigned NOT NULL,
+  `reset_submit_id` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `reset_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`pid`),
+  CONSTRAINT `problem_stat_reset_ibfk_1` FOREIGN KEY (`pid`) REFERENCES `problem` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 /*Table structure for table `problem_case` */
 

@@ -23,12 +23,20 @@ const accounts = open(ACCOUNTS_FILE).split('\n')
     const split = line.indexOf(':');
     return { username: line.slice(0, split), password: line.slice(split + 1) || PASSWORD_FALLBACK };
   });
-if (accounts.length < BROWSE_VUS + 3) throw new Error(`账号不足：需要至少 ${BROWSE_VUS + 3}，当前 ${accounts.length}`);
+if (accounts.length < BROWSE_VUS + 9) throw new Error(`账号不足：需要至少 ${BROWSE_VUS + 9}，当前 ${accounts.length}`);
 
 const apiDuration = new Trend('hoj_api_duration', true);
+const problemListDuration = new Trend('hoj_problem_list_duration', true);
+const problemDetailDuration = new Trend('hoj_problem_detail_duration', true);
+const submissionListDuration = new Trend('hoj_submission_list_duration', true);
+const judgeSubmitDuration = new Trend('hoj_judge_submit_duration', true);
 const submitAccepted = new Rate('hoj_submit_accepted');
 const submitLost = new Counter('hoj_submit_lost');
 const abnormalSafe = new Rate('hoj_abnormal_safe');
+const abnormalCorrectAccepted = new Rate('hoj_abnormal_correct_accepted');
+const abnormalWrongAccepted = new Rate('hoj_abnormal_wrong_accepted');
+const abnormalInvalidRejected = new Rate('hoj_abnormal_invalid_rejected');
+const businessRejected = new Counter('hoj_business_rejected');
 const rateLimited = new Counter('hoj_rate_limited');
 const loginSuccess = new Rate('hoj_login_success');
 const browseRead = new Rate('hoj_browse_read');
@@ -50,6 +58,9 @@ export const options = {
     hoj_api_duration: ['p(95)<800', 'p(99)<2000'],
     hoj_submit_accepted: ['rate>0.999'],
     hoj_abnormal_safe: ['rate>0.999'],
+    hoj_abnormal_correct_accepted: ['rate>0.999'],
+    hoj_abnormal_wrong_accepted: ['rate>0.999'],
+    hoj_abnormal_invalid_rejected: ['rate>0.999'],
     hoj_login_success: ['rate>0.999'],
     hoj_browse_read: ['rate>0.999'],
   },
@@ -78,6 +89,35 @@ function authHeaders(token) {
 }
 function record(response, path) {
   apiDuration.add(response.timings.duration, { path });
+  const trends = {
+    '/api/get-problem-list': problemListDuration,
+    '/api/get-problem-detail': problemDetailDuration,
+    '/api/get-submission-list': submissionListDuration,
+    '/api/submit-problem-judge': judgeSubmitDuration,
+  };
+  const trend = trends[path.split('?')[0]];
+  if (trend) trend.add(response.timings.duration);
+}
+function responseBody(response) {
+  try { return response.json(); } catch (_) { return null; }
+}
+function submissionWasQueued(response) {
+  const body = responseBody(response);
+  return response.status === 200 && body && body.status === 200
+    && body.data && Number.isInteger(body.data.submitId);
+}
+function rejectionWasSafe(response) {
+  const body = responseBody(response);
+  // HOJ validates some payloads with HTTP 200 plus CommonResult.status=400.
+  return response.status > 0 && response.status < 500
+    && body && body.status >= 400 && body.status < 500;
+}
+function noteBusinessRejection(response) {
+  const body = responseBody(response);
+  if (!body || body.status !== 200) businessRejected.add(1);
+  if (response.status === 429 || (body && String(body.msg || '').includes('频率'))) {
+    rateLimited.add(1);
+  }
 }
 
 export function browse() {
@@ -106,29 +146,52 @@ export function submit() {
     pid: problemId, cid: 0, gid: null, tid: null, language: 'C++', code, isRemote: false,
   }), authHeaders(token));
   record(response, '/api/submit-problem-judge');
-  submitAccepted.add(response.status === 200);
-  if (response.status !== 200) submitLost.add(1);
+  const queued = submissionWasQueued(response);
+  submitAccepted.add(queued);
+  if (!queued) {
+    submitLost.add(1);
+    noteBusinessRejection(response);
+  }
 }
 
 export function abnormal() {
   const abnormalPool = accounts.length - BROWSE_VUS;
-  const account = accounts[BROWSE_VUS + ((exec.vu.idInTest - 1) % abnormalPool)];
-  const problemId = problemFor(1);
-  const token = tokenFor(account);
+  const iteration = exec.scenario.iterationInTest;
+  const accountAt = (offset) => accounts[BROWSE_VUS + ((iteration * 3 + offset) % abnormalPool)];
+  const correctToken = tokenFor(accountAt(0));
+  const wrongToken = tokenFor(accountAt(1));
+  const invalidToken = tokenFor(accountAt(2));
+  const problemId = PROBLEM_IDS[iteration % PROBLEM_IDS.length];
   const code = solutionFor(problemId);
   const wrongCode = wrongAnswerFor(problemId);
-  if (!token || !code || !wrongCode) { abnormalSafe.add(false); return; }
+  if (!correctToken || !wrongToken || !invalidToken || !code || !wrongCode) {
+    abnormalCorrectAccepted.add(false);
+    abnormalWrongAccepted.add(false);
+    abnormalInvalidRejected.add(false);
+    abnormalSafe.add(false);
+    submitLost.add(2);
+    return;
+  }
   const valid = JSON.stringify({ pid: problemId, cid: 0, language: 'C++', code, isRemote: false });
   const wrong = JSON.stringify({ pid: problemId, cid: 0, language: 'C++', code: wrongCode, isRemote: false });
-  const first = http.post(`${BASE_URL}/api/submit-problem-judge`, valid, authHeaders(token));
-  const second = http.post(`${BASE_URL}/api/submit-problem-judge`, wrong, authHeaders(token));
+  const first = http.post(`${BASE_URL}/api/submit-problem-judge`, valid, authHeaders(correctToken));
+  const second = http.post(`${BASE_URL}/api/submit-problem-judge`, wrong, authHeaders(wrongToken));
   const invalid = http.post(`${BASE_URL}/api/submit-problem-judge`, JSON.stringify({
     pid: problemId, cid: 0, language: null, code: '', isRemote: null,
-  }), authHeaders(token));
-  for (const response of [first, second, invalid]) {
-    abnormalSafe.add(response.status > 0 && response.status < 500);
-    if (response.status === 403 || response.status === 429) rateLimited.add(1);
-  }
+  }), authHeaders(invalidToken));
+  for (const response of [first, second, invalid]) record(response, '/api/submit-problem-judge');
+  const correctQueued = submissionWasQueued(first);
+  const wrongQueued = submissionWasQueued(second);
+  const invalidSafe = rejectionWasSafe(invalid);
+  abnormalCorrectAccepted.add(correctQueued);
+  abnormalWrongAccepted.add(wrongQueued);
+  abnormalInvalidRejected.add(invalidSafe);
+  abnormalSafe.add(correctQueued);
+  abnormalSafe.add(wrongQueued);
+  abnormalSafe.add(invalidSafe);
+  if (!correctQueued) { submitLost.add(1); noteBusinessRejection(first); }
+  if (!wrongQueued) { submitLost.add(1); noteBusinessRejection(second); }
+  if (!invalidSafe) businessRejected.add(1);
 }
 
 export function handleSummary(data) {
@@ -148,11 +211,21 @@ export function handleSummary(data) {
   };
   summary.hoj = {
     api_duration_ms: trend('hoj_api_duration'),
+    api_by_path_ms: {
+      problem_list: trend('hoj_problem_list_duration'),
+      problem_detail: trend('hoj_problem_detail_duration'),
+      submission_list: trend('hoj_submission_list_duration'),
+      judge_submit: trend('hoj_judge_submit_duration'),
+    },
     login_success_rate: rate('hoj_login_success'),
     browse_read_rate: rate('hoj_browse_read'),
     submit_accepted_rate: rate('hoj_submit_accepted'),
     submit_lost: metric('hoj_submit_lost') ? metric('hoj_submit_lost').count : 0,
     abnormal_safe_rate: rate('hoj_abnormal_safe'),
+    abnormal_correct_accepted_rate: rate('hoj_abnormal_correct_accepted'),
+    abnormal_wrong_accepted_rate: rate('hoj_abnormal_wrong_accepted'),
+    abnormal_invalid_rejected_rate: rate('hoj_abnormal_invalid_rejected'),
+    business_rejected: metric('hoj_business_rejected') ? metric('hoj_business_rejected').count : 0,
     rate_limited: metric('hoj_rate_limited') ? metric('hoj_rate_limited').count : 0,
   };
   const serialized = JSON.stringify(summary, null, 2);

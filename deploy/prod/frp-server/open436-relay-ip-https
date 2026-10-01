@@ -21,6 +21,7 @@ upstream open436_ip_public_web {
     # re-registration.
     server 127.0.0.1:18080 max_fails=0;
     server 127.0.0.1:18082 max_fails=0;
+    server 127.0.0.1:18083 max_fails=0;
     keepalive 128;
 }
 
@@ -55,6 +56,20 @@ server {
     client_max_body_size 2g;
     keepalive_timeout 75s;
 
+    # Secondary FRP control path: HTTPS/WSS on the standard web port avoids
+    # coupling the standby tunnel to the long-lived raw TCP/7000 path.
+    location = /~!frp {
+        proxy_pass http://127.0.0.1:7001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_connect_timeout 3s;
+        proxy_send_timeout 3600s;
+        proxy_read_timeout 3600s;
+        proxy_buffering off;
+    }
+
     location / {
         proxy_pass http://open436_ip_public_web;
         proxy_http_version 1.1;
@@ -73,8 +88,10 @@ server {
         # GET/HEAD may fail over to the standby tunnel. Nginx does not replay
         # non-idempotent writes unless explicitly configured to do so.
         proxy_next_upstream error timeout invalid_header http_502 http_503 http_504;
-        proxy_next_upstream_tries 2;
-        proxy_next_upstream_timeout 8s;
+        # There are three relay transports. A request may select both failed
+        # TCP peers before reaching the WSS peer, so allow all three attempts.
+        proxy_next_upstream_tries 3;
+        proxy_next_upstream_timeout 10s;
     }
 }
 

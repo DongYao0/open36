@@ -1,0 +1,26 @@
+[Unit]
+Description=Open436 FRP WSS relay server
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=frp-open436
+Group=frp-open436
+ExecStart=/usr/local/bin/frps-open436 -c /etc/frp-open436-wss/frps.toml
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

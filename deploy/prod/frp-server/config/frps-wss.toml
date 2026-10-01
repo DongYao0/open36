@@ -1,0 +1,21 @@
+bindAddr = "127.0.0.1"
+bindPort = 7001
+proxyBindAddr = "127.0.0.1"
+
+# TLS is terminated by the local Nginx /~!frp WSS endpoint.
+transport.tls.force = false
+transport.maxPoolCount = 20
+transport.tcpMuxKeepaliveInterval = 15
+transport.heartbeatTimeout = 45
+
+auth.method = "token"
+auth.tokenSource.type = "file"
+auth.tokenSource.file.path = "/etc/frp-open436/token"
+
+allowPorts = [{ single = 18083 }]
+maxPortsPerClient = 1
+
+log.to = "console"
+log.level = "info"
+log.disablePrintColor = true
+detailedErrorsToClient = false

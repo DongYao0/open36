@@ -51,6 +51,7 @@ run_loop() {
   while true; do
     restart_if_needed primary open436-relay-frpc open436-public-web || true
     restart_if_needed backup open436-relay-frpc-public-backup open436-public-web-backup || true
+    restart_if_needed wss open436-relay-frpc-public-wss open436-public-web-wss || true
     sleep "$INTERVAL_SECONDS"
   done
 }
@@ -60,6 +61,7 @@ case "${1:-run}" in
   check)
     container_healthy open436-relay-frpc open436-public-web
     container_healthy open436-relay-frpc-public-backup open436-public-web-backup
+    container_healthy open436-relay-frpc-public-wss open436-public-web-wss
     ;;
   *) echo "usage: $0 {run|check}" >&2; exit 2 ;;
 esac

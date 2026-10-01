@@ -6,6 +6,9 @@ proxyBindAddr = "127.0.0.1"
 # entrance.  The client must use the same poolCount value.
 transport.tls.force = true
 transport.maxPoolCount = 20
+transport.tcpMuxKeepaliveInterval = 15
+transport.tcpKeepalive = 30
+transport.heartbeatTimeout = 45
 
 auth.method = "token"
 auth.tokenSource.type = "file"

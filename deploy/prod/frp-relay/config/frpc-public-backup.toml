@@ -9,8 +9,7 @@ transport.protocol = "tcp"
 transport.poolCount = 20
 transport.tcpMux = true
 transport.tcpMuxKeepaliveInterval = 15
-# tcpMux has its own keepalive; keep the legacy control heartbeat disabled.
-transport.heartbeatInterval = -1
+transport.heartbeatInterval = 15
 transport.heartbeatTimeout = 45
 transport.dialServerTimeout = 5
 transport.dialServerKeepalive = 30

@@ -6,6 +6,7 @@ import { sleep } from 'k6';
 import exec from 'k6/execution';
 import { Counter, Rate, Trend } from 'k6/metrics';
 import { BASE_URL, makeSummary, SUMMARY_TREND_STATS } from './common.js';
+import { solutionFor, wrongAnswerFor } from './hoj-solutions.js';
 
 const DURATION = __ENV.SOAK_DURATION || '5h';
 const BROWSE_VUS = parseInt(__ENV.HOJ_BROWSE_VUS || '60', 10);
@@ -14,7 +15,6 @@ const PROBLEM_IDS = (__ENV.HOJ_PROBLEM_IDS || __ENV.HOJ_PROBLEM_ID || '1')
   .split(',').map(id => id.trim()).filter(Boolean);
 const ACCOUNTS_FILE = __ENV.HOJ_ACCOUNTS_FILE || 'hoj-soak-accounts.txt';
 const PASSWORD_FALLBACK = __ENV.HOJ_ACCOUNT_PASSWORD || '';
-const CODE = '#include <iostream>\nusing namespace std;\nint main(){int a=0,b=0;if(cin>>a>>b)cout<<a+b<<endl;else cout<<0<<endl;return 0;}';
 
 if (!PROBLEM_IDS.length) throw new Error('HOJ_PROBLEM_IDS 不能为空');
 const accounts = open(ACCOUNTS_FILE).split('\n')
@@ -99,10 +99,11 @@ export function browse() {
 export function submit() {
   const account = accounts[exec.scenario.iterationInTest % BROWSE_VUS];
   const problemId = PROBLEM_IDS[exec.scenario.iterationInTest % PROBLEM_IDS.length];
+  const code = solutionFor(problemId);
   const token = tokenFor(account);
-  if (!token) { submitAccepted.add(false); submitLost.add(1); return; }
+  if (!token || !code) { submitAccepted.add(false); submitLost.add(1); return; }
   const response = http.post(`${BASE_URL}/api/submit-problem-judge`, JSON.stringify({
-    pid: problemId, cid: 0, gid: null, tid: null, language: 'C++', code: CODE, isRemote: false,
+    pid: problemId, cid: 0, gid: null, tid: null, language: 'C++', code, isRemote: false,
   }), authHeaders(token));
   record(response, '/api/submit-problem-judge');
   submitAccepted.add(response.status === 200);
@@ -114,10 +115,13 @@ export function abnormal() {
   const account = accounts[BROWSE_VUS + ((exec.vu.idInTest - 1) % abnormalPool)];
   const problemId = problemFor(1);
   const token = tokenFor(account);
-  if (!token) { abnormalSafe.add(false); return; }
-  const valid = JSON.stringify({ pid: problemId, cid: 0, language: 'C++', code: CODE, isRemote: false });
+  const code = solutionFor(problemId);
+  const wrongCode = wrongAnswerFor(problemId);
+  if (!token || !code || !wrongCode) { abnormalSafe.add(false); return; }
+  const valid = JSON.stringify({ pid: problemId, cid: 0, language: 'C++', code, isRemote: false });
+  const wrong = JSON.stringify({ pid: problemId, cid: 0, language: 'C++', code: wrongCode, isRemote: false });
   const first = http.post(`${BASE_URL}/api/submit-problem-judge`, valid, authHeaders(token));
-  const second = http.post(`${BASE_URL}/api/submit-problem-judge`, valid, authHeaders(token));
+  const second = http.post(`${BASE_URL}/api/submit-problem-judge`, wrong, authHeaders(token));
   const invalid = http.post(`${BASE_URL}/api/submit-problem-judge`, JSON.stringify({
     pid: problemId, cid: 0, language: null, code: '', isRemote: null,
   }), authHeaders(token));
